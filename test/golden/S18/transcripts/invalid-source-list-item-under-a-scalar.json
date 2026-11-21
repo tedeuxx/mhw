@@ -1,0 +1,29 @@
+{
+  "name": "invalid-source-list-item-under-a-scalar",
+  "runs": [
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/skills/zeta/SKILL.md: unsupported front matter line:   - stray; nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/skills/zeta/SKILL.md: unsupported front matter line:   - stray; nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        }
+      ]
+    }
+  ]
+}

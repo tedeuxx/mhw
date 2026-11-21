@@ -14,9 +14,11 @@ purpose: "give published content a feedback loop the loop itself can run, becaus
 > session checks that replaced the plugin's reporting hooks are in `agents-configuration`, *Session-start
 > and end-of-turn checks*.
 >
-> **The scripts this rite runs ship with the method (#170).** `{{method-scripts}}` in this text is the
+> ~~**The scripts this rite runs ship with the method (#170).** `{{method-scripts}}` in this text is the
 > directory the method installs them to, the same for every agent harness, so the rite runs them from
-> any repository.
+> any repository.~~ *(Struck 2026-11-21, #489: the method installs no script; the rite runs `mhw`
+> commands.)* Where `{{method-scripts}}` appears in this text, it is the directory the method installs
+> the documents a rite reads to, the same for every agent harness.
 
 > **A skill, not a command, since 2026-10-26** (the owner: *"para mim sao skills"*). Invoke it by name:
 > Claude Code `/funnel-review`, Codex `$funnel-review`, Kiro `/funnel-review`. Any agent harness may also load it
@@ -549,7 +551,7 @@ refuses to print a figure that arrived without one.
 - ~~**`hooks/scripts/inventory-counts.test.sh` asserts this file's rules are WRITTEN.** It cannot~~
   ~~assert that a session obeyed any of them, and no arm anywhere claims otherwise.~~ *(Struck
   2026-10-16, #128: that suite is the plugin's.)* **What reads this file's text in the method's source
-  repository is narrow, and it reads strings.** `global/method/method_commands_test.py` asserts that
+  repository is narrow, and it reads strings.** ~~`global/method/method_commands_test.py`~~ `test/render/method-commands.test.js` (#489) asserts that
   it carries the headings `## The steps` and `## What this rite cannot see`. mhw's `test/method/funnel-review.test.js`
   asserts that it carries no verdict literal and no decision field, that it publishes the
   candidate-queue selector verbatim, and that it cites the store contract. Other suites there check

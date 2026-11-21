@@ -1,0 +1,29 @@
+{
+  "name": "invalid-source-skill-name-mismatch",
+  "runs": [
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/skills/zeta/SKILL.md: name must equal the directory name (lowercase, hyphens, 64 at most); nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/skills/zeta/SKILL.md: name must equal the directory name (lowercase, hyphens, 64 at most); nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        }
+      ]
+    }
+  ]
+}

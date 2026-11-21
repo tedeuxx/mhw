@@ -31,7 +31,7 @@
 #                               --check reports it; --dry-run writes nothing; --uninstall removes the block
 #   --method                    opt-in (Issue #61): render the working method (method/) too. Off by default
 #                               until the plugin cutover (#63, #64); once rendered, later runs keep it
-#                               current and --uninstall removes it (global/method/method_render.py)
+#                               current and --uninstall removes it (src/render/method.js, Node since #489)
 #
 # Exit codes: 0 ok · 1 drift, stamp or missing (--check) · 2 usage, invalid floor entry or missing dependency ·
 # 3 something UNMANAGED or unreadable is in the way. A file is managed when its marker line (below) is in
@@ -1059,18 +1059,32 @@ uninstall_user() {
   echo "UNMERGED $settings (our hook entries, the deny-floor rules this installer added, and our two keys removed; previous version kept as $settings.pmhwc-backup)"
 }
 # The working method (Issue #61, ADR-0032): agents, skills and commands from <repo>/method, rendered into
-# each agent harness's user-level native carrier by its own step, global/method/method_render.py. It
-# receives this script's mode and stamp, so the stamp is derived once (ADR-0029). It writes only files
-# carrying the managed-by line with "source: method/", and never an unmanaged one.
+# each agent harness's user-level native carrier by its own step, src/render/method.js (Node since #489,
+# S18 of #470; global/method/method_render.py until then). It receives this script's mode and stamp, so the
+# stamp is derived once (ADR-0029). It writes only files carrying the managed-by line with "source:
+# method/", and never an unmanaged one. It installs no script any more (the rites run mhw commands); a
+# script an earlier version installed is reported STALE by --check and removed by install. The node is
+# the models_step lookup (PR #515 lens A1): MHW_NODE, an absolute path, else the first node on PATH; an
+# absolute MHW_NODE that is not an executable file is refused, never replaced by another node.
 method_step() {
-  if ! command -v python3 >/dev/null 2>&1; then
-    echo "SKIP    the working method (method/): python3 3.9 or later is required to render it"
-    raise 2
-    return 0
-  fi
+  method_node=${MHW_NODE:-}
+  case $method_node in
+    /*) if [ ! -f "$method_node" ] || [ ! -x "$method_node" ]; then
+          echo "REFUSE  the working method (method/): MHW_NODE ($method_node) is not an executable file; nothing written"
+          raise 2
+          return 0
+        fi ;;
+    *) method_node=$(command -v node 2>/dev/null || true) ;;
+  esac
+  case $method_node in
+    /*) ;;
+    *) echo "SKIP    the working method (method/): node (26 or later) is required to render it"
+       raise 2
+       return 0 ;;
+  esac
   # shellcheck disable=SC2086 # $method_optin is empty or the single word --opt-in
   method_rc=0
-  python3 -B "$script_dir/method/method_render.py" "--mode=$mode" "--stamp=$stamp" $method_optin || method_rc=$?
+  "$method_node" "$script_dir/../src/render/method.js" "--mode=$mode" "--stamp=$stamp" $method_optin || method_rc=$?
   [ "$method_rc" -eq 0 ] || raise "$method_rc"
   # The plugin cutover step (plugin_retire.py, #130) was removed in v7 (Issue #206): a plugin still
   # enabled is reported by mhw status and disabled by hand with the agent harness's own command.
