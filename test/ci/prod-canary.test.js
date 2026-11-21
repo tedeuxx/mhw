@@ -59,21 +59,83 @@ test('a .py, .sh or .ps1 file in the installed package is a FAIL; a --legacy one
   const f = packed((repo) => {
     fs.writeFileSync(path.join(repo, 'variant.json'), '{}\n');
     fs.writeFileSync(path.join(repo, 'bin', 'helper.sh'), '#!/bin/sh\necho synthetic\n');
+    // An upper-case extension is the same kind of file.
+    fs.writeFileSync(path.join(repo, 'bin', 'Tool.PY'), 'print("synthetic")\n');
   });
   let p = runIn(f, 'w-none');
   assert.equal(p.status, 1, p.stdout);
-  assert.match(p.stdout, /^FAIL {2}the installed package carries no \.py, \.sh or \.ps1 file\n {6}carried: \['bin\/helper\.sh'\]$/m);
+  assert.match(p.stdout, /^FAIL {2}the installed package carries no \.py, \.sh or \.ps1 file\n {6}carried: \['bin\/Tool\.PY', 'bin\/helper\.sh'\]$/m);
   assert.match(p.stdout, /==> fresh: 1 failure\(s\): the installed package carries no \.py, \.sh or \.ps1 file\n$/);
-  p = runIn(f, 'w-legacy', ['--legacy', 'bin/helper.sh']);
+  p = runIn(f, 'w-legacy', ['--legacy', 'bin/helper.sh bin/Tool.PY']);
   assert.equal(p.status, 0, p.stdout);
-  assert.match(p.stdout, /^PASS {2}the installed package carries no \.py, \.sh or \.ps1 file but the 1 --legacy one\(s\) still to be retired$/m);
+  assert.match(p.stdout, /^PASS {2}the installed package carries no \.py, \.sh or \.ps1 file but the 2 --legacy one\(s\) still to be retired$/m);
   assert.match(p.stdout, /^PASS {2}every --legacy file is still in the installed package/m);
-  p = runIn(f, 'w-stale', ['--legacy=bin/helper.sh global/install.sh']);
+  p = runIn(f, 'w-stale', ['--legacy=bin/helper.sh bin/Tool.PY global/install.sh']);
   assert.equal(p.status, 1, p.stdout);
   assert.match(p.stdout, /^FAIL {2}every --legacy file is still in the installed package \(remove a retired one from --legacy\)\n {6}no longer carried: \['global\/install\.sh'\]$/m);
   p = runIn(f, 'w-unsafe', ['--legacy', 'bin/../x']);
   assert.equal(p.status, 2);
   assert.match(p.stdout, /^ERROR refusing --legacy entry 'bin\/\.\.\/x'$/m);
+});
+
+// QA B1 on PR #545: every check the goldens never show failing gets a row here. Each row breaks exactly one
+// property of the fake package (test/helpers/s31-fixture/bin/mhw.js, through <work>.variant.json) and expects
+// exit 1 and that check's FAIL line, so a canary condition blinded in the source turns this test red. The
+// checks the goldens already show failing (run-broken, run-floor-mismatch, run-install-fails, the stamp
+// row of run-good) are not repeated. Two sites cannot fail by construction and have no row: the canary's
+// own `the paste-wrapper marker is unset for the hook` (it reads the environment the canary built) and the
+// constant `mhw check exits 0` on exit 0.
+/** @type {Array<[Record<string, unknown>, string]>} */
+const ROWS = [
+  [{ noSuccessLine: true }, 'mhw install --yes (the head)'],
+  [{ twoDropIns: true }, 'Claude Code admin drop-in'],
+  [{ dropOwnerDeny: true }, "Claude Code: the owner's own deny rule is kept"],
+  [{ dropOwnerKiro: true }, "Kiro: the owner's own deny rule is kept"],
+  [{ kiroShape: 'missing' }, 'Kiro: the user-level hook file is rendered in the V3 shape'],
+  [{ kiroShape: 'version' }, 'Kiro: the user-level hook file is rendered in the V3 shape'],
+  [{ kiroShape: 'two' }, 'Kiro: the user-level hook file is rendered in the V3 shape'],
+  [{ kiroShape: 'desc' }, 'Kiro: the user-level hook file is rendered in the V3 shape'],
+  [{ kiroShape: 'trigger' }, 'Kiro: the user-level hook file is rendered in the V3 shape'],
+  [{ twoHooks: true }, 'claude: exactly one installed prompt hook'],
+  [{ twoHooks: true }, 'codex: exactly one installed prompt hook'],
+  [{ hookBlockExit1: true }, 'claude: the installed hook blocks a synthetic credential-shaped prompt'],
+  [{ hookEchoesKey: true }, 'codex: the installed hook blocks a synthetic credential-shaped prompt'],
+  [{ hookCleanNoise: true }, 'claude: the installed hook passes a clean prompt'],
+  [{ hookCleanExit1: true }, 'codex: the installed hook passes a clean prompt'],
+  [{ hookIgnoresMarker: true }, 'claude: calibration, with the wrapper marker set the hook stays silent'],
+  [{ kiroExit0: true }, 'kiro (marker unset): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout'],
+  [{ kiroStdout: true }, 'kiro (marker set): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout'],
+  [{ kiroNoRedaction: true }, 'kiro (marker unset): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout'],
+  [{ kiroEchoesKey: true }, 'kiro (marker unset): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout'],
+  [{ kiroBlocksClean: true }, 'kiro: the installed hook passes a clean prompt'],
+  [{ kiroCleanNoise: true }, 'kiro: the installed hook passes a clean prompt'],
+  [{ statusExit1: true }, 'mhw status exits 0'],
+  [{ noPrereq: true }, 'mhw check: the installed-state and admin sections report no problem'],
+  [{ checkExit2: true }, 'mhw check exits 0 but for the required CLIs absent by construction here (claude, codex)'],
+  [{ checkNoMissing: true }, 'mhw check exits 0'],
+  [{ uninstallExit1: true }, 'mhw uninstall --yes exits 0'],
+  [{ uninstallChangesZshrc: true }, 'uninstall restores every file the owner had (5; JSON as a document, the rest byte for byte)'],
+  [{ uninstallKeepsFloor: true }, 'no floor rule is left in Claude Code settings'],
+  [{ lockPackage: true }, 'npm uninstall -g mhw exits 0'],
+];
+
+test('every check the goldens never fail is driven red by a package broken in exactly that way', { skip: SKIP }, () => {
+  const f = packed((repo) => fs.writeFileSync(path.join(repo, 'variant.json'), '{}\n'));
+  const control = runIn(f, 'w-control');
+  assert.equal(control.status, 0, 'the unbroken package passes: ' + control.stdout);
+  /** @type {string[]} */
+  const misses = [];
+  ROWS.forEach(([variant, label], i) => {
+    const work = 'w-row' + i;
+    fs.writeFileSync(path.join(f.d, work + '.variant.json'), JSON.stringify(variant));
+    const p = runIn(f, work);
+    // A row that locked the global node_modules directory gives it back, so the case directory can be removed.
+    const modules = path.join(f.d, work, 'fresh', 'prefix', 'lib', 'node_modules');
+    if (fs.existsSync(modules)) fs.chmodSync(modules, 0o700);
+    const lines = p.stdout.split('\n');
+    if (p.status !== 1 || !lines.includes('FAIL  ' + label)) misses.push(JSON.stringify(variant) + ' -> exit ' + p.status + ', no FAIL line: ' + label);
+  });
+  assert.deepEqual(misses, []);
 });
 
 test('a carrier that is not JSON is exit 1 with one line, never a stack trace', { skip: SKIP }, () => {
@@ -185,13 +247,20 @@ function stubRuntime() {
 const IMAGE = 'docker.io/library/node@sha256:' + 'b'.repeat(64);
 const COMMIT = 'a'.repeat(40);
 
-test('container refuses an image not pinned by digest, a short commit, an unknown mode, an unsafe --legacy entry and a wrong argument count', { skip: !POSIX && 'POSIX' }, () => {
+test('container refuses an image not pinned by digest or starting with an option character, a package directory with a colon, a short commit, an unknown mode, an unsafe --legacy entry and a wrong argument count', { skip: !POSIX && 'POSIX' }, () => {
   const s = stubRuntime();
   /** @param {string[]} args */
   const run = (args) => spawnSync(process.execPath, [SCRIPT, 'container', ...args], { env: s.env, encoding: 'utf8' });
   let p = run(['node:26', path.join(s.d, 'pkg'), COMMIT, 'fresh']);
   assert.equal(p.status, 2);
   assert.equal(p.stderr, 'BLOCK  the image is not pinned by digest: node:26\n');
+  p = run(['-v@sha256:' + 'b'.repeat(64), path.join(s.d, 'pkg'), COMMIT, 'fresh']);
+  assert.equal(p.status, 2, 'an image that would read as an option');
+  assert.match(p.stderr, /^BLOCK {2}the image is not pinned by digest: -v@sha256:/);
+  fs.mkdirSync(path.join(s.d, 'p:kg'));
+  p = run([IMAGE, path.join(s.d, 'p:kg'), COMMIT, 'fresh']);
+  assert.equal(p.status, 2, 'a colon would change the mount');
+  assert.match(p.stderr, /^the package directory must not contain a colon: /);
   p = run([IMAGE, path.join(s.d, 'pkg'), COMMIT.slice(0, 12), 'fresh']);
   assert.equal(p.status, 2);
   assert.match(p.stderr, /full lower-case SHA/);
@@ -207,7 +276,7 @@ test('container refuses an image not pinned by digest, a short commit, an unknow
   assert.ok(!fs.existsSync(s.log), 'the runtime never ran');
 });
 
-test('container runs the runtime with the packages read-only and the head\'s own canary inside, as the node user', { skip: !POSIX && 'POSIX' }, () => {
+test('container runs the runtime with the packages read-only and the canary of src-HEAD inside, as the node user', { skip: !POSIX && 'POSIX' }, () => {
   const s = stubRuntime();
   const pkg = path.join(s.d, 'pkg');
   const p = spawnSync(process.execPath, [SCRIPT, 'container', IMAGE, pkg, COMMIT, 'upgrade', '--legacy', 'global/install.sh global/install.ps1'],

@@ -2,7 +2,8 @@
 // S31 fixture (#501): a FAKE mhw, the package the prod canary's golden cases install and check. It renders
 // the deny floor of its own global/ and overlay/ deny-floor.conf into a throwaway HOME and admin root in the
 // shapes the canary reads, answers `status`, `check`, `uninstall --yes` and `hook prompt`, and can be told by
-// variant.json to break each of them. It is not mhw and claims nothing about mhw: it exists so both the
+// variant.json to break each of them (one key per property; a test may override the package's variant.json
+// with <work>.variant.json beside the canary's work directory, so one package serves every row). It is not mhw and claims nothing about mhw: it exists so both the
 // deleted prod_canary.py and .github/scripts/prod-canary.js can be run against the same package, offline,
 // in seconds. Every value is synthetic. CommonJS (this package declares no "type"); node: modules only.
 'use strict';
@@ -14,8 +15,13 @@ const MARKER = 'PMHWC_PASTE_WRAPPER';
 const PKG = fs.realpathSync(path.join(__dirname, '..'));
 const HOME = process.env.HOME || '';
 const ROOT = process.env.WORKSTATION_MANAGED_ROOT || '';
-/** @type {{ broken?: boolean, installExit?: number, badSettings?: boolean }} */
+/** @type {Record<string, unknown>} */
 const VARIANT = JSON.parse(fs.readFileSync(path.join(PKG, 'variant.json'), 'utf8'));
+// The canary's box is <work>/<label>/home: <work>.variant.json beside the work directory overrides.
+const WORK = path.dirname(path.dirname(HOME));
+const OVERRIDE = path.join(path.dirname(WORK), path.basename(WORK) + '.variant.json');
+if (HOME && fs.existsSync(OVERRIDE)) Object.assign(VARIANT, JSON.parse(fs.readFileSync(OVERRIDE, 'utf8')));
+const OWNER_DENY = 'Bash(owner-canary-tool --only-mine:*)';
 const BACKUP = '.pmhwc-backup';
 const KEY_PATTERN = /AKIA[0-9A-Z]{16}/g;
 
@@ -93,7 +99,8 @@ function install() {
   const sText = original(settings);
   const doc = sText ? JSON.parse(sText) : {};
   doc.permissions = doc.permissions || {};
-  doc.permissions.deny = [...(doc.permissions.deny || []), ...claude];
+  const kept = (doc.permissions.deny || []).filter((/** @type {string} */ r) => !(VARIANT.dropOwnerDeny && r === OWNER_DENY));
+  doc.permissions.deny = [...kept, ...claude];
   doc[NAME + '-owned-deny'] = claude;
   mkdirFor(settings);
   fs.writeFileSync(settings, JSON.stringify(doc, null, 2) + '\n');
@@ -105,6 +112,7 @@ function install() {
   // Kiro user permissions.yaml: the owner's rules kept, the floor appended.
   const perms = path.join(HOME, '.kiro', 'settings', 'permissions.yaml');
   let yaml = original(perms) || 'rules:\n';
+  if (VARIANT.dropOwnerKiro) yaml = 'rules:\n';
   for (const cap of Object.keys(kiro)) {
     if (!kiro[cap].length) continue;
     yaml += '  - capability: "' + cap + '"\n    effect: "deny"\n    match:\n'
@@ -113,17 +121,24 @@ function install() {
   mkdirFor(perms);
   fs.writeFileSync(perms, yaml);
   // The admin layer, under the throwaway root only.
+  const claudeHook = { type: 'command', command: hookCommand('claude') };
   const drop = path.join(ROOT, 'etc', 'claude-code', 'managed-settings.d', '50-' + NAME + '.json');
   mkdirFor(drop);
   fs.writeFileSync(drop, JSON.stringify({
     permissions: { deny: claude },
-    hooks: { UserPromptSubmit: [{ hooks: [{ type: 'command', command: hookCommand('claude') }] }] },
+    hooks: { UserPromptSubmit: [{ hooks: VARIANT.twoHooks ? [claudeHook, claudeHook] : [claudeHook] }] },
   }, null, 2) + '\n');
+  if (VARIANT.twoDropIns) {
+    const second = path.join(ROOT, 'opt', 'managed-settings.d', '50-' + NAME + '.json');
+    mkdirFor(second);
+    fs.copyFileSync(drop, second);
+  }
   const req = path.join(ROOT, 'etc', 'codex', 'requirements.toml');
   mkdirFor(req);
   fs.writeFileSync(req, '[rules]\nprefix_rules = [\n'
     + codex.map((c) => '  { pattern = [' + c.map((t) => '{ token = "' + t + '" }').join(', ') + '], decision = "forbidden" },\n').join('')
-    + ']\n\n[[hooks.UserPromptSubmit]]\ncommand = ' + JSON.stringify(hookCommand('codex')) + '\n');
+    + ']\n\n[[hooks.UserPromptSubmit]]\ncommand = ' + JSON.stringify(hookCommand('codex')) + '\n'
+    + (VARIANT.twoHooks ? '\n[[hooks.UserPromptSubmit]]\ncommand = ' + JSON.stringify(hookCommand('codex')) + '\n' : ''));
   const km = path.join(ROOT, 'etc', 'kiro', 'managed-settings.json');
   mkdirFor(km);
   fs.writeFileSync(km, JSON.stringify({
@@ -139,17 +154,21 @@ function install() {
   let command = "/bin/sh -c '" + inner + ' || { [ $? -eq 2 ] && exit 2; printf "' + String.raw`%s\n` + '" "' + notice + "\" >&2; exit 2; }'";
   if (VARIANT.broken) command += ' ';
   const kh = path.join(HOME, '.kiro', 'hooks', NAME + '-paste-filter.json');
-  mkdirFor(kh);
-  fs.writeFileSync(kh, JSON.stringify({
-    version: 'v1',
-    hooks: [{ description: 'managed-by: ' + NAME, trigger: 'UserPromptSubmit', action: { type: 'command', command } }],
-  }, null, 2) + '\n');
+  const shape = VARIANT.kiroShape;
+  const entry = {
+    description: shape === 'desc' ? 'someone else' : 'managed-by: ' + NAME,
+    trigger: shape === 'trigger' ? 'Stop' : 'UserPromptSubmit', action: { type: 'command', command },
+  };
+  if (shape !== 'missing') {
+    mkdirFor(kh);
+    fs.writeFileSync(kh, JSON.stringify({ version: shape === 'version' ? 'v0' : 'v1', hooks: shape === 'two' ? [entry, entry] : [entry] }, null, 2) + '\n');
+  }
   if (VARIANT.badSettings) fs.writeFileSync(settings, '{ not json\n');
   if (VARIANT.installExit) {
     process.stdout.write('install: a synthetic failure\n');
-    return VARIANT.installExit;
+    return Number(VARIANT.installExit);
   }
-  process.stdout.write('Installation successful!\n');
+  process.stdout.write(VARIANT.noSuccessLine ? 'Installed.\n' : 'Installation successful!\n');
   return 0;
 }
 
@@ -176,6 +195,16 @@ function uninstall() {
   fs.rmSync(path.join(HOME, '.kiro', 'hooks', NAME + '-paste-filter.json'), { force: true });
   fs.rmSync(path.join(HOME, '.local', 'share', NAME), { recursive: true, force: true });
   for (const f of walk(ROOT)) fs.rmSync(f, { force: true });
+  if (VARIANT.uninstallChangesZshrc) fs.appendFileSync(path.join(HOME, '.zshrc'), '# changed by uninstall\n');
+  if (VARIANT.uninstallKeepsFloor) {
+    const settings = path.join(HOME, '.claude', 'settings.json');
+    const doc = JSON.parse(fs.readFileSync(settings, 'utf8'));
+    doc.permissions.deny.push('Bash(rm -rf:*)');
+    fs.writeFileSync(settings, JSON.stringify(doc, null, 2) + '\n');
+  }
+  // npm cannot remove a package from a read-only node_modules directory.
+  if (VARIANT.lockPackage) fs.chmodSync(path.dirname(PKG), 0o500);
+  if (VARIANT.uninstallExit1) return 1;
   if (VARIANT.broken) {
     fs.writeFileSync(path.join(HOME, '.mhw-leftover'), 'left behind\n');
     fs.mkdirSync(path.join(ROOT, 'etc'), { recursive: true });
@@ -189,16 +218,29 @@ function hook() {
   const harness = process.argv[process.argv.indexOf('--harness') + 1];
   const payload = JSON.parse(fs.readFileSync(0, 'utf8') || '{}');
   const prompt = String(payload.prompt || '');
-  if (harness !== 'kiro' && process.env[MARKER]) return 0;
+  const kiro = harness === 'kiro';
+  if (!kiro && process.env[MARKER] && !VARIANT.hookIgnoresMarker) return 0;
   if (VARIANT.broken && harness === 'claude') return 0;
-  if (!/AKIA[0-9A-Z]{16}/.test(prompt)) return 0;
+  if (!/AKIA[0-9A-Z]{16}/.test(prompt)) return clean(kiro);
   const redacted = prompt.replaceAll(KEY_PATTERN, '[REDACTED:credential]');
-  if (harness === 'kiro') {
-    process.stderr.write('Blocked: ' + redacted + '\n');
-    return 2;
+  if (kiro) {
+    if (VARIANT.kiroStdout) process.stdout.write('noise\n');
+    if (VARIANT.kiroNoRedaction) process.stderr.write('Blocked.\n');
+    else process.stderr.write('Blocked: ' + (VARIANT.kiroEchoesKey ? prompt + ' ' : '') + redacted + '\n');
+    return VARIANT.kiroExit0 ? 0 : 2;
   }
-  process.stdout.write(JSON.stringify({ decision: 'block', reason: 'Blocked: ' + redacted }) + '\n');
-  return 0;
+  process.stdout.write(JSON.stringify({ decision: 'block', reason: 'Blocked: ' + (VARIANT.hookEchoesKey ? prompt : redacted) }) + '\n');
+  return VARIANT.hookBlockExit1 ? 1 : 0;
+}
+
+/** A clean prompt: silent and exit 0, unless a variant says otherwise. @param {boolean} kiro */
+function clean(kiro) {
+  if (kiro) {
+    if (VARIANT.kiroCleanNoise) process.stdout.write('noise\n');
+    return VARIANT.kiroBlocksClean ? 2 : 0;
+  }
+  if (VARIANT.hookCleanNoise) process.stdout.write('{}\n');
+  return VARIANT.hookCleanExit1 ? 1 : 0;
 }
 
 function main() {
@@ -208,14 +250,16 @@ function main() {
   if (cmd === 'hook' && rest[0] === 'prompt') return hook();
   if (cmd === 'status') {
     process.stdout.write('mhw status (fixture)\n  source fixture package\n  evidence installed\n');
-    return 0;
+    return VARIANT.statusExit1 ? 1 : 0;
   }
   if (cmd === 'check') {
-    const lines = ['OK    claude floor', VARIANT.broken ? 'DRIFT codex floor' : 'OK    codex floor',
+    let lines = ['OK    claude floor', VARIANT.broken ? 'DRIFT codex floor' : 'OK    codex floor',
       'PREREQ required command-line tools', 'OK node [required]', 'MISSING claude [required: synthetic]',
       VARIANT.broken ? 'MISSING gnu-tool [required: synthetic]' : 'MISSING codex [required: synthetic]'];
+    if (VARIANT.noPrereq) lines = lines.filter((l) => !l.startsWith('PREREQ'));
+    if (VARIANT.checkNoMissing) lines = lines.filter((l) => !l.startsWith('MISSING'));
     process.stdout.write(lines.join('\n') + '\n');
-    return 1;
+    return VARIANT.checkExit2 ? 2 : 1;
   }
   process.stderr.write('fixture mhw: unknown command\n');
   return 2;

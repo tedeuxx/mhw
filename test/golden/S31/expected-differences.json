@@ -57,6 +57,16 @@
       "what": "Options are taken only as spelled in full (`--opt value` or `--opt=value`); an abbreviation such as `--sou` is an unrecognized argument, and `-h` prints no help: both are usage errors with exit 2.",
       "why": "argparse accepted a unique abbreviation of a long option and printed help for -h. The canary is run only by tests.yml and by hand, always with the full spellings; a usage error with the same exit code is the safer answer than a guess. The error messages of the golden usage cases are compared.",
       "pinned": "test/ci/prod-canary.test.js: options are spelled in full: an abbreviation and -h are usage errors, never a guess"
+    },
+    {
+      "what": "container (the form of the deleted prod-canary-container.sh) also refuses, with exit 2 before any runtime starts: an image whose first character is not a lower-case letter or digit, a package directory containing a colon, a commit that is not 40 lower-case hexadecimal characters, an unsafe --legacy entry, and a wrong argument count.",
+      "why": "The shell wrapper checked the digest pin and the mode only, and passed the commit into the container's command line unchecked. The workflow never passes such values, so the extra refusals change nothing there (QA A3 on PR #545); they keep a hand run from turning an argument into a runtime option, a different mount, or text inside the su -c command.",
+      "pinned": "test/ci/prod-canary.test.js: container refuses an image not pinned by digest or starting with an option character, a package directory with a colon, a short commit, an unknown mode, an unsafe --legacy entry and a wrong argument count"
+    },
+    {
+      "what": "container runs the canary that src-HEAD carries (/pkg/src-HEAD/.github/scripts/prod-canary.js, with node), not a second mount of the runner's checkout; the image line it prints no longer names a Python version; and it passes --legacy through to run.",
+      "why": "The shell wrapper mounted .github/scripts read-only at /canary and ran prod_canary.py with the image's python3. The Node canary imports three files of src/lib, which src-HEAD (git archive of the same head) holds, so one read-only mount carries both; in CI the two are the same commit. The image needs no Python any more.",
+      "pinned": "test/ci/prod-canary.test.js: container runs the runtime with the packages read-only and the canary of src-HEAD inside, as the node user"
     }
   ]
 }

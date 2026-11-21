@@ -1019,7 +1019,8 @@ function cmdContainer(argv) {
     return 2;
   }
   const [image, pkgArg, commit, mode] = args;
-  if (!/^[^@\s]+@sha256:[0-9a-f]{64}$/.test(image)) {
+  // The first character is a letter or digit, so the image can never be read as a runtime option.
+  if (!/^[a-z0-9][^@\s]*@sha256:[0-9a-f]{64}$/.test(image)) {
     process.stderr.write('BLOCK  the image is not pinned by digest: ' + image + '\n');
     return 2;
   }
@@ -1035,6 +1036,11 @@ function cmdContainer(argv) {
   }
   const list = legacyList(legacy).join(' ');
   const pkg = fs.realpathSync.native(pkgArg);
+  // `-v SRC:DST:ro` splits on ':', so a ':' in the package directory would change the mount.
+  if (pkg.includes(':')) {
+    process.stderr.write('the package directory must not contain a colon: ' + pyRepr(pkg) + '\n');
+    return 2;
+  }
   const runtime = program(process.env.CONTAINER_RUNTIME || 'docker', process.env);
   const p = spawnSync(runtime, ['run', '--rm', '--network=bridge', '-v', pkg + ':/pkg:ro', image, 'sh', '-euc', CONTAINER_SH,
     'canary', commit, mode, froms[mode], list], { stdio: 'inherit' });
