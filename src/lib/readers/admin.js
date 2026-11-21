@@ -1,7 +1,7 @@
 // The admin layer as status reads it (#493, S22 of #470), moved from global/workstation.py: where our
 // Claude Code drop-in, our admin directory and the Codex requirements file live, whether one is present,
-// and what install-managed.sh --check said about it. global/workstation.py keeps its own copy of the
-// parts install and check use (admin_present, admin_report and issues). node: modules only.
+// and what install-managed.sh --check said about it. mhw check, install, update and uninstall use the
+// same readers since #494 and #495 (S23, S24), when workstation.py's own copy went. node: modules only.
 import { NAME, MARKER, darwin, managedRoot, pathOf, exists, readJson, readText, baseName, isDict, unreadable } from './common.js';
 import { isPyWs, loads } from '../py.js';
 import { readTextPy } from '../clean.js';

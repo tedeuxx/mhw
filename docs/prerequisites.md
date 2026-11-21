@@ -112,8 +112,10 @@ The SonarCloud and HCP Terraform calls have not been run against the real servic
 *Amended 2026-11-21 (#494, S23 of #470):* the check is Node. `test/golden/S23/` holds the Python
 original's transcripts of these cases and more, and the Node check reproduces them (one declared
 difference, an `AGENTS.md` that is not UTF-8). Since then `node` is a required item at the `engines.node`
-floor (26). `python3` stays required, because `mhw install`, `update` and `uninstall` still run
-`global/workstation.py`.
+floor (26). ~~`python3` stays required, because `mhw install`, `update` and `uninstall` still run
+`global/workstation.py`.~~ *Amended 2026-11-21 (#495, S24 of #470):* `mhw install`, `update` and
+`uninstall` are Node too, and `global/workstation.py` is gone. `python3` stays required, because
+`global/install-managed.sh` still runs `/usr/bin/python3` for the admin layer until S26 (#496).
 
 ## Not covered
 

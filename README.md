@@ -181,8 +181,9 @@ run (`mhw` never relies on a cached `sudo` credential). `mhw update` runs the np
 The first installable tag is the first release that carries `package.json`; older tags fail in npm.
 `mhw` takes the same subcommands as `./mhw` below. On Windows it runs `install.ps1`.
 
-**Or from a git clone**, the alternative. macOS and Linux, from the repository root (Python 3.9+ and
-`jq` required). The same conversation as above, from the checkout
+**Or from a git clone**, the alternative. macOS and Linux, from the repository root (Node.js 26 or
+later, Python 3.9+ and `jq` required; `./mhw` is a Node file since #495, the same command as the npm
+`mhw`, and Python is still needed by `install-managed.sh`). The same conversation as above, from the checkout
 ([runbook](docs/runbooks/deny-floor-admin-layer.md)):
 
 ```sh

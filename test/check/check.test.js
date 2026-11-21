@@ -131,23 +131,13 @@ describe('the --project section', { skip: process.platform === 'win32' && 'mhw c
 });
 
 describe('where mhw check runs', () => {
-  test('./mhw sends check to bin/mhw.js, and workstation.py no longer answers it', () => {
+  test('./mhw is the Node command (#495), and the Python check is gone', () => {
     const launcher = fs.readFileSync(path.join(REPO, 'mhw'), 'utf8');
-    assert.match(launcher, /^ {2}[a-z|-]*\|check\|[a-z|-]*\)$/m);
-    const ws = fs.readFileSync(path.join(REPO, 'global', 'workstation.py'), 'utf8');
-    assert.ok(!ws.includes('def cmd_check'));
-    assert.ok(!ws.includes('import prerequisites'));
-    assert.ok(!ws.includes('import merge_authority'));
-    for (const gone of ['prerequisites.py', 'prerequisites_test.py', 'merge_authority.py', 'merge_authority_test.py']) {
+    assert.match(launcher, /^#!\/usr\/bin\/env node\n/);
+    assert.match(launcher, /^import '\.\/bin\/mhw\.js';$/m);
+    for (const gone of ['workstation.py', 'prerequisites.py', 'prerequisites_test.py', 'merge_authority.py', 'merge_authority_test.py']) {
       assert.ok(!fs.existsSync(path.join(REPO, 'global', gone)), gone);
     }
   });
 
-  test('a direct python3 workstation.py check names the Node command and exits 2', { skip: process.platform === 'win32' && 'POSIX only' }, () => {
-    const py = ['/opt/homebrew/bin/python3', '/usr/local/bin/python3', '/usr/bin/python3'].find((p) => fs.existsSync(p));
-    if (!py) return;
-    const p = spawnSync(py, ['-B', path.join(REPO, 'global', 'workstation.py'), 'check'], { encoding: 'utf8' });
-    assert.equal(p.status, 2);
-    assert.match(p.stderr, /mhw check is the Node command now/);
-  });
 });

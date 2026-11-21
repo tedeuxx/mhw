@@ -1,0 +1,26 @@
+{
+  "step0 install --admin --overlay=none": {
+    "code": 0
+  },
+  "step0 install --admin --overlay=none stdout": "==> mhw will change this workstation from this checkout:\n  - System-wide protections that no session can switch off: install them (needs your administrator password, once)\n\nNothing was changed: no terminal to confirm in.\n\n==> Next steps\n1. Run `./mhw install` in a terminal (or `./mhw install --yes` to skip the question).\n",
+  "step0 install --admin --overlay=none stderr": "",
+  "step1 install --admin --yes --overlay=none": {
+    "code": 0
+  },
+  "step1 install --admin --yes --overlay=none stdout": "==> mhw will change this workstation from this checkout:\n  - System-wide protections that no session can switch off: install them (needs your administrator password, once)\n==> Installing the system-wide protections\n==> Checking\n\nInstallation successful!\n\n==> Next steps\n1. Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.\n2. Run `./mhw status` to see what is installed.\n",
+  "step1 install --admin --yes --overlay=none stderr": "",
+  "step2 uninstall --yes --overlay=none": {
+    "code": 0
+  },
+  "step2 uninstall --yes --overlay=none stdout": "==> mhw will remove from this workstation:\n  - Your settings in Claude Code, Codex and Kiro that mhw wrote (your own entries stay)\n  - The system-wide protections (needs your administrator password, once)\n==> Removing the system-wide protections\n==> Removing your settings\n\nUninstall complete.\n\n==> Next steps\n1. Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.\n",
+  "step2 uninstall --yes --overlay=none stderr": "",
+  "files": {
+    "admin/Library": "dir 755",
+    "admin/Library/Application Support": "dir 755",
+    "admin/Library/Application Support/ClaudeCode": "dir 755",
+    "admin/Library/Application Support/ClaudeCode/managed-settings.d": "dir 755",
+    "admin/Library/Application Support/Kiro": "dir 755",
+    "admin/etc": "dir 755",
+    "admin/etc/codex": "dir 755"
+  }
+}

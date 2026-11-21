@@ -35,8 +35,8 @@
 // 2 usage; 3 the file
 // cannot be read as JSON or cannot be written. The home is $HOME; no path comes from the command line.
 //
-// --mode=status prints the `mhw status` line (the key's value, never the file's contents) for
-// global/workstation.py, which spawns this command. node: modules only.
+// --mode=status prints the `mhw status` line (the key's value, never the file's contents); mhw status
+// (src/commands/status.js) reads it. node: modules only.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';

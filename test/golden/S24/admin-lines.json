@@ -1,0 +1,455 @@
+{
+  "as_root remove managed-root": [
+    "/bin/sh",
+    "<INSTALL_MANAGED>",
+    "--remove",
+    "--root=/tmp/throwaway root"
+  ],
+  "as_root remove sudo": [
+    "/usr/bin/sudo",
+    "-k",
+    "-p",
+    "Password for %u: ",
+    "/bin/sh",
+    "<INSTALL_MANAGED>",
+    "--remove"
+  ],
+  "no-run-line managed-root quiet": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>",
+        "--root=/tmp/throwaway root"
+      ]
+    ],
+    "code": 3,
+    "lines": [
+      "REFUSE  the admin stage did not render"
+    ],
+    "stdout": ""
+  },
+  "no-run-line managed-root verbose": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>",
+        "--root=/tmp/throwaway root"
+      ]
+    ],
+    "code": 3,
+    "lines": [
+      "REFUSE  the admin stage did not render"
+    ],
+    "stdout": "    STAGED  admin layer in /Users/someone/Library/Caches/mhw stage/admin-stage.ABC123\n"
+  },
+  "no-run-line sudo quiet": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>"
+      ]
+    ],
+    "code": 3,
+    "lines": [
+      "REFUSE  the admin stage did not render"
+    ],
+    "stdout": ""
+  },
+  "no-run-line sudo verbose": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>"
+      ]
+    ],
+    "code": 3,
+    "lines": [
+      "REFUSE  the admin stage did not render"
+    ],
+    "stdout": "    STAGED  admin layer in /Users/someone/Library/Caches/mhw stage/admin-stage.ABC123\n"
+  },
+  "render-failed managed-root quiet": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>",
+        "--root=/tmp/throwaway root"
+      ]
+    ],
+    "code": 4,
+    "lines": [
+      "REFUSE  the stage could not be written"
+    ],
+    "stdout": "    REFUSE  the stage could not be written\n"
+  },
+  "render-failed managed-root verbose": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>",
+        "--root=/tmp/throwaway root"
+      ]
+    ],
+    "code": 4,
+    "lines": [
+      "REFUSE  the stage could not be written"
+    ],
+    "stdout": "    REFUSE  the stage could not be written\n"
+  },
+  "render-failed sudo quiet": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>"
+      ]
+    ],
+    "code": 4,
+    "lines": [
+      "REFUSE  the stage could not be written"
+    ],
+    "stdout": "    REFUSE  the stage could not be written\n"
+  },
+  "render-failed sudo verbose": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>"
+      ]
+    ],
+    "code": 4,
+    "lines": [
+      "REFUSE  the stage could not be written"
+    ],
+    "stdout": "    REFUSE  the stage could not be written\n"
+  },
+  "rendered managed-root quiet": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>",
+        "--root=/tmp/throwaway root"
+      ],
+      [
+        "/bin/sh",
+        "<INSTALL_MANAGED>",
+        "--apply=/Users/someone/Library/Caches/mhw stage/admin-stage.ABC123",
+        "--sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "--root=/tmp/throwaway root"
+      ]
+    ],
+    "code": 0,
+    "lines": [
+      "APPLIED fine",
+      "THEN    after"
+    ],
+    "stdout": ""
+  },
+  "rendered managed-root verbose": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>",
+        "--root=/tmp/throwaway root"
+      ],
+      [
+        "/bin/sh",
+        "<INSTALL_MANAGED>",
+        "--apply=/Users/someone/Library/Caches/mhw stage/admin-stage.ABC123",
+        "--sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "--root=/tmp/throwaway root"
+      ]
+    ],
+    "code": 0,
+    "lines": [
+      "APPLIED fine",
+      "THEN    after"
+    ],
+    "stdout": "    STAGED  admin layer in /Users/someone/Library/Caches/mhw stage/admin-stage.ABC123\n    APPLIED fine\n"
+  },
+  "rendered sudo quiet": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>"
+      ],
+      [
+        "/usr/bin/sudo",
+        "-k",
+        "-p",
+        "Password for %u: ",
+        "/bin/sh",
+        "<INSTALL_MANAGED>",
+        "--apply=/Users/someone/Library/Caches/mhw stage/admin-stage.ABC123",
+        "--sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      ]
+    ],
+    "code": 0,
+    "lines": [
+      "APPLIED fine",
+      "THEN    after"
+    ],
+    "stdout": ""
+  },
+  "rendered sudo verbose": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>"
+      ],
+      [
+        "/usr/bin/sudo",
+        "-k",
+        "-p",
+        "Password for %u: ",
+        "/bin/sh",
+        "<INSTALL_MANAGED>",
+        "--apply=/Users/someone/Library/Caches/mhw stage/admin-stage.ABC123",
+        "--sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      ]
+    ],
+    "code": 0,
+    "lines": [
+      "APPLIED fine",
+      "THEN    after"
+    ],
+    "stdout": "    STAGED  admin layer in /Users/someone/Library/Caches/mhw stage/admin-stage.ABC123\n    APPLIED fine\n"
+  },
+  "rendered-with-root managed-root quiet": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>",
+        "--root=/tmp/throwaway root"
+      ],
+      [
+        "/bin/sh",
+        "<INSTALL_MANAGED>",
+        "--apply=/Users/someone/Library/Caches/mhw stage/admin-stage.ABC123",
+        "--sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "--root=/tmp/throwaway root"
+      ]
+    ],
+    "code": 0,
+    "lines": [
+      "APPLIED fine",
+      "THEN    after"
+    ],
+    "stdout": ""
+  },
+  "rendered-with-root managed-root verbose": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>",
+        "--root=/tmp/throwaway root"
+      ],
+      [
+        "/bin/sh",
+        "<INSTALL_MANAGED>",
+        "--apply=/Users/someone/Library/Caches/mhw stage/admin-stage.ABC123",
+        "--sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "--root=/tmp/throwaway root"
+      ]
+    ],
+    "code": 0,
+    "lines": [
+      "APPLIED fine",
+      "THEN    after"
+    ],
+    "stdout": "    APPLIED fine\n"
+  },
+  "rendered-with-root sudo quiet": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>"
+      ],
+      [
+        "/usr/bin/sudo",
+        "-k",
+        "-p",
+        "Password for %u: ",
+        "/bin/sh",
+        "<INSTALL_MANAGED>",
+        "--apply=/Users/someone/Library/Caches/mhw stage/admin-stage.ABC123",
+        "--sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      ]
+    ],
+    "code": 0,
+    "lines": [
+      "APPLIED fine",
+      "THEN    after"
+    ],
+    "stdout": ""
+  },
+  "rendered-with-root sudo verbose": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>"
+      ],
+      [
+        "/usr/bin/sudo",
+        "-k",
+        "-p",
+        "Password for %u: ",
+        "/bin/sh",
+        "<INSTALL_MANAGED>",
+        "--apply=/Users/someone/Library/Caches/mhw stage/admin-stage.ABC123",
+        "--sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      ]
+    ],
+    "code": 0,
+    "lines": [
+      "APPLIED fine",
+      "THEN    after"
+    ],
+    "stdout": "    APPLIED fine\n"
+  },
+  "upper-case-hash managed-root quiet": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>",
+        "--root=/tmp/throwaway root"
+      ]
+    ],
+    "code": 3,
+    "lines": [
+      "REFUSE  the admin stage did not render"
+    ],
+    "stdout": ""
+  },
+  "upper-case-hash managed-root verbose": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>",
+        "--root=/tmp/throwaway root"
+      ]
+    ],
+    "code": 3,
+    "lines": [
+      "REFUSE  the admin stage did not render"
+    ],
+    "stdout": ""
+  },
+  "upper-case-hash sudo quiet": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>"
+      ]
+    ],
+    "code": 3,
+    "lines": [
+      "REFUSE  the admin stage did not render"
+    ],
+    "stdout": ""
+  },
+  "upper-case-hash sudo verbose": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>"
+      ]
+    ],
+    "code": 3,
+    "lines": [
+      "REFUSE  the admin stage did not render"
+    ],
+    "stdout": ""
+  },
+  "verbose-lines managed-root quiet": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>",
+        "--root=/tmp/throwaway root"
+      ],
+      [
+        "/bin/sh",
+        "<INSTALL_MANAGED>",
+        "--apply=/Users/someone/Library/Caches/mhw stage/admin-stage.ABC123",
+        "--sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "--root=/tmp/throwaway root"
+      ]
+    ],
+    "code": 0,
+    "lines": [
+      "APPLIED fine",
+      "THEN    after"
+    ],
+    "stdout": "    DRIFT   other\n    CHANGED x -> y\n"
+  },
+  "verbose-lines managed-root verbose": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>",
+        "--root=/tmp/throwaway root"
+      ],
+      [
+        "/bin/sh",
+        "<INSTALL_MANAGED>",
+        "--apply=/Users/someone/Library/Caches/mhw stage/admin-stage.ABC123",
+        "--sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "--root=/tmp/throwaway root"
+      ]
+    ],
+    "code": 0,
+    "lines": [
+      "APPLIED fine",
+      "THEN    after"
+    ],
+    "stdout": "    OK      something\n    DRIFT   other\n    CHANGED x -> y\n    APPLIED fine\n"
+  },
+  "verbose-lines sudo quiet": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>"
+      ],
+      [
+        "/usr/bin/sudo",
+        "-k",
+        "-p",
+        "Password for %u: ",
+        "/bin/sh",
+        "<INSTALL_MANAGED>",
+        "--apply=/Users/someone/Library/Caches/mhw stage/admin-stage.ABC123",
+        "--sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      ]
+    ],
+    "code": 0,
+    "lines": [
+      "APPLIED fine",
+      "THEN    after"
+    ],
+    "stdout": "    DRIFT   other\n    CHANGED x -> y\n"
+  },
+  "verbose-lines sudo verbose": {
+    "calls": [
+      [
+        "sh",
+        "<INSTALL_MANAGED>"
+      ],
+      [
+        "/usr/bin/sudo",
+        "-k",
+        "-p",
+        "Password for %u: ",
+        "/bin/sh",
+        "<INSTALL_MANAGED>",
+        "--apply=/Users/someone/Library/Caches/mhw stage/admin-stage.ABC123",
+        "--sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      ]
+    ],
+    "code": 0,
+    "lines": [
+      "APPLIED fine",
+      "THEN    after"
+    ],
+    "stdout": "    OK      something\n    DRIFT   other\n    CHANGED x -> y\n    APPLIED fine\n"
+  }
+}

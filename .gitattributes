@@ -47,3 +47,5 @@ test/golden/S18/** -text
 test/golden/S28/** -text
 # Golden transcripts, frozen inputs, the prose corpus answers and the declared differences of the S23 parity tests (#494): byte for byte on every OS.
 test/golden/S23/** -text
+# Golden transcripts, the admin-layer root command lines, the recorded CPython and the declared differences of the S24 parity tests (#495): byte for byte on every OS.
+test/golden/S24/** -text

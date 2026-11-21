@@ -426,12 +426,12 @@ test('usage errors are exit 2', () => {
 test('the mhw command reaches the validator', { skip: process.platform === 'win32' && './mhw is the POSIX launcher (bin/mhw.js is tested below)' }, () => {
   const env = { ...process.env, PATH: path.dirname(process.execPath) + path.delimiter + (process.env.PATH || '') };
   const mhw = path.join(ROOT, 'mhw');
-  let p = spawnSync('/bin/sh', [mhw, 'policy', 'check', '--file=' + EXAMPLE], { encoding: 'utf8', env });
+  let p = spawnSync(mhw, ['policy', 'check', '--file=' + EXAMPLE], { encoding: 'utf8', env });
   assert.equal(p.status, 0, p.stderr);
-  p = spawnSync('/bin/sh', [mhw, 'policy', 'check', '--project=' + dir], { encoding: 'utf8', env });
+  p = spawnSync(mhw, ['policy', 'check', '--project=' + dir], { encoding: 'utf8', env });
   assert.equal(p.status, 1);
   assert.ok(p.stderr.includes('missing'), p.stderr);
-  assert.equal(spawnSync('/bin/sh', [mhw, 'policy'], { env }).status, 2);
+  assert.equal(spawnSync(mhw, ['policy'], { env }).status, 2);
 });
 
 test('bin/mhw.js reaches the validator on every OS', () => {
@@ -445,9 +445,6 @@ test('bin/mhw.js reaches the validator on every OS', () => {
   assert.equal(p.status, 2);
 });
 
-test('a direct workstation.py policy names the Node command and checks nothing', { skip: process.platform === 'win32' && 'POSIX' }, () => {
-  const py = spawnSync('python3', ['-B', path.join(ROOT, 'global', 'workstation.py'), 'policy', 'check', '--file=' + EXAMPLE], { encoding: 'utf8' });
-  if (py.error) return;
-  assert.equal(py.status, 2);
-  assert.ok(py.stderr.includes('mhw policy check is the Node command now'), py.stderr);
+test('workstation.py, which once forwarded policy, is gone (#495)', () => {
+  assert.ok(!fs.existsSync(path.join(ROOT, 'global', 'workstation.py')));
 });

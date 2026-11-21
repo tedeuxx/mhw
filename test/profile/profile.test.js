@@ -332,13 +332,13 @@ test('the help is argparse\'s: required option unbracketed, choices as the metav
   assert.deepEqual(parse(SPEC, []), { kind: 'error', message: 'the following arguments are required: command, --source' });
 });
 
-test('./mhw and bin/mhw.js route profile to Node, never to workstation.py', () => {
+test('./mhw and bin/mhw.js route profile to Node', () => {
   const dir = workdir();
   const viaBin = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'profile', 'validate', '--source', 'profile.json'], { cwd: dir, encoding: 'utf8' });
   assert.equal(viaBin.status, 0, viaBin.stderr);
   assert.equal(viaBin.stdout, 'OK: valid preference profile; no installation or permission grant\n');
   if (POSIX) {
-    const viaSh = spawnSync('/bin/sh', [path.join(ROOT, 'mhw'), 'profile', '--help'], { cwd: dir, encoding: 'utf8' });
+    const viaSh = spawnSync(path.join(ROOT, 'mhw'), ['profile', '--help'], { cwd: dir, encoding: 'utf8' });
     assert.equal(viaSh.status, 0, viaSh.stderr);
     assert.ok(viaSh.stdout.startsWith('usage: mhw profile '));
   }

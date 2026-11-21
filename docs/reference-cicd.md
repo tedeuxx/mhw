@@ -14,6 +14,11 @@ each gate, a caller template with the deployment jobs, and a dry run against a s
 | `global/project-policy/reference/fixture/` | The synthetic project the dry run gates |
 | `.github/workflows/reference-delivery-dry-run.yml` | The dry run: the gate workflow against the fixture, on pull requests that change these files |
 
+The gate workflow runs these files from a checkout of mhw at `mhw-revision`, never from the npm package.
+Since #495 (S24 of #470) the npm package leaves out `global/project-policy/*.py` and
+`global/project-policy/reference/`, so the packed tarball carries no Python file; the contract's schema
+and examples, which `mhw policy check` reads, stay in it.
+
 ## Evidence level, said first
 
 **Written and tested; dry-run measured in mhw's own CI against a synthetic fixture. No project runs

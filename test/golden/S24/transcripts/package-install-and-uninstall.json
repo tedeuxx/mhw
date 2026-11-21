@@ -1,0 +1,63 @@
+{
+  "step0 postinstall": {
+    "code": 0
+  },
+  "step0 postinstall stdout": "mhw 10.1.0 is ready. Run `mhw install` to set up or update this workstation.\n",
+  "step0 postinstall stderr": "",
+  "step1 install": {
+    "code": 0
+  },
+  "step1 install stdout": "==> mhw 10.1.0 will change this workstation:\n  - Your settings in Claude Code, Codex and Kiro: 16 file(s) to write (no password needed)\n  - System-wide protections that no session can switch off: install them (needs your administrator password, once)\n\nNothing was changed: no terminal to confirm in.\n\n==> Next steps\n1. Run `mhw install` in a terminal (or `mhw install --yes` to skip the question).\n",
+  "step1 install stderr": "",
+  "step2 install --yes": {
+    "code": 0
+  },
+  "step2 install --yes stdout": "==> mhw 10.1.0 will change this workstation:\n  - Your settings in Claude Code, Codex and Kiro: 16 file(s) to write (no password needed)\n  - System-wide protections that no session can switch off: install them (needs your administrator password, once)\n==> Installing the system-wide protections\n==> Installing your settings\n    CHANGED <HOME>/.claude.json: chrome-devtools absent -> /bin/sh -c 'exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux' (policy MCP servers, ADR-0038)\n    CHANGED <HOME>/.claude/settings.json: model (absent) -> \"claude-opus-5-5[1m]\"; effortLevel (absent) -> \"medium\" (model defaults claude-code; previous file kept as <HOME>/.claude/settings.json.pmhwc-models-backup)\n    CHANGED <HOME>/.codex/config.toml: model (absent) -> \"gpt-5.6-sol\"; model_reasoning_effort (absent) -> \"medium\" (model defaults codex; new file)\n    CHANGED <HOME>/.kiro/settings/cli.json: chat.defaultModel (absent) -> \"claude-sonnet-4.5\" (model defaults kiro-cli; new file)\n==> Checking\n\nInstallation successful!\n\n==> Next steps\n1. Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.\n2. mhw wrote no shell start-up file (your shell (SHELL=/bin/sh) is neither zsh nor bash). To clean pasted text automatically, add this line to yours:\n       [ -r \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)\n3. In Codex, approve the mhw hooks once: type /hooks in a new session.\n4. Run `mhw status` to see what is installed.\n",
+  "step2 install --yes stderr": "",
+  "step2 install --yes recorded": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: v3.1.0; commit: <COMMIT>; sha256: <SHA256>; do not edit, re-run the installer -->",
+  "step3 install --yes": {
+    "code": 0
+  },
+  "step3 install --yes stdout": "==> mhw 10.1.0 is already installed and up to date\n\n==> Next steps\n1. Run `mhw status` to see what is installed.\n",
+  "step3 install --yes stderr": "",
+  "step4 uninstall": {
+    "code": 0
+  },
+  "step4 uninstall stdout": "==> mhw will remove from this workstation:\n  - Your settings in Claude Code, Codex and Kiro that mhw wrote (your own entries stay)\n  - The system-wide protections (needs your administrator password, once)\n\nNothing was changed: no terminal to confirm in.\n\n==> Next steps\n1. Run `mhw uninstall` in a terminal (or `mhw uninstall --yes`).\n",
+  "step4 uninstall stderr": "",
+  "step5 uninstall --yes": {
+    "code": 0
+  },
+  "step5 uninstall --yes stdout": "==> mhw will remove from this workstation:\n  - Your settings in Claude Code, Codex and Kiro that mhw wrote (your own entries stay)\n  - The system-wide protections (needs your administrator password, once)\n==> Removing the system-wide protections\n==> Removing your settings\n    CHANGED <HOME>/.claude.json: chrome-devtools /bin/sh -c 'exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux' -> absent (policy MCP servers, ADR-0038; previous file kept as <HOME>/.claude.json.pmhwc-mcp-policy-backup)\n\nUninstall complete.\n\n==> Next steps\n1. Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.\n2. Run `npm uninstall -g mhw` to remove the mhw command itself.\n",
+  "step5 uninstall --yes stderr": "",
+  "step5 uninstall --yes recorded": "<absent>",
+  "files": {
+    "home/.claude": "dir 755",
+    "home/.claude/settings.json": "file 644",
+    "home/.claude/settings.json.pmhwc-backup": "file 600",
+    "home/.claude/settings.json.pmhwc-models-backup": "file 600",
+    "home/.claude.json": "file 600",
+    "home/.claude.json.pmhwc-mcp-policy-backup": "file 600",
+    "home/.codex": "dir 755",
+    "home/.codex/config.toml": "file 644",
+    "home/.codex/config.toml.pmhwc-models-backup": "file 600",
+    "home/.codex/rules": "dir 755",
+    "home/.kiro": "dir 755",
+    "home/.kiro/agents": "dir 755",
+    "home/.kiro/hooks": "dir 755",
+    "home/.kiro/settings": "dir 700",
+    "home/.kiro/settings/cli.json": "file 644",
+    "home/.kiro/settings/cli.json.pmhwc-models-backup": "file 600",
+    "home/.kiro/settings/permissions.yaml.pmhwc-backup": "file 600",
+    "home/.kiro/steering": "dir 755",
+    "home/.local": "dir 755",
+    "home/.local/share": "dir 755",
+    "admin/Library": "dir 755",
+    "admin/Library/Application Support": "dir 755",
+    "admin/Library/Application Support/ClaudeCode": "dir 755",
+    "admin/Library/Application Support/ClaudeCode/managed-settings.d": "dir 755",
+    "admin/Library/Application Support/Kiro": "dir 755",
+    "admin/etc": "dir 755",
+    "admin/etc/codex": "dir 755"
+  }
+}

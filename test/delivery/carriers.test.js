@@ -103,7 +103,7 @@ test('no live instruction names the Python route: every remaining mention is str
 });
 
 test('./mhw routes delivery to Node, and the CLI answers it on the Windows mapping too', { skip: process.platform === 'win32' && './mhw is the POSIX launcher' }, () => {
-  const sh = spawnSync('/bin/sh', [path.join(ROOT, 'mhw'), 'delivery', '--help'], { encoding: 'utf8', env: { PATH: path.dirname(process.execPath) + ':/usr/bin:/bin' } });
+  const sh = spawnSync(path.join(ROOT, 'mhw'), ['delivery', '--help'], { encoding: 'utf8', env: { PATH: path.dirname(process.execPath) + ':/usr/bin:/bin' } });
   assert.equal(sh.status, 0, sh.stderr);
   assert.equal(sh.stdout, 'usage: mhw delivery {merge,verify} --pr N\n');
   const win = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'delivery', 'nope'], { encoding: 'utf8', env: { ...process.env, WORKSTATION_LAUNCHER_PLATFORM: 'win32' } });

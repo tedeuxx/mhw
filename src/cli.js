@@ -1,7 +1,8 @@
-// The mhw command line (#470). S01 (#472) is the strangler's first step: every command still runs its
-// current implementation, so mhw behaves exactly as before. One addition: `mhw status` prints a NODE
-// line first (D11), naming the running node against engines.node.
-//   macOS and Linux: runs the package's ./mhw with the same arguments.
+// The mhw command line (#470). S01 (#472) was the strangler's first step; since S24 (#495) every command
+// on macOS and Linux is answered in Node, and the package's ./mhw is a Node file that runs bin/mhw.js.
+// `mhw status` prints a NODE line first (D11), naming the running node against engines.node.
+//   macOS and Linux: install, update, uninstall, postinstall and the usage text are
+//                    src/commands/lifecycle.js (#495), moved from global/workstation.py.
 //   Windows:         runs global\install.ps1 (install, install --method, check, status = check) and
 //                    answers update itself; install --admin and uninstall do not exist there.
 // Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474),
@@ -19,7 +20,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { enginesNode, nodeLine, releaseOf } from './lib/version.js';
+import { enginesNode, nodeLine } from './lib/version.js';
 import { runAbsolute } from './lib/run.js';
 import { delivery } from './commands/delivery.js';
 import { main as milestoneMain } from './commands/milestone.js';
@@ -39,10 +40,10 @@ import { main as addTermMain } from './commands/add-term.js';
 import { main as statusMain } from './commands/status.js';
 import { main as checkMain } from './commands/check.js';
 import { main as policyMain } from './commands/project-policy.js';
+import { main as lifecycleMain } from './commands/lifecycle.js';
+import { updateLines } from './commands/update.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const REPO = 'tedeuxx/mhw';
-const RELEASE = /^v(\d+)\.(\d+)\.(\d+)$/;
 const USAGE = [
   'mhw install [--method] [--overlay=DIR|none] | check | status | update [vX.Y.Z] | scan [--base=REF | PATH... | --file=PATH]',
   '(Windows: install.ps1; install --admin, scan and uninstall are macOS and Linux only)',
@@ -52,32 +53,7 @@ const USAGE = [
  * @typedef {{ code: number, out?: string[], err?: string, ps?: string[] }} Plan
  */
 
-/**
- * The npm update for this package: the tag asked for, or the newest release in the installed major
- * (major = breaking, Issue #52), which npm resolves from the repository's tags. Same text as
- * global/workstation.py's npm_update_lines(); global/npm_package_test.py holds the two together.
- * @param {string | undefined} wanted
- * @param {string} root
- * @returns {Plan}
- */
-export function updateLines(wanted, root) {
-  let ref;
-  if (wanted === undefined) {
-    const v = releaseOf(root);
-    ref = v ? 'semver:^' + v.join('.') : 'semver:*';
-  } else {
-    const m = RELEASE.exec(wanted);
-    if (!m) return { code: 2, err: 'REFUSE  the tag must be a numeric release, vX.Y.Z' };
-    ref = 'v' + m[1] + '.' + m[2] + '.' + m[3];
-  }
-  return {
-    code: 0,
-    out: [
-      'UPDATE  run this npm line, then mhw install:',
-      'RUN     npm install -g github:' + REPO + '#' + ref,
-    ],
-  };
-}
+export { updateLines };
 
 /**
  * install.ps1's parameters for install, check and status, or a refusal.
@@ -164,7 +140,7 @@ const MOVED = {
   'rite-cadence': riteCadenceMain, // #477, S06
   'funnel-review': funnelReviewMain, // #478, S07
   profile: profileMain, // #479, S08
-  // #480, S09: the install step install.sh spawns, and the status line workstation.py reads.
+  // #480, S09: the install step install.sh spawns, and the status line mhw status reads.
   'chrome-debugging': chromeDebuggingMain,
   // #483, S12: `mhw mcp launch`, the MCP launcher the renderer installs a copy of; #484, S13: `mhw mcp render`.
   mcp: mcpMain,
@@ -257,11 +233,8 @@ export function main(argv, platform, env, opts = {}) {
   }
   // #494 (S23): mhw check is Node on macOS and Linux; Windows keeps install.ps1 -Check.
   if (argv[0] === 'check' && platform !== 'win32') return checkMain(argv.slice(1), env);
-  if (platform !== 'win32') {
-    // MHW_NODE: the node running this file, so `mhw update` finds npm beside it by absolute path.
-    const childEnv = Object.assign({}, env, { MHW_NODE: process.execPath });
-    return exitWith(runAbsolute('/bin/sh', [path.join(ROOT, 'mhw'), ...argv], { stdio, env: childEnv }));
-  }
+  // #495 (S24): install, update, uninstall, postinstall and the usage text are Node on macOS and Linux.
+  if (platform !== 'win32') return lifecycleMain(argv, env);
   const plan = windowsPlan(argv);
   if (plan.err) {
     console.error(plan.err);

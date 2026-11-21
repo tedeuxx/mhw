@@ -182,7 +182,7 @@ test('./mhw worklog and ./mhw launch-line forward to bin/mhw.js', { skip: !POSIX
   const golden = readGolden(SLICE, 'transcripts.json');
   /** @type {Runner} */
   const entry = (c, args, cwd, env) => {
-    const p = spawnSync('/bin/sh', [path.join(ROOT, 'mhw'), c.cmd, ...args], { cwd, env: { ...env, PATH: path.dirname(process.execPath) + ':' + env.PATH }, encoding: 'utf8' });
+    const p = spawnSync(path.join(ROOT, 'mhw'), [c.cmd, ...args], { cwd, env: { ...env, PATH: path.dirname(process.execPath) + ':' + env.PATH }, encoding: 'utf8' });
     return { code: p.status, stdout: p.stdout, stderr: p.stderr };
   };
   const diffs = [];
@@ -191,12 +191,12 @@ test('./mhw worklog and ./mhw launch-line forward to bin/mhw.js', { skip: !POSIX
     diffs.push(...differences(name, golden[name], transcript(c, entry)));
   }
   assert.deepEqual(diffs, []);
-  // Without node on PATH, ./mhw says so and never falls through to workstation.py.
+  // Without node on PATH, ./mhw (a Node file since #495) fails at its #! line and runs nothing.
   if (!fs.existsSync('/usr/bin/node') && !fs.existsSync('/bin/node')) {
     for (const cmd of ['worklog', 'launch-line']) {
-      const p = spawnSync('/bin/sh', [path.join(ROOT, 'mhw'), cmd, '--help'], { env: { PATH: '/usr/bin:/bin' }, encoding: 'utf8' });
-      assert.equal(p.status, 2);
-      assert.equal(p.stderr, 'mhw: node (26 or later) is required for mhw ' + cmd + '\n');
+      const p = spawnSync(path.join(ROOT, 'mhw'), [cmd, '--help'], { env: { PATH: '/usr/bin:/bin' }, encoding: 'utf8' });
+      assert.notEqual(p.status, 0);
+      assert.equal(p.stdout, '');
     }
   }
 });
