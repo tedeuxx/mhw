@@ -1,0 +1,13 @@
+{
+  "name": "usage-flag-on-another-gate",
+  "args": [
+    "contract",
+    "--project={BASE}/project",
+    "--no-container-check"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "delivery_gate: unknown, empty or repeated argument --no-container-check\n"
+  }
+}

@@ -12,8 +12,8 @@
 //             keyword this evaluator does not implement): it cannot say the file is valid, so it does not
 //
 // It checks the contract only. It reads no evidence: whether the named controls ran, the MADR is really
-// accepted or the runbook was really tested is #246's reference CI/CD (delivery_gate.py), which reaches
-// this command through the CLI until S29 (#499).
+// accepted or the runbook was really tested is #246's reference CI/CD (src/commands/delivery-gate.js,
+// Node since S29, #499), which runs check() in its own process.
 //
 // Parity with the original (test/project-policy/project-policy-golden.test.js, test/golden/S28/):
 // - JSON is read by its own strict parser, not JSON.parse, because the original's answers depend on what
@@ -619,9 +619,9 @@ const STRERROR = {
 const ERRNO = { ENOENT: 2, EIO: 5, EACCES: 13, ENOTDIR: 20, EISDIR: 21, EINVAL: 22, ENAMETOOLONG: 63, ELOOP: 62, EPERM: 1 };
 
 /** @param {unknown} e */
-const errCode = (e) => String((e && /** @type {NodeJS.ErrnoException} */ (e).code) || '');
+export const errCode = (e) => String((e && /** @type {NodeJS.ErrnoException} */ (e).code) || '');
 /** @param {unknown} e */
-const strerror = (e) => STRERROR[errCode(e)] || (e instanceof Error ? e.message : String(e));
+export const strerror = (e) => STRERROR[errCode(e)] || (e instanceof Error ? e.message : String(e));
 
 /** @param {string} p */
 function isDir(p) {
@@ -633,7 +633,7 @@ function isDir(p) {
 }
 
 /** @param {Buffer} raw */
-function decodeUtf8(raw) {
+export function decodeUtf8(raw) {
   return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(raw);
 }
 

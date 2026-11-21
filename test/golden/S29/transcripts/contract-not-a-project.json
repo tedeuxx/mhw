@@ -1,0 +1,12 @@
+{
+  "name": "contract-not-a-project",
+  "args": [
+    "contract",
+    "--project={BASE}/nowhere"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: FAIL  missing: no file at <BASE>/nowhere/project-policy.json\n"
+  }
+}

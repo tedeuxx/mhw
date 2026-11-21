@@ -1,0 +1,14 @@
+{
+  "name": "plan-manual-over-the-objective",
+  "args": [
+    "recovery-plan",
+    "--project={BASE}/project",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--prod-revision=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  recovery-plan: the runbook's test on 2026-01-15 recovered in 31 minutes, over the recovery-time objective of 30\n"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "environment-usage-no-protection",
+  "args": [
+    "environment",
+    "--name=x"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "delivery_gate: environment needs --name and --protection\n"
+  }
+}

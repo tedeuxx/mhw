@@ -1,0 +1,15 @@
+{
+  "name": "prod-evidence-missing",
+  "args": [
+    "prod-validation",
+    "--project={BASE}/project",
+    "--evidence={BASE}/absent.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  evidence: <BASE>/absent.json is missing or unreadable (No such file or directory)\n"
+  }
+}

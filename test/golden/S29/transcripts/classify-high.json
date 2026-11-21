@@ -1,0 +1,13 @@
+{
+  "name": "classify-high",
+  "args": [
+    "classify",
+    "--project={BASE}/project",
+    "--rules=0"
+  ],
+  "run": {
+    "code": 0,
+    "stdout": "class=high\napproval=owner-exact-revision\n",
+    "stderr": ""
+  }
+}

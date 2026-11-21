@@ -1,0 +1,13 @@
+{
+  "name": "environment-wait-timer-with-reviewers",
+  "args": [
+    "environment",
+    "--name=production-owner-approval",
+    "--protection={BASE}/env.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  environment: production-owner-approval has no required reviewer, so nothing waits for the owner's approval\n"
+  }
+}

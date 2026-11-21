@@ -1,0 +1,13 @@
+{
+  "name": "contract-another-repository",
+  "args": [
+    "contract",
+    "--project={BASE}/project",
+    "--repository=someone/else"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: it governs tedeuxx/mhw, this run is in someone/else\n"
+  }
+}

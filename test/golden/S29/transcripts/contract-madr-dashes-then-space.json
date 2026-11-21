@@ -1,0 +1,12 @@
+{
+  "name": "contract-madr-dashes-then-space",
+  "args": [
+    "contract",
+    "--project={BASE}/project"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: the project MADR docs/adr/0001-fixture-quality-bar.md has no status line reading accepted\n"
+  }
+}

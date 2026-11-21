@@ -1,0 +1,15 @@
+{
+  "name": "prod-scenario-inconclusive",
+  "args": [
+    "prod-validation",
+    "--project={BASE}/project",
+    "--evidence={BASE}/ev.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  prod-validation: risk_scenarios no-unescaped-name is inconclusive (inconclusive evidence blocks)\n"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "environment-file-not-an-object",
+  "args": [
+    "environment",
+    "--name=x",
+    "--protection={BASE}/env.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  environment: <BASE>/env.json is not a JSON object\n"
+  }
+}

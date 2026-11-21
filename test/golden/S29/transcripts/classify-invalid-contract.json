@@ -1,0 +1,13 @@
+{
+  "name": "classify-invalid-contract",
+  "args": [
+    "classify",
+    "--project={BASE}/project",
+    "--rules=1"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: FAIL  $.approval.high_risk: const (risk-based approval weakened)\nBLOCK  contract: FAIL  1 finding(s); the contract is not valid\n"
+  }
+}

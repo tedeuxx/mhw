@@ -1,0 +1,15 @@
+{
+  "name": "installed-checkout-elsewhere",
+  "args": [
+    "installed-stg",
+    "--project={BASE}/project",
+    "--evidence={BASE}/ev.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  installed-stg: the checkout is at bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, not the revision aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+  }
+}

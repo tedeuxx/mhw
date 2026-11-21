@@ -1,0 +1,14 @@
+{
+  "name": "prod-usage-no-checkout-head",
+  "args": [
+    "prod-validation",
+    "--project={BASE}/project",
+    "--evidence={BASE}/ev.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "delivery_gate: prod-validation needs --checkout-head\n"
+  }
+}

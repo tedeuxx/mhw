@@ -1,0 +1,13 @@
+{
+  "name": "usage-repeated-argument",
+  "args": [
+    "contract",
+    "--project={BASE}/project",
+    "--project={BASE}/project"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "delivery_gate: unknown, empty or repeated argument --project=<BASE>/project\n"
+  }
+}

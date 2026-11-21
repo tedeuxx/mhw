@@ -1,0 +1,14 @@
+{
+  "name": "plan-already-at-the-revision",
+  "args": [
+    "recovery-plan",
+    "--project={BASE}/project",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--prod-revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  recovery-plan: PROD already runs aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, so there is no previous version to return to\n"
+  }
+}

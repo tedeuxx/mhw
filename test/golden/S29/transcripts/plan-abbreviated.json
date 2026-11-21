@@ -1,0 +1,14 @@
+{
+  "name": "plan-abbreviated",
+  "args": [
+    "recovery-plan",
+    "--project={BASE}/project",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--prod-revision=bbbbbbbbbbbb"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  recovery-plan: PROD reports it runs \"bbbbbbbbbbbb\", not a full commit SHA or none (an unreadable PROD revision blocks: there would be nothing known to return to)\n"
+  }
+}

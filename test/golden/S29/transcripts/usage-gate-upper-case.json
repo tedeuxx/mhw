@@ -1,0 +1,12 @@
+{
+  "name": "usage-gate-upper-case",
+  "args": [
+    "CONTRACT",
+    "--project={BASE}/project"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "delivery_gate: a gate: contract, container, installed-stg, classify, environment, recovery-plan or prod-validation\n"
+  }
+}

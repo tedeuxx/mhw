@@ -29,7 +29,11 @@
         "src/commands/project-policy.js",
         "test/project-policy/**",
         "test/helpers/s28-cases.js",
-        "test/golden/S28/**"
+        "test/golden/S28/**",
+        "src/commands/delivery-gate.js",
+        "test/helpers/s29-cases.js",
+        "test/golden/S29/**",
+        "test/declared-fixtures.json"
       ],
       "docs": [
         "docs/project-policy-contract.md",

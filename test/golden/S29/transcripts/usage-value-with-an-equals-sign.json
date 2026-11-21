@@ -1,0 +1,13 @@
+{
+  "name": "usage-value-with-an-equals-sign",
+  "args": [
+    "contract",
+    "--project={BASE}/project",
+    "--repository=a=b"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: it governs tedeuxx/mhw, this run is in a=b\n"
+  }
+}

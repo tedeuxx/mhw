@@ -1,0 +1,12 @@
+{
+  "name": "contract-relative-project",
+  "args": [
+    "contract",
+    "--project=project"
+  ],
+  "run": {
+    "code": 0,
+    "stdout": "OK  contract: valid, bound to this repository, MADR accepted\n",
+    "stderr": ""
+  }
+}

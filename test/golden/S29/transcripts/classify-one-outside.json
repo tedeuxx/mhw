@@ -1,0 +1,13 @@
+{
+  "name": "classify-one-outside",
+  "args": [
+    "classify",
+    "--project={BASE}/project",
+    "--rules=1,9"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  classify: \"9\" is not a rule index of the contract (0 to 1)\n"
+  }
+}
