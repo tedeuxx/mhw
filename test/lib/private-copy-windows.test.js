@@ -24,6 +24,7 @@ const MODES = {
   deny: { who: '"dom\\me","' + ME + '"', names: ['dom\\me'], sddl: 'D:PAI(D;;FA;;;WD)(A;;FA;;;' + ME + ')' },
   'deny-me': { who: '"dom\\me","' + ME + '"', names: ['dom\\me'], sddl: 'D:PAI(D;;FA;;;' + ME + ')' },
   'me-first': { who: '"dom\\me","' + ME + '"', names: ['dom\\me'], sddl: 'D:PAI(A;;FA;;;' + ME + ')(A;;FA;;;BA)' },
+  'alias-la': { who: '"dom\\admin","S-1-5-21-9-500"', names: ['dom\\admin'], sddl: 'D:PAI(A;;FA;;;LA)' },
   'other-sid': { who: '"dom\\me","' + ME + '"', names: ['dom\\me'], sddl: 'D:PAI(A;;FA;;;S-1-5-21-2000)' },
   'no-name': { who: '"' + ME + '"', names: ['dom\\me'], sddl: 'D:PAI(A;;FA;;;' + ME + ')' },
 };
@@ -73,6 +74,17 @@ test('the user alone, by SID: the backup is written, and nothing is removed', { 
   assert.ok(r.calls.some((c) => c[0] === '/inheritance:r' && c.includes('*' + ME + ':F')), JSON.stringify(r.calls));
   assert.ok(!r.calls.some((c) => c[0] === '/remove'));
   assert.deepEqual(r.leftovers, [], 'the /save directory is removed');
+});
+
+test('the built-in Administrator, whom SDDL names LA, is the user (RID 500 of the own domain)', { skip }, () => {
+  const r = copyUnder('alias-la');
+  assert.equal(r.error, null);
+  assert.equal(r.data, '{"x":1}\n');
+});
+
+test('a refusal names the entries it saw, as SDDL shapes, without a full SID', { skip }, () => {
+  const r = copyUnder('me-first');
+  assert.match(String(r.error), /\(2 entries: A;;you A;;BA\)/);
 });
 
 test('an entry of its own beside the user is removed by its printed name, grant and deny alike', { skip }, () => {

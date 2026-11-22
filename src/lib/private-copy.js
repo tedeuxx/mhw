@@ -48,8 +48,25 @@ function ownerOnlyAcl(file, env) {
     if (rm.code !== 0) throw new Error('icacls /remove exited ' + rm.code);
   }
   const left = dacl(icacls, file);
-  const own = left.length === 1 && left[0].type === 'A' && !left[0].flags.includes('ID') && left[0].sid.toUpperCase() === sid.toUpperCase();
-  if (!own) throw new Error('the access list is not the current user alone (' + left.length + ' entries)');
+  const mine = (/** @type {string} */ s) => isSid(s, sid);
+  const own = left.length === 1 && left[0].type === 'A' && !left[0].flags.includes('ID') && mine(left[0].sid);
+  if (!own) {
+    // The entries, as SDDL shapes, with the user's SID as "you" and any other full SID as "another".
+    const shapes = left.map((e) => e.type + ';' + e.flags + ';' + (mine(e.sid) ? 'you' : (/^S-/i.test(e.sid) ? 'another' : e.sid)));
+    throw new Error('the access list is not the current user alone (' + left.length + ' entries: ' + shapes.join(' ') + ')');
+  }
+}
+
+/**
+ * Is an SDDL trustee the user? Its full SID, or the alias SDDL writes for a local account with a well-known
+ * RID in its own domain: LA (the built-in Administrator, RID 500) and LG (Guest, 501).
+ * @param {string} trustee @param {string} sid
+ */
+function isSid(trustee, sid) {
+  const t = trustee.toUpperCase();
+  const s = sid.toUpperCase();
+  if (t === s) return true;
+  return (t === 'LA' && s.startsWith('S-1-5-21-') && s.endsWith('-500')) || (t === 'LG' && s.startsWith('S-1-5-21-') && s.endsWith('-501'));
 }
 
 /**
