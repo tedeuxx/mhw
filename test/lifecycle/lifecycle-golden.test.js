@@ -45,7 +45,7 @@ after(() => h.cleanup());
 
 /** Why the cases cannot run here, or ''. */
 export function missing() {
-  if (!POSIX) return 'POSIX only: on Windows install and update are install.ps1, and uninstall does not exist';
+  if (!POSIX) return 'POSIX only: on Windows install is mhw install-windows (#497), update is answered by src/cli.js, and uninstall does not exist';
   for (const t of TOOLS) if (!which(t)) return t + ' is not on PATH';
   return '';
 }

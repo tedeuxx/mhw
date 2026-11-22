@@ -12,7 +12,7 @@
 // itself. The validated --overlay reaches the installers through WORKSTATION_OVERLAY, never their argv.
 // git, gh and the agent harness CLIs are the first on PATH, run by absolute path (src/lib/onpath.js).
 // Status never fails on what it reads: exit 0, 2 on a usage error, 1 when --mcp-connect finds a failure.
-// macOS and Linux; on Windows `mhw status` stays install.ps1 -Check (src/cli.js). node: modules only.
+// macOS and Linux; on Windows `mhw status` is `mhw install-windows --check` after its NODE and PASTE lines (src/cli.js, #497). node: modules only.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

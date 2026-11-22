@@ -11,8 +11,9 @@
 // of the method present, it writes nothing and prints one METHOD line saying so. With --opt-in, or once a
 // rendered file is present, it renders and checks every target.
 //
-// install.sh and install.ps1 run this as their own rendering step and pass the provenance stamp they
-// derived (ADR-0029), so the stamp is derived once. ./mhw install, check, status and uninstall reach it
+// mhw install-user and mhw install-windows (install.sh and install.ps1 until #503 and #497) run this as
+// their own rendering step and pass the provenance stamp they derived (ADR-0029), so the stamp is derived
+// once. ./mhw install, check, status and uninstall reach it
 // through them.
 //
 // Carriers (ADR-0027 matrix, ADR-0032):

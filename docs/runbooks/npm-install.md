@@ -118,8 +118,12 @@ If both packages end up installed anyway, `mhw status` and `mhw check` say so wi
 
 ## Windows
 
-`mhw` runs `global\install.ps1`. `install`, `install --method` and `--overlay=DIR|none` map onto
-`install.ps1`, `-Method` and `-Overlay`. `check` and `status` both run `install.ps1 -Check`. `update`
+~~`mhw` runs `global\install.ps1`. `install`, `install --method` and `--overlay=DIR|none` map onto
+`install.ps1`, `-Method` and `-Overlay`. `check` and `status` both run `install.ps1 -Check`.~~ *Since
+[#497](https://github.com/tedeuxx/mhw/issues/497) (S27 of #470) `install.ps1` is deleted and no PowerShell
+runs:* `install`, `install --method` and `--overlay=DIR|none` run `mhw install-windows`, in Node, on the
+node that runs `mhw`; `check` and `status` run `mhw install-windows --check` (`status` after its NODE and
+PASTE lines). `update`
 prints the npm command, then `mhw install`. `install --admin` and `uninstall` do not exist on Windows and
 are refused with exit 2. As on macOS and Linux, the postinstall installs nothing and names `mhw install`;
 there is no admin layer, no install conversation and no runtime summary on Windows yet. Exercised in CI

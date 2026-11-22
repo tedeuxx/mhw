@@ -46,7 +46,7 @@ after(() => h.cleanup());
 
 /** Why the cases cannot run here, or ''. */
 function missing() {
-  if (!POSIX) return 'POSIX only: on Windows mhw check is install.ps1 -Check';
+  if (!POSIX) return 'POSIX only: on Windows mhw check is mhw install-windows --check (#497)';
   for (const t of [...FULL_TOOLS, ...BARE_TOOLS]) if (!which(t)) return t + ' is not on PATH';
   return '';
 }

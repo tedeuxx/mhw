@@ -26,10 +26,10 @@ macOS/Linux:
 node bin/mhw.js install-user --overlay=none --dry-run
 ```
 
-Windows PowerShell:
+Windows (PowerShell or any shell; `install.ps1` until #497):
 
 ```powershell
-.\global\install.ps1 -Overlay none -DryRun
+node bin\mhw.js install-windows --overlay=none --dry-run
 ```
 
 For a personal profile, copy `global/profile/profile.example.json` into a directory you control and
@@ -64,11 +64,11 @@ macOS/Linux:
 `./mhw install --overlay=none` in your own terminal also installs the admin layer: it asks for your
 administrator password once, after RETURN. `--no-admin` leaves it out.
 
-Windows PowerShell:
+Windows (PowerShell or any shell; `install.ps1` until #497):
 
 ```powershell
-.\global\install.ps1 -Overlay none
-.\global\install.ps1 -Overlay none -Check
+node bin\mhw.js install --overlay=none
+node bin\mhw.js check --overlay=none
 ```
 
 Use the same overlay choice in preview, apply and check. The installer refuses unmanaged conflicts;

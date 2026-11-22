@@ -1,8 +1,8 @@
 // The user layer's models step (#481, S10 of #470): which node runs src/render/model-defaults.js. It was
 // install.sh's models_step, read out of install.sh and run alone in /bin/sh; since #503 (S25) it is
 // `mhw install-user`'s modelsStep, run alone by test/helpers/install-step-driver.js with a throwaway HOME and
-// a recording stand-in node on PATH. POSIX only: install.ps1's lookup is held by global/install.test.ps1,
-// section 15.
+// a recording stand-in node on PATH. POSIX only: the Windows lookup is held by test/install/windows.test.js,
+// case 15 (#497; global/install.test.ps1 until then).
 //   - no MHW_NODE and no node on PATH: SKIP, status 2, nothing run;
 //   - an absolute MHW_NODE that is not an executable file: REFUSE naming it, status 2, and the node on PATH
 //     is NOT run in its place (PR #515 lens A1);

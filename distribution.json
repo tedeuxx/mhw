@@ -64,7 +64,7 @@
       "layer": "user",
       "paths": [
         "src/commands/install-user.js",
-        "global/install.ps1",
+        "src/commands/install-windows.js",
         "src/commands/lifecycle.js",
         "src/commands/install.js",
         "src/commands/update.js",

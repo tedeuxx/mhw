@@ -1,8 +1,8 @@
 // mhw install-user (#503, S25 of #470) against throwaway HOMEs, never the real one: the cases of the deleted
 // global/install.test.sh, one test per section, in its order and with its section numbers. Every run passes a
 // throwaway --managed-root (carried from #502, 3a), so no case reads the admin layer under /Library or /etc.
-// POSIX only: the user-layer installer is macOS and Linux (Windows runs global/install.ps1, held by
-// install.test.ps1). The parity with install.sh is install-user-golden.test.js.
+// POSIX only: the user-layer installer is macOS and Linux (Windows runs mhw install-windows, held by
+// test/install/windows.test.js; #497). The parity with install.sh is install-user-golden.test.js.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -18,7 +18,7 @@ const MHW = path.join(ROOT, 'bin', 'mhw.js');
 const NAME = 'personal-multi-harness-workstation-configuration';
 const MARKER = 'managed-by: ' + NAME;
 const POSIX = process.platform !== 'win32';
-const skip = !POSIX && 'the user-layer installer is POSIX; install.test.ps1 holds install.ps1';
+const skip = !POSIX && 'the user-layer installer is POSIX; test/install/windows.test.js holds mhw install-windows (#497)';
 const BASE = POSIX ? fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 's25-install-'))) : '';
 after(() => {
   if (BASE) fs.rmSync(BASE, { recursive: true, force: true });

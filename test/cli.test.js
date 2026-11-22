@@ -3,7 +3,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -11,7 +10,6 @@ import { throwawayHome } from './helpers/home.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const STUB = pathToFileURL(path.join(ROOT, 'test', 'helpers', 'stub-node-version.js')).href;
-const POSIX = process.platform !== 'win32';
 
 /**
  * bin/mhw.js under a stubbed process.version, on the Windows launcher path so no ./mhw runs.
@@ -30,15 +28,15 @@ function mhw(args, version, env) {
 }
 
 test('mhw status prints a NODE line that fails visibly on an older node, and keeps its exit code', () => {
-  const env = { WORKSTATION_POWERSHELL: 'pwsh.exe' };
-  const old = mhw(['status'], 'v20.11.1', env);
+  const env = {};
+  const old = mhw(['status', '--overlay=none'], 'v20.11.1', env);
   assert.equal(old.out[0], 'NODE    FAIL  node v20.11.1 is older than engines.node >=26; install the Node 26 LTS line or later');
-  const cur = mhw(['status'], 'v26.13.1', env);
+  const cur = mhw(['status', '--overlay=none'], 'v26.13.1', env);
   assert.equal(cur.out[0], 'NODE    ok    node v26.13.1 meets engines.node >=26');
-  // A report, like the rest of status: the exit code is status's own (here the PowerShell refusal).
-  assert.equal(old.code, 2);
-  assert.equal(cur.code, 2);
-  assert.match(old.err, /PowerShell was not found/);
+  // A report, like the rest of status: the exit code is status's own (here the check of an empty profile, #497).
+  assert.equal(old.code, 1);
+  assert.equal(cur.code, 1);
+  assert.equal(old.err, '');
 });
 
 test('the NODE line is printed by status alone', () => {
@@ -48,21 +46,14 @@ test('the NODE line is printed by status alone', () => {
   }
 });
 
-test('status forwards to install.ps1 after the NODE line, and its exit code is the forwarded one', { skip: !POSIX && 'the stub PowerShell is a POSIX script' }, () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mhw-cli-stub-'));
-  try {
-    const stub = path.join(dir, 'ps');
-    fs.writeFileSync(stub, '#!/bin/sh\nfor a in "$@"; do printf \'%s\\n\' "$a"; done\nexit 0\n');
-    fs.chmodSync(stub, 0o755);
-    const r = mhw(['status'], 'v20.11.1', { WORKSTATION_POWERSHELL: stub });
-    assert.equal(r.code, 0);
-    assert.match(r.out[0], /^NODE    FAIL  /);
-    assert.match(r.out[1], /^PASTE   n\/a   the paste wrapper is not installed on Windows; whether it works there is not measured \(D7\)$/);
-    assert.deepEqual(r.out.slice(2, -1), ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File',
-      path.join(ROOT, 'global', 'install.ps1'), '-Check']);
-  } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
+test('status on Windows runs mhw install-windows --check after the NODE and PASTE lines, and its exit code is the check\'s (#497)', () => {
+  const r = mhw(['status', '--overlay=none'], 'v20.11.1', {});
+  assert.equal(r.code, 1);
+  assert.match(r.out[0], /^NODE    FAIL  /);
+  assert.match(r.out[1], /^PASTE   n\/a   the paste wrapper is not installed on Windows; whether it works there is not measured \(D7\)$/);
+  assert.match(r.out[2], /^MISSING .*CLAUDE\.md$/);
+  assert.ok(r.out.some((l) => /^MISSING .*settings\.json$/.test(l)), r.out.join('\n'));
+  assert.ok(!r.out.some((l) => l.includes('install.ps1') || l.includes('PowerShell')), r.out.join('\n'));
 });
 
 test('the entry points are ES modules with the exports the Python suites import', async () => {

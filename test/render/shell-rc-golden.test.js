@@ -12,7 +12,7 @@
 //   live:   where the base revision still holds the shell functions (until this slice merges), both run on
 //           the same inputs. MHW_UPDATE_GOLDEN=1 rewrites the goldens from the base side, never from Node.
 // `uname` is a stand-in on PATH that prints the scenario's system name, so the macOS login-file rule is
-// exercised on Linux too, on both sides. POSIX only: install.sh never runs on Windows (install.ps1 writes no
+// exercised on Linux too, on both sides. POSIX only: install.sh never runs on Windows (mhw install-windows, #497, writes no
 // start-up file). Normalised before comparing: the scenario's directory (<T>). Intended differences:
 // test/golden/S21/expected-differences.json.
 import { test, after } from 'node:test';

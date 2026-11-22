@@ -3,18 +3,20 @@
 // `mhw status` prints a NODE line first (D11), naming the running node against engines.node.
 //   macOS and Linux: install, update, uninstall, postinstall and the usage text are
 //                    src/commands/lifecycle.js (#495), moved from global/workstation.py.
-//   Windows:         runs global\install.ps1 (install, install --method, check, status = check) and
-//                    answers update itself; install --admin and uninstall do not exist there.
+//   Windows:         install, install --method, check and status (= check) run `mhw install-windows`
+//                    (src/commands/install-windows.js, #497, S27; it was global\install.ps1); update is
+//                    answered here; install --admin and uninstall do not exist there.
 // Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474),
 // `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477),
 // `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
 // `mhw scan` (#486), `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux), `mhw check`
-// (#494; macOS and Linux, Windows keeps install.ps1 -Check), and `mhw hook prompt`, `mhw hook
+// (#494; macOS and Linux; on Windows both run `mhw install-windows --check`, #497), and `mhw hook prompt`, `mhw hook
 // check-config` and `mhw add-term` (#488); new in Node:
 // `mhw docs-baseline check` and `mhw onboard` (#523), `mhw policy check` (#498, S28; on Windows too), and
 // `mhw delivery-gate` (#499, S29; on Windows too), the reference CI/CD's evidence and recovery gates, and
 // `mhw install-user` (#503, S25; macOS and Linux), the user-layer installer install, update, uninstall,
-// check and status run (it was global/install.sh).
+// check and status run (it was global/install.sh), and `mhw install-windows` (#497, S27), the same layer
+// on Windows (it was global/install.ps1).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // this file runs go by absolute path, never looked up on PATH. A moved command may look a program up on
 // PATH through src/lib/onpath.js (absolute entries only) and then run it by that absolute path: mhw scan
@@ -34,6 +36,7 @@ import { main as funnelReviewMain } from './commands/funnel-review.js';
 import { main as profileMain } from './commands/profile.js';
 import { main as chromeDebuggingMain } from './render/chrome-debugging.js';
 import { main as installUserMain } from './commands/install-user.js';
+import { main as installWindowsMain } from './commands/install-windows.js';
 import { main as mcpLaunchMain } from './commands/mcp-launch.js';
 import { main as scanMain } from './commands/scan.js';
 import { main as pasteWrapperMain, statusLine as pasteStatusLine } from './commands/paste-wrapper.js';
@@ -51,38 +54,39 @@ import { main as deliveryGateMain } from './commands/delivery-gate.js';
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const USAGE = [
   'mhw install [--method] [--overlay=DIR|none] | check | status | update [vX.Y.Z] | scan [--base=REF | PATH... | --file=PATH]',
-  '(Windows: install.ps1; install --admin, scan and uninstall are macOS and Linux only)',
+  '(Windows: install --admin, scan and uninstall are macOS and Linux only)',
 ];
 
 /**
- * @typedef {{ code: number, out?: string[], err?: string, ps?: string[] }} Plan
+ * @typedef {{ code: number, out?: string[], err?: string, argv?: string[] }} Plan
  */
 
 export { updateLines };
 
 /**
- * install.ps1's parameters for install, check and status, or a refusal.
+ * `mhw install-windows`'s arguments for install, check and status, or a refusal (install.ps1's -Check,
+ * -Method and -Overlay until #497).
  * @param {string} command
  * @param {string[]} rest
  * @returns {Plan}
  */
-function powershellArgs(command, rest) {
-  const ps = command === 'install' ? [] : ['-Check'];
+function windowsArgs(command, rest) {
+  const argv = command === 'install' ? [] : ['--check'];
   for (const arg of rest) {
     if (arg === '--method' && command === 'install') {
-      ps.push('-Method');
+      argv.push('--method');
     } else if (arg.startsWith('--overlay=') && arg.length > '--overlay='.length) {
-      ps.push('-Overlay', arg.slice('--overlay='.length));
+      argv.push(arg);
     } else {
       const note = arg === '--admin' ? ' (macOS and Linux only)' : '';
       return { code: 2, err: 'mhw: unknown argument for ' + command + ': ' + arg + note };
     }
   }
-  return { code: 0, ps };
+  return { code: 0, argv };
 }
 
 /**
- * Windows: the subcommand mapped onto install.ps1, an answer printed here, or a refusal.
+ * Windows: the subcommand mapped onto `mhw install-windows`, an answer printed here, or a refusal.
  * @param {string[]} argv
  * @returns {Plan}
  */
@@ -100,19 +104,7 @@ export function windowsPlan(argv) {
   if (!['install', 'check', 'status'].includes(command)) {
     return { code: 2, err: 'mhw: ' + command + ' is not available on Windows (install, check, status, update)' };
   }
-  return powershellArgs(command, rest);
-}
-
-/**
- * PowerShell 7 where installed, else the Windows PowerShell 5.1 every Windows ships; absolute paths.
- * @param {Record<string, string | undefined>} env
- */
-function powershell(env) {
-  const candidates = [
-    path.join(env.ProgramFiles || 'C:\\Program Files', 'PowerShell', '7', 'pwsh.exe'),
-    path.join(env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
-  ];
-  return candidates.find((exe) => fs.existsSync(exe)) || null;
+  return windowsArgs(command, rest);
 }
 
 /**
@@ -150,6 +142,9 @@ const MOVED = {
   // #503, S25: the user-layer installer, moved from global/install.sh; mhw install, update, uninstall,
   // check and status run it.
   'install-user': installUserMain,
+  // #497, S27: the same layer on Windows, moved from global/install.ps1; mhw install, check and status run
+  // it there.
+  'install-windows': installWindowsMain,
   // #483, S12: `mhw mcp launch`, the MCP launcher the renderer installs a copy of; #484, S13: `mhw mcp render`.
   mcp: mcpMain,
   scan: scanMain, // #486, S15: the outbound scan, on the cleaning core (src/lib/clean.js)
@@ -219,11 +214,10 @@ function mcpMain(argv, env) {
  * @param {string[]} argv
  * @param {string} platform
  * @param {Record<string, string | undefined>} env
- * @param {{ stdio?: import('node:child_process').StdioOptions, nodeVersion?: string }} [opts]
+ * @param {{ nodeVersion?: string }} [opts]
  * @returns {number}
  */
 export function main(argv, platform, env, opts = {}) {
-  const stdio = opts.stdio || 'inherit';
   // The first moved command (#474, S03): mhw delivery runs here on every platform, never forwarded.
   if (argv[0] === 'delivery') {
     const r = delivery(argv.slice(1), { cwd: process.cwd(), env, platform: process.platform });
@@ -237,10 +231,10 @@ export function main(argv, platform, env, opts = {}) {
     printNodeLine(opts.nodeVersion || process.version);
     // #487: whether the paste wrapper's pty library loads here; a FAIL names the reason. Never the exit code.
     fs.writeSync(1, pasteStatusLine(env, platform) + '\n');
-    // #493 (S22): the status view itself is Node on macOS and Linux; Windows keeps install.ps1 -Check.
+    // #493 (S22): the status view itself is Node on macOS and Linux; on Windows it is install-windows --check (#497).
     if (platform !== 'win32') return statusMain(argv.slice(1), env);
   }
-  // #494 (S23): mhw check is Node on macOS and Linux; Windows keeps install.ps1 -Check.
+  // #494 (S23): mhw check is Node on macOS and Linux; on Windows it is install-windows --check (#497).
   if (argv[0] === 'check' && platform !== 'win32') return checkMain(argv.slice(1), env);
   // #495 (S24): install, update, uninstall, postinstall and the usage text are Node on macOS and Linux.
   if (platform !== 'win32') return lifecycleMain(argv, env);
@@ -253,13 +247,6 @@ export function main(argv, platform, env, opts = {}) {
     console.log(plan.out.join('\n'));
     return plan.code;
   }
-  // WORKSTATION_POWERSHELL: tests and CI only, to pin one PowerShell; an absolute path.
-  const exe = env.WORKSTATION_POWERSHELL || powershell(env);
-  if (!exe || !path.isAbsolute(exe)) {
-    console.error('mhw: PowerShell was not found (pwsh 7 or Windows PowerShell 5.1)');
-    return 2;
-  }
-  const ps1 = path.join(ROOT, 'global', 'install.ps1');
-  const args = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', ps1, ...(plan.ps || [])];
-  return exitWith(runAbsolute(exe, args, { stdio }));
+  // #497 (S27): its steps run on the node running this file, as mhw install's do on macOS and Linux.
+  return installWindowsMain(plan.argv || [], { ...env, MHW_NODE: process.execPath });
 }

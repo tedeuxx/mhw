@@ -240,7 +240,7 @@ export function deriveStamp(root, version, env) {
   const glob = 'v[0-9]*.[0-9]*.[0-9]*';
   const inside = run('rev-parse', '--is-inside-work-tree') !== null;
   const top = inside ? (run('rev-parse', '--show-toplevel') ?? '') : null;
-  const commit = inside && top === real ? run('rev-parse', '--verify', 'HEAD') : null;
+  const commit = inside && top !== null && samePath(top, real) ? run('rev-parse', '--verify', 'HEAD') : null;
   if (commit !== null) {
     const dirty = (run('status', '--porcelain', '--untracked-files=no') ?? '') !== '' ? '-dirty' : '';
     const exact = dirty ? null : run('describe', '--tags', '--exact-match', '--match', glob, 'HEAD');
@@ -255,7 +255,8 @@ export function deriveStamp(root, version, env) {
   }
   const archive = readBytes(path.join(root, '.workstation-archive'));
   if (archive !== null) {
-    const lines = archive.toString('utf8').split('\n');
+    // \r?\n: git archive on a Windows checkout (core.autocrlf=true) writes this file with CRLF (#497).
+    const lines = archive.toString('utf8').split(/\r?\n/);
     const commitLine = lines.map((l) => /^commit: ([0-9a-f]{40})$/.exec(l)).find((m) => m);
     if (commitLine) {
       const d = lines.find((l) => l.startsWith('describe: '));
@@ -268,6 +269,17 @@ export function deriveStamp(root, version, env) {
     }
   }
   return 'release: unknown, not a git checkout (.bumpversion.toml says ' + version + '); commit: unknown';
+}
+
+/**
+ * git's --show-toplevel against this tree's own path. On Windows (#497, as install.ps1 compared them) git
+ * prints C:/x where the path reads C:\x, and the file system ignores case.
+ * @param {string} top @param {string | null} real
+ */
+function samePath(top, real) {
+  if (real === null) return false;
+  if (process.platform !== 'win32') return top === real;
+  return path.resolve(top).toLowerCase() === path.resolve(real).toLowerCase();
 }
 
 // ------------------------------------------------------------------------------------------- the deny floor

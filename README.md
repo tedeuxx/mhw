@@ -91,7 +91,7 @@ artifacts, while those rows retain the last control-specific load/enforcement me
 
 | Word | Meaning |
 | --- | --- |
-| *written* | in the source and covered by the CI suites (Ubuntu and macOS; Windows where `install.ps1` is named) |
+| *written* | in the source and covered by the CI suites (Ubuntu and macOS; Windows where `mhw install-windows` is named, `install.ps1` until [#497](https://github.com/tedeuxx/mhw/issues/497)) |
 | *probed* | installed into a throwaway home on the named version and observed there: *loaded* (the agent harness lists or shows it) or *enforced* (it refused or cleaned on a synthetic input). Never on the owner's machine |
 | *documented* | vendor documentation only; not exercised |
 | *none* | the agent harness has no carrier for it; the gap is stated, not filled by a hook |
@@ -180,7 +180,7 @@ run (`mhw` never relies on a cached `sudo` credential). `mhw update` runs the np
 - The install line names this repository. It changes when the repository is renamed (a separate step).
 
 The first installable tag is the first release that carries `package.json`; older tags fail in npm.
-`mhw` takes the same subcommands as `./mhw` below. On Windows it runs `install.ps1`.
+`mhw` takes the same subcommands as `./mhw` below. On Windows `install`, `check` and `status` run `mhw install-windows`, in Node (~~`install.ps1`~~ until [#497](https://github.com/tedeuxx/mhw/issues/497)).
 
 **Or from a git clone**, the alternative. macOS and Linux, from the repository root (Node.js 26 or
 later and Python 3.9+ required, and `jq` for the admin layer only, until #496; `./mhw` is a Node file
@@ -250,17 +250,22 @@ nothing blocks ([#57](https://github.com/tedeuxx/mhw/issues/57)).
 An install from an untagged checkout of `rc/next` stamps `unreleased, after vX.Y.Z`, which compares as
 X.Y.Z, so it matches here only when that last release is inside the range.
 
-Windows (PowerShell 5.1 and 7, tested in CI) renders the brief and the deny floor (Kiro's
-`permissions.yaml` included), and the working method with `-Method`. Since the #145 follow-up it also
+Windows ~~(PowerShell 5.1 and 7, tested in CI)~~ (tested in CI on a Windows runner; since
+[#497](https://github.com/tedeuxx/mhw/issues/497) the same Node CLI, `mhw install-windows`, which
+replaced `install.ps1`; no PowerShell is needed) renders the brief and the deny floor (Kiro's
+`permissions.yaml` included), and the working method with `--method`. Since the #145 follow-up it also
 ~~removes the `aws-api` MCP server from Codex,~~ (removed in v7, #206) pins the session-start model and effort, and removes the
-retired `find` and `awk` allows, as `mhw install-user` does; these steps need Python 3.9 or later. The paste
-wrapper is not ported, so no shell start-up file is written. There is no uninstall on Windows. Every
-backup is owner-only there too: its access list grants the current user alone, inheritance disabled. From a clone, or through the npm `mhw` command, which runs the same script:
+retired `find` and `awk` allows, as `mhw install-user` does; ~~these steps need Python 3.9 or later~~ these
+steps run on Node 26 or later. The paste wrapper and the paste filter are not installed on Windows
+(whether the paste wrapper's pty works there is *not measured*, D7), so no shell start-up file is
+written. There is no uninstall on Windows. Every backup is owner-only there too: its access list grants
+the current user alone, inheritance disabled (0600 has no Windows equivalent). From a clone, or through
+the npm `mhw` command, which runs the same code:
 
 ```powershell
-.\global\install.ps1
-.\global\install.ps1 -DryRun
-.\global\install.ps1 -Check
+node bin\mhw.js install
+node bin\mhw.js install-windows --dry-run
+node bin\mhw.js check
 ```
 
 Paste wrapper, the primary paste cleaner: the installer writes a snippet of shell functions and, since
