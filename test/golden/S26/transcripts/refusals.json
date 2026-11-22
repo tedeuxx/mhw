@@ -24,7 +24,7 @@
     "run": "an admin root holding a quote",
     "code": 2,
     "stdout": "",
-    "stderr": "REFUSE  <T>/ro'ot/Library/Application Support/personal-multi-harness-workstation-configuration/bin holds a quote, backslash, dollar sign or backtick\n",
+    "stderr": "REFUSE  <QUOTED>/<BASE>/bin holds a quote, backslash, dollar sign or backtick\n",
     "tree": []
   },
   {

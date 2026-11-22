@@ -113,11 +113,13 @@ export function runScenario(sc, source, side) {
   const root = path.join(T, 'root');
   const t = targetsOf(root);
   const clean = targetsOf(path.join(T, 'clean'));
+  const quoted = targetsOf(path.join(T, "ro'ot"));
   /** @type {import('./admin-cases.js').Paths} */
   const p = { T, root, stage: '', sha: '', t };
   const nodeReal = fs.realpathSync(process.execPath);
   const subs = /** @type {Array<[string, string]>} */ ([[t.base, '<BASE>'], [t.claudeDir, '<CLAUDE_DIR>'], [t.codexDir, '<CODEX_DIR>'], [t.kiro, '<KIRO_FILE>'],
     [clean.base, '<CLEAN>/<BASE>'], [clean.claudeDir, '<CLEAN>/<CLAUDE_DIR>'], [clean.codexDir, '<CLEAN>/<CODEX_DIR>'], [clean.kiro, '<CLEAN>/<KIRO_FILE>'],
+    [quoted.base, '<QUOTED>/<BASE>'],
     [T, '<T>'], [process.execPath, '<NODE>'], [nodeReal, '<NODE>']]);
   const norm = (/** @type {string} */ s) => normalise(s, subs)
     .replaceAll(/pmhwc-(managed|apply)\.[A-Za-z0-9]{6}/g, 'pmhwc-$1.<X>')
