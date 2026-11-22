@@ -3,6 +3,7 @@
 // destination. test/lib/private-copy.test.js runs this form and install.sh's shell form on the deleted
 // Python suite's cases and requires the same result. node: modules only.
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { runAbsolute } from './run.js';
 
@@ -48,8 +49,9 @@ function ownerOnlyAcl(file, env) {
     if (rm.code !== 0) throw new Error('icacls /remove exited ' + rm.code);
   }
   const left = dacl(icacls, file);
-  // The computer's name is a fact of the machine: a caller's narrowed env (a renderer's test) falls back to ours.
-  const mine = (/** @type {string} */ s) => isSid(s, sid, me, env.COMPUTERNAME || process.env.COMPUTERNAME || '');
+  // The computer's name is a fact of the machine: a narrowed env (a renderer run by a test with SystemRoot
+  // alone, measured on the runner) falls back to the host name, cut to the 15 characters of a NetBIOS name.
+  const mine = (/** @type {string} */ s) => isSid(s, sid, me, env.COMPUTERNAME || process.env.COMPUTERNAME || os.hostname().split('.')[0].slice(0, 15));
   const own = left.length === 1 && left[0].type === 'A' && !left[0].flags.includes('ID') && mine(left[0].sid);
   if (!own) {
     // The entries, as SDDL shapes, with the user's SID as "you" and any other full SID as "another".
