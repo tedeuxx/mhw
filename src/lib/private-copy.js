@@ -48,7 +48,8 @@ function ownerOnlyAcl(file, env) {
     if (rm.code !== 0) throw new Error('icacls /remove exited ' + rm.code);
   }
   const left = dacl(icacls, file);
-  const mine = (/** @type {string} */ s) => isSid(s, sid, me, env.COMPUTERNAME || '');
+  // The computer's name is a fact of the machine: a caller's narrowed env (a renderer's test) falls back to ours.
+  const mine = (/** @type {string} */ s) => isSid(s, sid, me, env.COMPUTERNAME || process.env.COMPUTERNAME || '');
   const own = left.length === 1 && left[0].type === 'A' && !left[0].flags.includes('ID') && mine(left[0].sid);
   if (!own) {
     // The entries, as SDDL shapes, with the user's SID as "you" and any other full SID as "another".
