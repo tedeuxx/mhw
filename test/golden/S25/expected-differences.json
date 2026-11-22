@@ -1,0 +1,46 @@
+[
+  {
+    "name": "a settings.json nested past 256 levels is refused by the model-defaults step too",
+    "case": "settings-nested-300-deep",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "Carried from #502 (3b): the settings merge and the allow-list step refuse a Claude Code settings.json that jq 1.7.1 refuses (nested past its 256 levels, a lone high surrogate escape, not JSON it reads), and the model-defaults step (src/render/model-defaults.js) rewrote it: on the base revision install prints 'CHANGED <HOME>/.claude/settings.json: model (absent) -> ...' and leaves the file rewritten, beside the merge's REFUSE line. The model-defaults step now reads the file with the same jq-compatible reader (src/lib/jq-json.js) first and refuses what it refuses: 'REFUSE  <HOME>/.claude/settings.json: not readable as its format; model defaults left untouched', exit 3, the file and its record left as they were. Every step now refuses it, and none rewrites it. A file jq reads and strict JSON does not (NaN, a byte-order mark) is still rewritten by the model-defaults step, as before (test/golden/S10 residuals). The Codex and Kiro model keys, in their own files, are written as before. The Node transcript is settings-nested-300-deep.node.json; the base one stays settings-nested-300-deep.json. 3c: on the base revision every step of this run is Node, and none ends the run on this file (exit 3, every later step ran, measured on macOS here and on the Ubuntu runner by the live arm in CI); the crash the #502 carry-along saw was a Python or jq step, all of which are gone."
+  },
+  {
+    "name": "--help prints the Node usage text",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "Not exercised by a scenario; pinned by 'declared: --help prints the usage text and exits 0' in install-user-golden-declared.test.js. install.sh printed its own header comment (sed -n '2,36p' \"$0\"), which named install.sh and described every flag. `mhw install-user --help` prints src/commands/install-user.js's USAGE: the same flags, modes and exit codes, named for mhw install-user. --help still wins over a later argument and loses to an earlier unknown one, as the shell loop read them."
+  },
+  {
+    "name": "the installer's own error lines for a failed mkdir, a failed write or an unreadable file",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario (the shell side's messages are its tools' own and differ between Apple and GNU). install.sh ran head, rm, mkdir, cp and mv, so a directory where a managed file goes printed head's own complaint ('head: <path>: Is a directory', or 'error reading') before the REFUSE line; a directory planted at a backup's name printed rm's; a failed mkdir -p, cp or mv stopped the run under set -e with that tool's message, exit 1. The Node installer reads and writes the files itself: the REFUSE line is the same and comes without the tool's line before it, and a failed mkdir or write prints 'mkdir: <dir>: <error>' or 'REFUSE  <file>: could not be written (<error>)' and exits 1, as set -e did. A backup that cannot be made prints one of the same three REFUSE lines private_copy printed (something still there after the unlink, not created exclusively, not a regular file after the copy); the fourth, 'a directory appeared there', cannot happen, because the Node copy creates the backup with O_EXCL and never links it into a directory."
+  },
+  {
+    "name": "node on PATH: a relative or empty PATH entry is skipped",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "Not exercised by a scenario (every scenario's PATH is /usr/bin:/bin). install.sh found node with `command -v node`, which also searches a relative PATH entry (and an empty one, the current directory) and then returned a relative path that its own '/*' test refused, so a node in such a directory read as no node at all. src/lib/onpath.js, the one PATH lookup the Node runtime has, skips relative and empty entries, so the first absolute node is taken. Narrower in what it runs: a node is never taken from the current directory. The same lookup now serves the profile check, the paste wrapper, every renderer step and the git that derives the stamp."
+  },
+  {
+    "name": "a renderer that dies on a signal reads as exit 1",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "Not exercised by a scenario. When a step's node was killed by a signal, the shell saw 128 + the signal number and raised that as the status. src/lib/run.js reports exit 1 for a child that died on a signal, so the step raises 1, or, where 1 means drift only under --check, reads it as a refusal (3), as the shell read every exit but 0 and 1 there. A node that could not be started at all is reported with one 'mhw: <node> did not start: <error>' line, exit 2, where sh printed its own 'not found' line and 127."
+  },
+  {
+    "name": "the managed files still name global/install.sh as their source",
+    "stream": "tree",
+    "pattern": null,
+    "why": "Not a difference: kept on purpose, and named so it is not mistaken for an oversight. Four managed files still carry 'source: global/install.sh (...)' in their managed-by text: the paste wrapper's snippet (paste-filter.sh), the Codex hooks.json, the Kiro hook file, and the stamp key of ~/.claude/settings.json (src/render/settings-merge.js). The snippet's comment also still says install.sh sources it from a managed block in the shell start-up file; that block is written by src/render/shell-rc.js since #492, run by mhw install-user since #503. What is unchanged is the source string, byte for byte against the base revision (the golden scenarios compare these files' text). The provenance stamp beside it still changes with every release, as before this slice: these files are RESTAMPED by each release's install, as they were by install.sh. For the Codex hooks.json the stamp sits in 'description', which Codex's hook hash ignores (measured on 0.160.0, Issue #66); whether a restamp asks Kiro for trust again was not measured. The source words are corrected when those files next change for another reason, not in this slice."
+  },
+  {
+    "name": "the METHOD line no longer names install.sh",
+    "stream": "stdout",
+    "pattern": ", or install\\.sh --method;",
+    "replace": ";",
+    "why": "#503 (S25 of #470) deleted global/install.sh: the METHOD line the working-method step prints when the method is not installed named it as the second way to opt in ('./mhw install --method, or install.sh --method'), a pointer to a file that no longer exists. It now names `install --method` only. The rest of the line, and every other line, is compared unchanged."
+  }
+]

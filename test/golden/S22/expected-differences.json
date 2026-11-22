@@ -223,5 +223,16 @@
     "head": "removed Python paste filter still registered \\((Claude Code|Codex)\\)",
     "replace": "paste filter ($1)",
     "why": "S17 (#488): an earlier release's Python hook entry still registered is named as a leftover to remove, not as the paste filter: the Python core no longer runs. workstation.py counted it as the paste filter when clipboard_guard.py was present."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": ", or install\\.sh --method;",
+    "replace": ";",
+    "why": "#503 (S25 of #470) deleted global/install.sh: the METHOD line the working-method step prints when the method is not installed named it as the second way to opt in ('./mhw install --method, or install.sh --method'), a pointer to a file that no longer exists. It now names `install --method` only. The rest of the line, and every other line, is compared unchanged."
   }
 ]

@@ -11,6 +11,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import * as core from '../../src/lib/clean.js';
 import * as hook from '../../src/commands/hook-prompt.js';
 import * as addTerm from '../../src/commands/add-term.js';
+import { pasteWrap, pasteCmd } from '../../src/commands/install-user.js';
 import { saltOrCreate, readSalt, orphanedLists, addTermHashes } from '../../src/lib/salt.js';
 import { loadPty } from '../../src/lib/pty.js';
 import { ROOT } from '../helpers/s15.js';
@@ -185,19 +186,19 @@ test('a stalled payload read gives the error notice at the deadline, not the har
   assert.equal(hook.deadlineOf({ MHW_HOOK_DEADLINE_MS: '1' }), hook.DEADLINE_MS, 'the session variable alone is ignored');
 });
 
-/** The hook command install.sh renders (paste_cmd), for this node and package. @param {string} harness @param {string} conf */
-/** install.sh's own start-fallback function (paste_wrap), read from the source, so the test runs the real thing. */
-const INSTALL_SH = fs.readFileSync(path.join(ROOT, 'global', 'install.sh'), 'utf8');
-const WRAP_FN = INSTALL_SH.slice(INSTALL_SH.indexOf("PASTE_START_NOTICE='"), INSTALL_SH.indexOf('\n}\n', INSTALL_SH.indexOf('paste_wrap() {')) + 3);
-/** The command as install.sh renders it: paste_wrap around the hook command. @param {string} harness @param {string} cmd */
-function wrap(harness, cmd) {
+/** The user-layer installer's start fallback (mhw install-user's pasteWrap; install.sh's paste_wrap until #503). */
+const wrap = pasteWrap;
+/** The hook command the user-layer installer renders, for a node and an entry. @param {string} harness @param {string} conf @param {string} [node] @param {string} [entry] */
+const rendered = (harness, conf, node = process.execPath, entry = MHW) => pasteCmd(harness, node, entry, conf);
+/** install-managed.sh's own start-fallback function (paste_wrap), read from it, so the test runs the real thing. */
+const MANAGED_SH = fs.readFileSync(path.join(ROOT, 'global', 'install-managed.sh'), 'utf8');
+const WRAP_FN = MANAGED_SH.slice(MANAGED_SH.indexOf("PASTE_START_NOTICE='"), MANAGED_SH.indexOf('\n}\n', MANAGED_SH.indexOf('paste_wrap() {')) + 3);
+/** The command as install-managed.sh renders it. @param {string} harness @param {string} cmd */
+function managedWrap(harness, cmd) {
   const p = spawnSync('/bin/sh', ['-c', WRAP_FN + '\npaste_wrap "$1" "$2"', 'sh', harness, cmd], { encoding: 'utf8' });
   assert.equal(p.status, 0, p.stderr);
   return p.stdout;
 }
-/** The hook command install.sh renders, for a node and an entry. @param {string} harness @param {string} conf @param {string} [node] @param {string} [entry] */
-const rendered = (harness, conf, node = process.execPath, entry = MHW) => wrap(harness,
-  '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + node + '" "' + entry + '" hook prompt --harness ' + harness + ' --config "' + conf + '"');
 
 // PR #536 lens B3: an entry or node that is missing or does not start still gives the NOT-checked answer in
 // the harness's protocol (Claude Code and Codex: the notice JSON, exit 0; Kiro: exit 2 with the notice on
@@ -233,14 +234,16 @@ test('the rendered command\'s start fallback: a hook that cannot start says NOT 
   // /bin/sh, -c and one script.
   const cmd = rendered('claude', b.confPath);
   assert.ok(cmd.startsWith("/bin/sh -c '") && cmd.endsWith("'") && cmd.slice(12, -1).indexOf("'") < 0, cmd);
-  // The exact forms, which .github/scripts/prod-canary.js spells out for Kiro rather than run install.sh's code.
+  // The exact forms, which .github/scripts/prod-canary.js spells out for Kiro rather than run the installer's code.
   assert.equal(wrap('kiro', 'X'), "/bin/sh -c 'X || { [ $? -eq 2 ] && exit 2; printf \"%s\\n\" \"" + notice + "\" >&2; exit 2; }'");
   assert.equal(wrap('claude', 'X'), "/bin/sh -c 'X || { printf \"%s\\n\" \"{\\\"systemMessage\\\": \\\"" + notice + "\\\"}\"; exit 0; }'");
-  assert.equal(KIRO_NOTICE, notice, 'prod-canary.js no longer spells out the notice install.sh renders');
-  assert.equal(kiroHookCommand('X'), wrap('kiro', 'X'), 'prod-canary.js no longer spells out the Kiro fallback install.sh renders');
-  // install-managed.sh carries the same function, verbatim.
-  const managed = fs.readFileSync(path.join(ROOT, 'global', 'install-managed.sh'), 'utf8');
-  assert.ok(managed.includes(WRAP_FN), 'install-managed.sh\'s paste_wrap differs from install.sh\'s');
+  assert.equal(KIRO_NOTICE, notice, 'prod-canary.js no longer spells out the notice the installer renders');
+  assert.equal(kiroHookCommand('X'), wrap('kiro', 'X'), 'prod-canary.js no longer spells out the Kiro fallback the installer renders');
+  // install-managed.sh's shell function renders exactly what the user-layer installer renders.
+  assert.ok(WRAP_FN.startsWith("PASTE_START_NOTICE='" + notice + "'") && WRAP_FN.includes('paste_wrap() {'), 'install-managed.sh lost its paste_wrap');
+  for (const harness of ['claude', 'codex', 'kiro']) {
+    for (const cmd of ['X', rendered(harness, b.confPath).slice(12, -1).split(' || ')[0]]) assert.equal(managedWrap(harness, cmd), wrap(harness, cmd), harness);
+  }
 });
 
 test('the rendered hook command names node by absolute path and clears NODE_OPTIONS: a planted --require never runs', { skip: !POSIX && 'POSIX' }, () => {
@@ -271,10 +274,9 @@ test('the rendered hook command names node by absolute path and clears NODE_OPTI
   fs.rmSync(cache, { recursive: true, force: true });
   spawnSync('/bin/sh', ['-c', rendered('claude', b.confPath)], { input: payload('x'), env: cenv });
   assert.ok(!fs.existsSync(cache), 'the rendered command let node use NODE_COMPILE_CACHE');
-  // install.sh renders exactly this form.
-  const sh = fs.readFileSync(path.join(ROOT, 'global', 'install.sh'), 'utf8');
-  assert.ok(sh.includes("printf '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \"%s\" \"%s\" hook prompt --harness %s --config \"%s\"'"),
-    'install.sh no longer renders the hook command this test runs');
+  // The user-layer installer renders exactly this form.
+  assert.equal(pasteCmd('claude', '/N', '/E', '/C'), pasteWrap('claude', '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "/N" "/E" hook prompt --harness claude --config "/C"'),
+    'the installer no longer renders the hook command this test runs');
 });
 
 test('the hook source names no clipboard, dialog, notification or launchd tool, and no Keychain', () => {

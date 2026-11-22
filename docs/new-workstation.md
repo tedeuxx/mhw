@@ -23,7 +23,7 @@ the user settings merge is Node since #491); prerequisite detection is not yet a
 macOS/Linux:
 
 ```sh
-sh global/install.sh --overlay=none --dry-run
+node bin/mhw.js install-user --overlay=none --dry-run
 ```
 
 Windows PowerShell:

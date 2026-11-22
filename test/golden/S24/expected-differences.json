@@ -98,5 +98,41 @@
       "test": "golden: the Node lifecycle commands match the transcripts of workstation.py"
     },
     "why": "A residual in the entry point, not in what it does: in an npm install, after npm succeeds, workstation.py ran [\"/bin/sh\", \"<package>/mhw\", \"install\", ...flags]; the Node command runs [process.execPath, \"<package>/bin/mhw.js\", \"install\", ...flags]. The installer-argv-package case pins what that install hands install.sh and install-managed.sh (argv, overlay, MHW_NODE, MHW_CMD=mhw), the same on both sides. The new ./mhw keeps a sh line so an earlier release's /bin/sh <package>/mhw still works (test/lifecycle/npm-package.test.js)."
+  },
+  {
+    "case": [
+      "installer-argv-checkout",
+      "installer-argv-package"
+    ],
+    "stream": [
+      "recorded"
+    ],
+    "base": "(?<=^|\\n)install\\.sh \\[",
+    "head": "(?<=^|\\n)install-user \\[",
+    "replace": "<the user-layer installer> [",
+    "why": "#503 (S25 of #470) moved global/install.sh to `mhw install-user` (src/commands/install-user.js): mhw install, update and uninstall now run the user layer as `<node> <package>/bin/mhw.js install-user <flags>` on the node running mhw, where they ran `/bin/sh <package>/global/install.sh <flags>`. Its recording stand-in (test/lifecycle/stub-installers.js) now replaces src/commands/install-user.js and logs the same line under that name. Every flag, its order, the managed root and the environment the installer gets (WORKSTATION_OVERLAY, MHW_NODE, MHW_CMD, WORKSTATION_MANAGED_ROOT) are unchanged and still compared; only the program's name in the log differs. The end-to-end parity of the installer itself is test/install/install-user-golden.test.js."
+  },
+  {
+    "case": [
+      "usage-and-refusals"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "global/install\\.sh and global/install-managed\\.sh stay the internals|Never writes outside what install\\.sh writes\\.",
+    "head": "mhw install-user and global/install-managed\\.sh stay the internals|Never writes outside what the installers write\\.",
+    "replace": "<the installers named in the usage text>",
+    "why": "#503 (S25 of #470) deleted global/install.sh: the usage text `mhw` prints with no argument named it as one of the two internals and as the bound on what mhw writes. The Node text names its replacement, `mhw install-user`, beside global/install-managed.sh, and says the installers. Every other word of the usage text is compared unchanged."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": ", or install\\.sh --method;",
+    "replace": ";",
+    "why": "#503 (S25 of #470) deleted global/install.sh: the METHOD line the working-method step prints when the method is not installed named it as the second way to opt in ('./mhw install --method, or install.sh --method'), a pointer to a file that no longer exists. It now names `install --method` only. The rest of the line, and every other line, is compared unchanged."
   }
 ]

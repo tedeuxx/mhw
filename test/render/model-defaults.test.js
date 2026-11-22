@@ -445,14 +445,35 @@ test('a failed replace removes its temporary file and leaves the original', () =
 });
 
 test('a write the renderer cannot encode is not an OSError: it propagates, as Python crashed', () => {
+  // A Kiro cli.json the original read and could not write back (a lone high surrogate): still a crash.
   const dir = freshDir('surrogate');
   const home = path.join(dir, 'home');
-  fs.mkdirSync(path.join(home, '.claude'), { recursive: true });
-  fs.writeFileSync(path.join(home, '.claude', 'settings.json'), '{"x": "\\ud800"}');
+  fs.mkdirSync(path.join(home, '.kiro', 'settings'), { recursive: true });
+  fs.writeFileSync(path.join(home, '.kiro', 'settings', 'cli.json'), '{"x": "\\ud800"}');
   const policy = path.join(dir, 'p.json');
-  fs.writeFileSync(policy, JSON.stringify({ version: 1, 'claude-code': { model: 'claude-x' } }));
+  fs.writeFileSync(policy, JSON.stringify({ version: 1, 'kiro-cli': { model: 'claude-x' } }));
   assert.throws(() => run(['--mode=install', '--policy=' + policy, '--home=' + home], { env: { HOME: home }, out: () => {}, err: () => {} }), TypeError);
-  assert.deepEqual(fs.readdirSync(path.join(home, '.claude')).filter((n) => n.includes('.new.')), []);
+  assert.deepEqual(fs.readdirSync(path.join(home, '.kiro', 'settings')).filter((n) => n.includes('.new.')), []);
+});
+
+test('a Claude Code settings.json jq refuses is refused here too, as the settings merge refuses it (#503, carried from #502)', () => {
+  for (const [label, text] of [['a lone high surrogate', '{"x": "\\ud800"}'], ['nested 300 levels deep', '{"a":'.repeat(300) + '1' + '}'.repeat(300)],
+    ['not JSON', '{ "model": ']]) {
+    const dir = freshDir('jq-refuses');
+    const home = path.join(dir, 'home');
+    const file = path.join(home, '.claude', 'settings.json');
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, text);
+    const policy = path.join(dir, 'p.json');
+    fs.writeFileSync(policy, JSON.stringify({ version: 1, 'claude-code': { model: 'claude-x' } }));
+    let out = '';
+    const code = run(['--mode=install', '--policy=' + policy, '--home=' + home], { env: { HOME: home }, out: (t) => { out += t; }, err: () => {} });
+    assert.equal(code, 3, label);
+    // The path is printed as the platform prints it (str(Path) on Windows), so only its tail is compared.
+    assert.match(out, /^REFUSE {2}.*settings\.json: not readable as its format; model defaults left untouched$/m, label + ': ' + out);
+    assert.equal(fs.readFileSync(file, 'utf8'), text, label);
+    assert.deepEqual(fs.readdirSync(path.dirname(file)).sort(), ['settings.json'], label);
+  }
 });
 
 test('a record entry that is not an object crashes as the original did (exit 1), never silently', () => {

@@ -354,7 +354,7 @@ test('install.sh with no node reachable refuses a profile overlay before writing
     /** @type {Record<string, string>} */
     const env = { HOME: home, PATH: '/usr/bin:/bin' };
     if (MHW_NODE) env.MHW_NODE = MHW_NODE;
-    const p = spawnSync('/bin/sh', [path.join(ROOT, 'global', 'install.sh'), '--dry-run'], { env, encoding: 'utf8' });
+    const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'install-user', '--dry-run'], { env, encoding: 'utf8' });
     assert.equal(p.status, 2, p.stderr);
     assert.equal(p.stderr, 'profile overlay requires node (26 or later); no target was written\n');
     assert.deepEqual(fs.readdirSync(home), []);
@@ -367,7 +367,7 @@ test('install.sh runs the check with the node MHW_NODE names, by absolute path',
   // A node that records it ran and then exits 1, so install stops right after the profile check.
   const fake = path.join(bin, 'fake-node');
   fs.writeFileSync(fake, '#!/bin/sh\necho "fake node: $*" >&2\nexit 1\n', { mode: 0o755 });
-  const p = spawnSync('/bin/sh', [path.join(ROOT, 'global', 'install.sh'), '--dry-run'],
+  const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'install-user', '--dry-run'],
     { env: { HOME: home, PATH: '/usr/bin:/bin', MHW_NODE: fake }, encoding: 'utf8' });
   assert.equal(p.status, 1, p.stderr);
   assert.equal(p.stderr, 'fake node: ' + ROOT + '/global/../bin/mhw.js profile check --source profile.json --output .\n');

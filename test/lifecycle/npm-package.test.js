@@ -274,7 +274,7 @@ test("postinstall undoes the preparation run's link into the prefix, and touches
 
 /** install.sh --check's SOURCE line for a tree. @param {string} tree @param {Record<string, string>} env */
 function sourceLine(tree, env) {
-  const p = spawnSync('/bin/sh', [path.join(tree, 'global', 'install.sh'), '--check', '--overlay=none'], { env, encoding: 'utf8' });
+  const p = spawnSync(process.execPath, [path.join(tree, 'bin', 'mhw.js'), 'install-user', '--check', '--overlay=none'], { env, encoding: 'utf8' });
   return /^SOURCE {2}(.*)$/m.exec(p.stdout)?.[1];
 }
 
@@ -328,14 +328,14 @@ test('the packed file list: what mhw needs, no Python file, nothing private (npm
   for (const needed of ['mhw', '.bumpversion.toml', '.workstation-archive', 'bin/mhw.js', 'bin/postinstall.js', 'src/cli.js', 'src/lib/toml.js',
     'npm-shrinkwrap.json', 'src/vendor/smol-toml/dist/index.js', 'src/vendor/smol-toml/LICENSE', 'src/commands/install.js', 'src/commands/update.js',
     'src/commands/uninstall.js', 'src/commands/postinstall.js', 'src/commands/lifecycle.js', 'src/lib/lifecycle.js', 'src/commands/status.js',
-    'src/commands/check.js', 'src/lib/prerequisites.js', 'src/lib/http-get.js', 'src/lib/merge-authority.js', 'global/install.sh', 'global/install-managed.sh',
+    'src/commands/check.js', 'src/lib/prerequisites.js', 'src/lib/http-get.js', 'src/lib/merge-authority.js', 'src/commands/install-user.js', 'global/install-managed.sh',
     'global/install.ps1', 'global/AGENTS.md', 'global/deny-floor.conf', 'global/project-policy/project-policy.schema.json', 'overlay/profile.json', 'package.json']) {
     assert.ok(names.has(needed), needed);
   }
   const all = [...names];
   assert.deepEqual(all.filter((n) => n.endsWith('.py')), [], 'the tarball carries a Python file');
   assert.deepEqual(all.filter((n) => /\.test\.(sh|ps1|stub)$/.test(n)), []);
-  for (const gone of ['workstation', 'bin/workstation.js', 'global/workstation.py', 'global/github-repo-settings.sh', 'global/method/plugin_retire.py', 'global/mcp/mcp_retire.py']) {
+  for (const gone of ['workstation', 'bin/workstation.js', 'global/workstation.py', 'global/install.sh', 'global/install.test.sh', 'global/github-repo-settings.sh', 'global/method/plugin_retire.py', 'global/mcp/mcp_retire.py']) {
     assert.ok(!names.has(gone), gone);
   }
   assert.deepEqual(all.filter((n) => /^(docs|workspace|\.github|\.git|test|node_modules)\//.test(n)), []);

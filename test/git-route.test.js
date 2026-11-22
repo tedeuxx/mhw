@@ -63,7 +63,7 @@ test('a git install resolves every runtime dependency and installs no devDepende
     fs.mkdirSync(uhome);
     fs.mkdirSync(empty);
     const ienv = { ...env, HOME: uhome, PATH: [path.dirname(process.execPath), process.env.PATH || ''].join(path.delimiter), SHELL: '/bin/sh' };
-    const inst = spawnSync('/bin/sh', [path.join(pkg, 'global', 'install.sh'), '--managed-root=' + empty], { env: ienv, cwd: t, encoding: 'utf8' });
+    const inst = spawnSync(process.execPath, [path.join(pkg, 'bin', 'mhw.js'), 'install-user', '--managed-root=' + empty], { env: ienv, cwd: t, encoding: 'utf8' });
     assert.equal(inst.status, 0, inst.stdout + inst.stderr);
     const deny = JSON.parse(fs.readFileSync(path.join(uhome, '.claude', 'settings.json'), 'utf8')).permissions.deny;
     assert.ok(deny.includes('Edit(/' + fs.realpathSync(pkg) + '/**)'), 'no Edit deny on the installed package: ' + JSON.stringify(deny));

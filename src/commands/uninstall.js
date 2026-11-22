@@ -6,7 +6,7 @@
 // only when the admin layer is gone: the package holds the only tool able to remove it. node: modules only.
 import { adminPresent } from '../lib/readers/admin.js';
 import {
-  SH, FRESH, INSTALL_MANAGED, capture, installArgs, show, heading, nextSteps, styled, interactive, confirm, adminAccess, asRoot,
+  SH, NODE, FRESH, INSTALL_MANAGED, capture, installArgs, show, heading, nextSteps, styled, interactive, confirm, adminAccess, asRoot,
 } from '../lib/lifecycle.js';
 import { adminSupported } from './install.js';
 import { wordsOf } from './status.js';
@@ -64,7 +64,7 @@ export function uninstall(o, env, io, t = {}) {
     }
   }
   heading('Removing your settings', env, io);
-  const [code, lines] = run(SH, installArgs(['--uninstall'], env), env);
+  const [code, lines] = run(NODE, installArgs(['--uninstall'], env), env);
   show(lines, verbose, io);
   if (code !== 0) failed.push('Your settings (exit ' + code + '; `' + cmd + ' uninstall --verbose` shows why)');
   // The admin layer still on disk (skipped or failed): not a success, and the package that holds the only

@@ -50,7 +50,7 @@ describe('arguments', () => {
     assert.ok(none.err === undefined && unset.err === undefined);
     assert.equal(none.child.WORKSTATION_OVERLAY, 'none');
     assert.equal(unset.child.WORKSTATION_OVERLAY, undefined);
-    for (const args of [check.installer('install.sh', ['--check', '--hooks=user'], '--managed-root=', p.child),
+    for (const args of [check.userCheck(['--check', '--hooks=user'], p.child)[1],
       check.installer('install-managed.sh', ['--check'], '--root=', p.child)]) {
       assert.ok(!args.some((a) => a.includes('overlay') || a.includes('prof')), args.join(' '));
     }

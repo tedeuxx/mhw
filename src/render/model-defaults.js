@@ -48,6 +48,7 @@ import { MARKER_ID, NAME } from '../lib/marker.js';
 import { privateCopy } from '../lib/private-copy.js';
 import { loads, dumps, pyStrip, pyRepr, isPyWs, isDict, PyFloat, JsonDecodeError } from '../lib/py.js';
 import { tomlInvalid } from './toml-guard.js';
+import { parse as jqParse, JqParseError } from '../lib/jq-json.js';
 import { utf8Error, utf8ErrorText, splitLines } from '../lib/py-text.js';
 
 // CPython's UTF-8 error and str.splitlines() live in src/lib/py-text.js since #499; re-exported for the S10 suites.
@@ -384,6 +385,17 @@ function topLevel(lines) {
  * @typedef {{ lexists?: (p: string) => boolean, rename?: (from: string, to: string) => void }} Seams
  */
 
+/** True when jq 1.7.1 would refuse the text: not JSON it reads, or nested past its stack. @param {string} text */
+function jqRefuses(text) {
+  try {
+    jqParse(text, { jqOnly: true });
+    return false;
+  } catch (e) {
+    if (e instanceof JqParseError) return true;
+    throw e;
+  }
+}
+
 export class NativeFile {
   /**
    * @param {string} harness
@@ -405,6 +417,11 @@ export class NativeFile {
     if (this.fmt === 'toml') {
       this.lines = splitLines(text);
     } else {
+      // Claude Code's settings.json is the file the settings merge and the allow-list step read too: one
+      // that jq 1.7.1 refuses, a document nested past its 256 levels included, is refused by them, and so
+      // here, so that no step of the installer rewrites it (#503, S25; carried from #502, 3b). A file jq
+      // reads and strict JSON does not (NaN, a byte-order mark) is still the original's to rewrite.
+      if (harness === 'claude-code' && pyStrip(text) && jqRefuses(text)) throw new TypeError('jq refuses it');
       const doc = pyStrip(text) ? loads(text) : {};
       if (!isDict(doc)) throw new TypeError('not a JSON object');
       this.doc = /** @type {Record<string, unknown>} */ (doc);

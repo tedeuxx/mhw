@@ -284,27 +284,28 @@ if cmp -s "$kiro" "$base/kiro.before-big" && grep -q "does not validate" "$base/
 else
   ko "the over-ceiling stage installs nothing" "$(cat "$base/apply-big.out")"
 fi
-# install.sh's FLOOR report reads the admin copy (--managed-root), and counts a pattern removed from it.
+# The user layer's FLOOR report (mhw install-user, install.sh until #503) reads the admin copy (--managed-root),
+# and counts a pattern removed from it.
 hk="$base/home-kiro-report"; mkdir -p "$hk"
-HOME="$hk" sh "$here/install.sh" --check --managed-root="$r" > "$base/kiro-report.out" 2>&1
+HOME="$hk" node "$here/../bin/mhw.js" install-user --check --managed-root="$r" > "$base/kiro-report.out" 2>&1
 if grep -qF "FLOOR   Kiro: admin managed-settings.json $want_kiro/$want_kiro floor patterns" "$base/kiro-report.out"; then
-  ok "install.sh reports the Kiro admin copy complete"
+  ok "mhw install-user reports the Kiro admin copy complete"
 else
-  ko "install.sh reports the Kiro admin copy complete" "$(grep 'FLOOR   Kiro' "$base/kiro-report.out")"
+  ko "mhw install-user reports the Kiro admin copy complete" "$(grep 'FLOOR   Kiro' "$base/kiro-report.out")"
 fi
 jq '.rules |= map(.match |= map(select(. != "sudo *")))' "$base/kiro.keep" > "$kiro"
-HOME="$hk" sh "$here/install.sh" --check --managed-root="$r" > "$base/kiro-report2.out" 2>&1
+HOME="$hk" node "$here/../bin/mhw.js" install-user --check --managed-root="$r" > "$base/kiro-report2.out" 2>&1
 if grep -qF "FLOOR   Kiro: admin managed-settings.json $((want_kiro - 1))/$want_kiro floor patterns" "$base/kiro-report2.out"; then
-  ok "install.sh counts a pattern missing from the Kiro admin copy"
+  ok "mhw install-user counts a pattern missing from the Kiro admin copy"
 else
-  ko "install.sh counts a pattern missing from the Kiro admin copy" "$(grep 'FLOOR   Kiro' "$base/kiro-report2.out")"
+  ko "mhw install-user counts a pattern missing from the Kiro admin copy" "$(grep 'FLOOR   Kiro' "$base/kiro-report2.out")"
 fi
 cp "$base/kiro.keep" "$kiro"
-HOME="$hk" sh "$here/install.sh" --check --managed-root="$base/no-admin" > "$base/kiro-report3.out" 2>&1
+HOME="$hk" node "$here/../bin/mhw.js" install-user --check --managed-root="$base/no-admin" > "$base/kiro-report3.out" 2>&1
 if grep -qF "FLOOR   Kiro: admin managed-settings.json absent" "$base/kiro-report3.out"; then
-  ok "install.sh reports an absent Kiro admin copy as absent"
+  ok "mhw install-user reports an absent Kiro admin copy as absent"
 else
-  ko "install.sh reports an absent Kiro admin copy as absent" "$(grep 'FLOOR   Kiro' "$base/kiro-report3.out")"
+  ko "mhw install-user reports an absent Kiro admin copy as absent" "$(grep 'FLOOR   Kiro' "$base/kiro-report3.out")"
 fi
 
 # 4. the registered commands run from the admin bin (direct payloads: proves the commands, not routing)

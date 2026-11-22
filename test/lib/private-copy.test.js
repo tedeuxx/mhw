@@ -1,8 +1,11 @@
 // privateCopy against install.sh's shell form, private_copy(), on the cases of the deleted
 // global/private_copy_test.py (#484 deleted it with global/private_copy.py, its last Python user, S13 of
-// #470): both forms run on identical fixtures and must leave identical outcomes (exit, and every entry in
-// the directory: kind, mode, bytes or link target). POSIX only, like the fixtures (FIFOs, symlinks, modes).
-import { test } from 'node:test';
+// #470): both forms ran on identical fixtures and had to leave identical outcomes (exit, and every entry in
+// the directory: kind, mode, bytes or link target). #503 (S25) deleted install.sh, the shell form's last
+// home: its outcomes are kept in test/golden/S25/private-copy.json, recorded from it before the deletion
+// (MHW_UPDATE_GOLDEN=1 with a tree that still holds install.sh records them again), and the Node form is held
+// to them. POSIX only, like the fixtures (FIFOs, symlinks, modes).
+import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -11,12 +14,19 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { FLAGS } from '../../src/lib/private-copy.js';
 import { which } from '../helpers/home.js';
+import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SH = which('sh');
 const POSIX = process.platform !== 'win32';
-const skip = !POSIX ? 'POSIX fixtures (FIFOs, modes)' : !SH ? 'needs sh for the shell half' : false;
+const skip = !POSIX ? 'POSIX fixtures (FIFOs, modes)' : false;
 const INSTALL_SH = path.join(ROOT, 'global', 'install.sh');
+const RECORD = UPDATE && fs.existsSync(INSTALL_SH) && Boolean(SH);
+/** @type {Record<string, Record<string, unknown>>} */
+const recorded = RECORD ? { cases: {}, plants: {} } : readGolden('S25', 'private-copy.json');
+after(() => {
+  if (RECORD) writeGolden('S25', 'private-copy.json', recorded);
+});
 
 // The CASES of the deleted global/private_copy_test.py's SameBehaviour, by the same names.
 /** @type {Record<string, { srcBytes?: string, srcMode?: number, atDst?: string }>} */
@@ -69,7 +79,9 @@ function outcome(dir) {
     const p = path.join(dir, name);
     const st = fs.lstatSync(p);
     const mode = (st.mode & 0o777).toString(8);
-    if (st.isSymbolicLink()) out[name] = ['link', mode, fs.readlinkSync(p)];
+    // A link's own mode is the OS's (0755 on macOS, 0777 on Linux), never the copy's: not compared, since the
+    // shell outcomes are recorded on one OS (#503).
+    if (st.isSymbolicLink()) out[name] = ['link', '-', fs.readlinkSync(p)];
     else if (st.isFIFO()) out[name] = ['fifo', mode, ''];
     else if (st.isDirectory()) out[name] = ['dir', mode, fs.readdirSync(p).sort().join('|')];
     else out[name] = ['file', mode, fs.readFileSync(p).toString('base64')];
@@ -122,9 +134,11 @@ test('the Node form and the shell form give the same result on every case', { sk
     for (const [name, kw] of Object.entries(CASES)) {
       const n = fixture(b, kw);
       const codeNode = runNode(n.src, n.dst);
-      const py = fixture(b, kw);
-      const codePy = runShell(py.src, py.dst);
-      assert.deepEqual([codeNode, outcome(n.dir)], [codePy, outcome(py.dir)], name + ': node and shell differ');
+      if (RECORD) {
+        const py = fixture(b, kw);
+        recorded.cases[name] = [runShell(py.src, py.dst), outcome(py.dir)];
+      }
+      assert.deepEqual([codeNode, outcome(n.dir)], recorded.cases[name], name + ': node and the recorded shell form differ');
       assert.equal(codeNode, 0, name);
       const got = outcome(n.dir)['settings.json.pmhwc-backup'];
       assert.deepEqual(got, ['file', '600', fs.readFileSync(n.src).toString('base64')], name);
@@ -152,9 +166,11 @@ test('anything planted between the check and the create is refused by both forms
     for (const [name, plant] of Object.entries(plants)) {
       const n = fixture(b, {});
       const codeNode = runNode(n.src, n.dst, plant);
-      const py = fixture(b, {});
-      const codePy = runShell(py.src, py.dst, plant);
-      assert.deepEqual([codeNode, outcome(n.dir)], [codePy, outcome(py.dir)], name + ': node and shell differ');
+      if (RECORD) {
+        const py = fixture(b, {});
+        recorded.plants[name] = [runShell(py.src, py.dst, plant), outcome(py.dir)];
+      }
+      assert.deepEqual([codeNode, outcome(n.dir)], recorded.plants[name], name + ': node and the recorded shell form differ');
       assert.equal(codeNode, 1, name + ': the copy was not refused');
     }
   } finally {
@@ -162,13 +178,13 @@ test('anything planted between the check and the create is refused by both forms
   }
 });
 
-test('install.sh holds the one shell form, and no Python file of this repository defines a copy of its own', () => {
+test('no shell file of global/ holds a private_copy() form any more, and no Python file defines a copy of its own', () => {
   /** @type {string[]} */
   const hits = [];
   for (const name of fs.readdirSync(path.join(ROOT, 'global')).filter((n) => n.endsWith('.sh') && !n.endsWith('.test.sh'))) {
     if (/^\s*private_copy\(\)/m.test(fs.readFileSync(path.join(ROOT, 'global', name), 'utf8'))) hits.push(name);
   }
-  assert.deepEqual(hits, ['install.sh']);
+  assert.deepEqual(hits, RECORD ? ['install.sh'] : []);
   /** @param {string} d @returns {string[]} */
   const py = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? py(path.join(d, e.name)) : e.name.endsWith('.py') ? [path.join(d, e.name)] : []));
   const own = py(path.join(ROOT, 'global')).filter((f) => /^\s*def private_copy\(/m.test(fs.readFileSync(f, 'utf8')));

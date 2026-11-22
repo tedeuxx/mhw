@@ -1,7 +1,8 @@
-// install.sh's models_step (#481, S10 of #470): which node runs src/render/model-defaults.js. The function
-// is read out of install.sh as it ships and run alone in /bin/sh, with a throwaway HOME, a recording stand-in
-// node on PATH and install.sh's own raise(). POSIX only: install.ps1's lookup is held by
-// global/install.test.ps1, section 15.
+// The user layer's models step (#481, S10 of #470): which node runs src/render/model-defaults.js. It was
+// install.sh's models_step, read out of install.sh and run alone in /bin/sh; since #503 (S25) it is
+// `mhw install-user`'s modelsStep, run alone by test/helpers/install-step-driver.js with a throwaway HOME and
+// a recording stand-in node on PATH. POSIX only: install.ps1's lookup is held by global/install.test.ps1,
+// section 15.
 //   - no MHW_NODE and no node on PATH: SKIP, status 2, nothing run;
 //   - an absolute MHW_NODE that is not an executable file: REFUSE naming it, status 2, and the node on PATH
 //     is NOT run in its place (PR #515 lens A1);
@@ -20,18 +21,6 @@ const POSIX = process.platform !== 'win32';
 const cleanups = /** @type {Array<() => void>} */ ([]);
 after(() => cleanups.forEach((c) => c()));
 
-/** The text of a function of install.sh, from its header to the closing brace at column 0 (or its one line). @param {string} name */
-function shellFunction(name) {
-  // A Windows checkout may carry install.sh with \r\n line ends (core.autocrlf).
-  const lines = fs.readFileSync(path.join(ROOT, 'global', 'install.sh'), 'utf8').split(/\r?\n/);
-  const start = lines.findIndex((l) => l.startsWith(name + '() {'));
-  assert.ok(start >= 0, 'install.sh defines ' + name);
-  if (lines[start].trimEnd().endsWith('}')) return lines[start]; // a one-line function
-  const end = lines.indexOf('}', start);
-  assert.ok(end > start, name + ' closes');
-  return lines.slice(start, end + 1).join('\n');
-}
-
 /**
  * Run models_step with the given MHW_NODE and PATH.
  * @param {{ mhwNode?: string, fakeNode: boolean }} o
@@ -48,27 +37,23 @@ function step(o) {
     fs.writeFileSync(path.join(bin, 'node'), '#!/bin/sh\necho ran > \'' + calls + '\'\necho FAKE-NODE\n');
     fs.chmodSync(path.join(bin, 'node'), 0o755);
   }
-  const script = [
-    'set -eu',
-    'status=0',
-    shellFunction('raise'),
-    shellFunction('models_step'),
-    'mode=check; stamp="release: v0.0.0; commit: x"; overlay=; script_dir=\'' + path.join(ROOT, 'global') + '\'',
-    'models_step',
-    'echo "STATUS $status"',
-  ].join('\n');
   /** @type {Record<string, string>} */
-  const env = { PATH: bin + ':/usr/bin:/bin', HOME: home };
+  const env = { PATH: bin + ':/usr/bin:/bin', HOME: home, A_PHASE: 'models', A_MODE: 'check', A_STAMP: 'release: v0.0.0; commit: x',
+    A_SCRIPT_DIR: path.join(ROOT, 'global') };
   if (o.mhwNode !== undefined) env.MHW_NODE = o.mhwNode;
-  const p = spawnSync('/bin/sh', ['-c', script], { env, encoding: 'utf8', cwd: dir });
+  const p = spawnSync(process.execPath, [path.join(ROOT, 'test', 'helpers', 'install-step-driver.js')], { env, encoding: 'utf8', cwd: dir });
+  // The driver exits with the step's status, as the shell form echoed it.
+  p.stdout += 'STATUS ' + p.status + '\n';
+  p.status = 0;
   return { code: p.status, out: p.stdout + p.stderr, fakeRan: fs.existsSync(calls), dir };
 }
 
 const systemNode = ['/usr/bin/node', '/bin/node'].some((p) => fs.existsSync(p));
 
-test('install.sh carries raise and models_step as this test reads them', () => {
-  assert.match(shellFunction('raise'), /^raise\(\) \{/);
-  assert.match(shellFunction('models_step'), /src\/render\/model-defaults\.js/);
+test('the user-layer installer runs src/render/model-defaults.js as its models step', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'src', 'commands', 'install-user.js'), 'utf8');
+  assert.match(src, /export function modelsStep\(ctx\)/);
+  assert.match(src, /src\/render\/model-defaults\.js/);
 });
 
 test('no node at all: SKIP, status 2', { skip: (!POSIX && 'POSIX sh') || (systemNode && 'a node in /usr/bin or /bin') }, () => {

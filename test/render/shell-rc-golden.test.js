@@ -5,7 +5,9 @@
 //           stdout, stderr and the trees of the throwaway HOME and of a directory outside it (path, kind,
 //           mode, and each file's text), recorded from the base revision's install.sh: its start-up block
 //           section cut out of it and run the way install.sh ran it (set -eu).
-//   head:   the same section cut out of this tree's install.sh, which runs the Node step, so the shell
+//   head:   since #503 (S25) deleted install.sh, the same step of `mhw install-user` (startupStep), run alone
+//           by test/helpers/install-step-driver.js; until then the same section cut out of this tree's
+//           install.sh, which ran the Node step, so the shell
 //           wiring (the node, the arguments, the exit codes) is held to the golden too.
 //   live:   where the base revision still holds the shell functions (until this slice merges), both run on
 //           the same inputs. MHW_UPDATE_GOLDEN=1 rewrites the goldens from the base side, never from Node.
@@ -95,7 +97,10 @@ function runScenario(sc, tree_, o = {}) {
       A_UNAME: sc.uname || 'Darwin', A_SETTINGS_WHY: o.settingsWhy || '' };
     if (sc.shell !== null) env.SHELL = sc.shell ?? '/bin/zsh';
     if (sc.zdotdir) env.ZDOTDIR = at(d, sc.zdotdir);
-    const p = spawnSync('/bin/sh', ['-c', DRIVER], { encoding: 'utf8', env });
+    // The head runs mhw install-user's startupStep alone (#503); a base tree still holds install.sh's section.
+    const p = tree_ === ROOT
+      ? spawnSync(process.execPath, [path.join(ROOT, 'test', 'helpers', 'install-step-driver.js')], { encoding: 'utf8', env: { ...env, A_PHASE: 'startup' } })
+      : spawnSync('/bin/sh', ['-c', DRIVER], { encoding: 'utf8', env });
     runs.push({ run: r.label || r.mode + (r.shellRc ? ' --shell-rc' : ''), code: p.status, stdout: norm(p.stdout), stderr: norm(p.stderr),
       tree: { home: tree(d.H, norm), out: tree(d.O, norm), ...(fs.existsSync(d.S) ? { sibling: tree(d.S, norm) } : {}) } });
   }
@@ -189,7 +194,7 @@ test('live: the Node step matches the base revision\'s shell functions on the sa
   const base = path.join(freshDir('base'), 'tree');
   if (!rev) return skipOrFail(t, 'no base revision (MHW_PARITY_BASE unset, no merge-base with origin/rc/next)');
   if (!extractRevision(ROOT, rev, base)) return skipOrFail(t, 'base revision ' + rev + ' is not readable here');
-  if (!fs.readFileSync(path.join(base, 'global', 'install.sh'), 'utf8').includes(BASE_MARKER)) {
+  if (!fs.existsSync(path.join(base, 'global', 'install.sh')) || !fs.readFileSync(path.join(base, 'global', 'install.sh'), 'utf8').includes(BASE_MARKER)) {
     return t.skip('the base revision writes the start-up block in Node (this slice has merged)');
   }
   const failed = [];

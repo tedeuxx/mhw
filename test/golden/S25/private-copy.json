@@ -1,0 +1,286 @@
+{
+  "cases": {
+    "nothing at the destination": [
+      0,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "file",
+          "600",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ]
+      }
+    ],
+    "a 0600 empty source": [
+      0,
+      {
+        "settings.json": [
+          "file",
+          "600",
+          ""
+        ],
+        "settings.json.pmhwc-backup": [
+          "file",
+          "600",
+          ""
+        ]
+      }
+    ],
+    "a 0444 source": [
+      0,
+      {
+        "settings.json": [
+          "file",
+          "444",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "file",
+          "600",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ]
+      }
+    ],
+    "an older backup": [
+      0,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "file",
+          "600",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ]
+      }
+    ],
+    "a read-only older backup": [
+      0,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "file",
+          "600",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ]
+      }
+    ],
+    "a hard link at the destination": [
+      0,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "file",
+          "600",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "victim": [
+          "file",
+          "644",
+          "dGhlIG90aGVyIG5hbWUgb2YgdGhlIHNhbWUgZmlsZQo="
+        ]
+      }
+    ],
+    "a symbolic link at the destination": [
+      0,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "file",
+          "600",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "victim": [
+          "file",
+          "644",
+          "YSBmaWxlIHRoZSBsaW5rIHBvaW50cyBhdAo="
+        ]
+      }
+    ],
+    "a dangling symbolic link at the destination": [
+      0,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "file",
+          "600",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ]
+      }
+    ],
+    "a FIFO at the destination": [
+      0,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "file",
+          "600",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ]
+      }
+    ],
+    "a symbolic link to a FIFO at the destination": [
+      0,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "file",
+          "600",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "victim": [
+          "fifo",
+          "644",
+          ""
+        ]
+      }
+    ],
+    "a symbolic link to /dev/null at the destination": [
+      0,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "file",
+          "600",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ]
+      }
+    ]
+  },
+  "plants": {
+    "a link to a FIFO": [
+      1,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "link",
+          "-",
+          "victim-fifo"
+        ],
+        "victim-fifo": [
+          "fifo",
+          "644",
+          ""
+        ]
+      }
+    ],
+    "a link to /dev/null": [
+      1,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "link",
+          "-",
+          "/dev/null"
+        ]
+      }
+    ],
+    "a link to a directory": [
+      1,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "link",
+          "-",
+          "victim-dir"
+        ],
+        "victim-dir": [
+          "dir",
+          "755",
+          ""
+        ]
+      }
+    ],
+    "a FIFO": [
+      1,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "fifo",
+          "644",
+          ""
+        ]
+      }
+    ],
+    "a directory": [
+      1,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "dir",
+          "755",
+          ""
+        ]
+      }
+    ],
+    "a file": [
+      1,
+      {
+        "settings.json": [
+          "file",
+          "644",
+          "cnVsZXM6IFttaW5lXQr/ACBub3QgdXRmLTgK"
+        ],
+        "settings.json.pmhwc-backup": [
+          "file",
+          "644",
+          "cGxhbnRlZAo="
+        ]
+      }
+    ]
+  }
+}

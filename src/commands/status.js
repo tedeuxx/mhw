@@ -7,7 +7,7 @@
 //                                       (opt-in: it starts processes; exit 1 when one fails; #219)
 //   Options: --overlay=DIR|none, --project=DIR (default: the git root of the current directory).
 //
-// Read-only. It runs global/install.sh --check and, when an admin layer of ours is on disk,
+// Read-only. It runs `mhw install-user --check` (global/install.sh until #503) and, when an admin layer of ours is on disk,
 // global/install-managed.sh --check, under /bin/sh, and summarises their lines; it renders nothing
 // itself. The validated --overlay reaches the installers through WORKSTATION_OVERLAY, never their argv.
 // git, gh and the agent harness CLIs are the first on PATH, run by absolute path (src/lib/onpath.js).
@@ -159,7 +159,7 @@ const sortedSet = (values) => [...new Set(values)].sort(cmpStr);
 // The status view: pure, from a facts object gathered below.
 
 /**
- * The MCP active set as install.sh --check reported it: every server on outside the set, every set
+ * The MCP active set as the user-layer --check reported it: every server on outside the set, every set
  * member missing on an agent harness, and what has no native switch. Names and counts only.
  * @param {Facts} f
  */
@@ -303,7 +303,7 @@ export function settingsText(settings, keysBy, harnesses, unread = []) {
 
 /**
  * The session-start model and effort in effect per agent harness (a workspace value beats the user one),
- * and whether the user layer matches the versioned policy, as install.sh --check reported it.
+ * and whether the user layer matches the versioned policy, as the user-layer --check reported it.
  * @param {Facts} f
  */
 export function modelsText(f) {
@@ -637,7 +637,10 @@ export function gather(project, env, cwd) {
   const admin = adminInstalled(env);
   const managedState = adminState(env);
   const hooksMode = admin ? 'managed' : 'user';
-  const [, userLines] = runLines('/bin/sh', installer('install.sh', ['--check', '--hooks=' + hooksMode], '--managed-root=', env), env);
+  // The user layer's --check is `mhw install-user` on this node (#503; global/install.sh until then).
+  const userArgs = [path.join(ROOT, 'bin', 'mhw.js'), 'install-user', '--check', '--hooks=' + hooksMode];
+  if (managedRoot(env)) userArgs.push('--managed-root=' + managedRoot(env));
+  const [, userLines] = runLines(process.execPath, userArgs, env);
   let source = 'none';
   for (const l of userLines) if (l.startsWith('SOURCE  ')) source = l.slice('SOURCE  '.length);
   /** @type {string[]} */

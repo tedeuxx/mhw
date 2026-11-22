@@ -1,0 +1,224 @@
+[
+  {
+    "run": "install",
+    "code": 2,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.claude/CLAUDE.md (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.codex/AGENTS.md (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.kiro/steering/workstation-global-brief.md (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.codex/rules/workstation-deny-floor.rules (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf (release: <RELEASE>; commit: <COMMIT>\nSKIP    <T>/home/.codex/hooks.json: the paste filter cannot run here (see the REFUSE line above)\nSKIP    <T>/home/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json: the paste filter cannot run here either\nSKIP    <T>/home/.local/share/personal-multi-harness-workstation-configuration/paste_wrapper.py and <T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh: the paste wrapper cannot run here either\nSKIP    the Kiro deny floor: node (26 or later) is required\nSKIP    the policy MCP servers and the MCP active set: node (26 or later) is required\nSKIP    Chrome remote debugging: node 26 or later is required\nSKIP    the session-start model defaults: node (26 or later) is required\nSKIP    the allow list: node (26 or later) is required\nSKIP    the working method (method/): node (26 or later) is required to render it\nFLOOR   not reported: node (26 or later) is required\nRESTART REQUIRED: open fresh Claude Code, Codex and Kiro sessions before further work; Codex hook trust remains an owner action in /hooks.\n",
+    "stderr": "REFUSE  paste filter: node (26 or later) not found; the hook is not registered\nREFUSE  <T>/home/.claude/settings.json: node (26 or later) is required to merge the hook entry and the deny floor; left untouched\n",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/CLAUDE.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:65aa208fd43b6b35b4d0ca6b336631b624d036722119a7926bbc7da06e7901e4"
+      },
+      {
+        "path": ".codex",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/AGENTS.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:65aa208fd43b6b35b4d0ca6b336631b624d036722119a7926bbc7da06e7901e4"
+      },
+      {
+        "path": ".codex/rules",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/rules/workstation-deny-floor.rules",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:adb9ff71ee3ad8f3b4dbb86176115a2ebed013954d87fdfd1fe5a551329dc919"
+      },
+      {
+        "path": ".kiro",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/steering",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/steering/workstation-global-brief.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:2ed94369b8ae1104fb1e6e1c4a30e3ff5b7f35f9071b287bfa03080ae3c39c7e"
+      },
+      {
+        "path": ".local",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:c21671ca8041060a9f5d450b019b01b0065200dcf764dc4eb81c3336b2ba0273"
+      }
+    ]
+  },
+  {
+    "run": "--check",
+    "code": 2,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.claude/CLAUDE.md (release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.codex/AGENTS.md (release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.kiro/steering/workstation-global-brief.md (release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.codex/rules/workstation-deny-floor.rules (release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf (release: <RELEASE>; commit: <COMMIT>\nSKIP    <T>/home/.codex/hooks.json: the paste filter cannot run here (see the REFUSE line above)\nSKIP    <T>/home/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json: the paste filter cannot run here either\nSKIP    <T>/home/.local/share/personal-multi-harness-workstation-configuration/paste_wrapper.py and <T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh: the paste wrapper cannot run here either\nSKIP    the Kiro deny floor: node (26 or later) is required\nSKIP    the policy MCP servers and the MCP active set: node (26 or later) is required\nSKIP    Chrome remote debugging: node 26 or later is required\nSKIP    the session-start model defaults: node (26 or later) is required\nSKIP    the allow list: node (26 or later) is required\nSKIP    the working method (method/): node (26 or later) is required to render it\nFLOOR   not reported: node (26 or later) is required\n",
+    "stderr": "REFUSE  paste filter: node (26 or later) not found; the hook is not registered\nREFUSE  <T>/home/.claude/settings.json: node (26 or later) is required to merge the hook entry and the deny floor; left untouched\n",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/CLAUDE.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:65aa208fd43b6b35b4d0ca6b336631b624d036722119a7926bbc7da06e7901e4"
+      },
+      {
+        "path": ".codex",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/AGENTS.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:65aa208fd43b6b35b4d0ca6b336631b624d036722119a7926bbc7da06e7901e4"
+      },
+      {
+        "path": ".codex/rules",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/rules/workstation-deny-floor.rules",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:adb9ff71ee3ad8f3b4dbb86176115a2ebed013954d87fdfd1fe5a551329dc919"
+      },
+      {
+        "path": ".kiro",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/steering",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/steering/workstation-global-brief.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:2ed94369b8ae1104fb1e6e1c4a30e3ff5b7f35f9071b287bfa03080ae3c39c7e"
+      },
+      {
+        "path": ".local",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:c21671ca8041060a9f5d450b019b01b0065200dcf764dc4eb81c3336b2ba0273"
+      }
+    ]
+  },
+  {
+    "run": "--uninstall",
+    "code": 2,
+    "stdout": "SKIP    the allow list: node (26 or later) is required\nSKIP    the session-start model defaults: node (26 or later) is required\nSKIP    the policy MCP servers and the MCP active set: node (26 or later) is required\nSKIP    Chrome remote debugging: node 26 or later is required\nSKIP    the Kiro deny floor: node (26 or later) is required\nREFUSE  the shell start-up block: node (26 or later) is required; no start-up file changed\nREMOVED <T>/home/.claude/CLAUDE.md\nREMOVED <T>/home/.codex/AGENTS.md\nREMOVED <T>/home/.kiro/steering/workstation-global-brief.md\nREMOVED <T>/home/.codex/rules/workstation-deny-floor.rules\nREMOVED <T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\nREMOVED <T>/home/.local/share/personal-multi-harness-workstation-configuration (empty)\nABSENT  <T>/home/.claude/settings.json\nSKIP    the working method (method/): node (26 or later) is required to render it\nNOTE    the admin layer is not touched here; ./mhw uninstall prints its sudo line\n",
+    "stderr": "REFUSE  paste filter: node (26 or later) not found; the hook is not registered\n",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/rules",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/steering",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  }
+]

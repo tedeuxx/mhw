@@ -4,9 +4,10 @@
 // with the result and numbered next steps. The installers' own lines are shown with --verbose; a problem
 // line (REFUSE, STALE, DRIFT, MISSING) and every CHANGED line are always shown.
 //
-// global/install.sh and global/install-managed.sh stay the internals: this module decides their flags and
-// summarises their output, it renders nothing itself. They run under /bin/sh by absolute path, never a
-// sh looked up on PATH. sudo (/usr/bin/sudo, by absolute path) runs only for install-managed.sh --apply or
+// `mhw install-user` (src/commands/install-user.js; global/install.sh until #503) and
+// global/install-managed.sh stay the internals: this module decides their flags and summarises their
+// output, it renders nothing itself. The user layer runs on this process's own node (process.execPath)
+// and bin/mhw.js, the admin layer under /bin/sh, both by absolute path, never a program looked up on PATH. sudo (/usr/bin/sudo, by absolute path) runs only for install-managed.sh --apply or
 // --remove, after the owner confirmed in a terminal (or passed --yes), and sudo itself asks for the
 // password: `-k` makes it ignore any cached credential. Without a terminal it is never run. Under
 // WORKSTATION_MANAGED_ROOT (tests and probes) the admin root is a directory of theirs and no sudo runs.
@@ -28,7 +29,10 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 export const SH = '/bin/sh';
 export const SUDO = '/usr/bin/sudo';
 export const STTY = '/bin/stty';
-export const INSTALL = path.join(ROOT, 'global', 'install.sh');
+/** The node running mhw: the user-layer installer runs on it, by absolute path. */
+export const NODE = process.execPath;
+/** This package's entry; `node MHW_JS install-user` is the user-layer installer (#503). */
+export const MHW_JS = path.join(ROOT, 'bin', 'mhw.js');
 export const INSTALL_MANAGED = path.join(ROOT, 'global', 'install-managed.sh');
 export const FRESH = 'Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.';
 const PROBLEM = ['REFUSE', 'STALE', 'DRIFT', 'MISSING'];
@@ -107,9 +111,9 @@ export function passThrough(exe, args, env, io) {
   return r.code;
 }
 
-/** install.sh's argv: the flags, and the managed root when one is set. @param {string[]} extra @param {Env} env */
+/** The user-layer installer's argv (run on NODE): the flags, and the managed root when one is set. @param {string[]} extra @param {Env} env */
 export function installArgs(extra, env) {
-  const args = [INSTALL, ...extra];
+  const args = [MHW_JS, 'install-user', ...extra];
   if (managedRoot(env)) args.push('--managed-root=' + managedRoot(env));
   return args;
 }
@@ -173,7 +177,7 @@ export function adminAccess(asking, env, io) {
 }
 
 /**
- * The owner's own acts that install.sh names in its output, as plain next steps (Issue #113).
+ * The owner's own acts that the user-layer installer names in its output, as plain next steps (Issue #113).
  * @param {string[]} lines
  */
 export function ownerSteps(lines) {
@@ -182,7 +186,7 @@ export function ownerSteps(lines) {
   lines.forEach((line, i) => {
     // Issue #145: install writes the paste wrapper's block into ~/.zshrc or ~/.bashrc itself. Only when it
     // chose no file (another shell, --shell-rc=none, a ZDOTDIR outside HOME) is the line the owner's;
-    // install.sh gives the reason in parentheses, and the step repeats it rather than guessing one.
+    // the installer gives the reason in parentheses, and the step repeats it rather than guessing one.
     if (line.startsWith('NOTE    automatic paste cleaning') && i + 1 < lines.length) {
       // re.search(r"\((.*)\); add this line"): from the first '(' to the last '); add this line'.
       const open = line.indexOf('(');

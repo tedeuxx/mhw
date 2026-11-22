@@ -210,9 +210,9 @@ function installCheckedOut(root, verbose, yes, env, io) {
   if (isFile(path.join(root, 'src', 'commands', 'install.js'))) {
     return passThrough(process.execPath, [path.join(root, 'bin', 'mhw.js'), 'install', ...uxFlags(verbose, yes)], env, io);
   }
-  const args = installArgs(['--hooks=' + (adminInstalled(env) ? 'managed' : 'user')], env);
-  args[0] = path.join(root, 'global', 'install.sh');
-  return passThrough(SH, args, env, io);
+  // A release this old has neither entry: its global/install.sh is its installer (the flags of installArgs).
+  const args = installArgs(['--hooks=' + (adminInstalled(env) ? 'managed' : 'user')], env).slice(2);
+  return passThrough(SH, [path.join(root, 'global', 'install.sh'), ...args], env, io);
 }
 
 /** @param {string} p */
