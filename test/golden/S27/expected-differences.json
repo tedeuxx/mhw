@@ -1,0 +1,78 @@
+[
+  {
+    "name": "the NOTE line says the paste filter is not installed on Windows, not that it is not ported",
+    "stream": "stdout",
+    "pattern": "^NOTE    the paste wrapper and the paste filter are not ported to Windows \\(ADR-0011\\); no shell start-up file is written, and no Kiro prompt hook \\(Issue #455\\)$",
+    "replace": "NOTE    the paste wrapper and the paste filter are not installed on Windows (ADR-0033; not measured there, D7 of #470); no shell start-up file is written, and no Kiro prompt hook (Issue #455)",
+    "why": "install.ps1 said the paste wrapper and the paste filter were not ported to Windows because they ran on /usr/bin/python3 and a POSIX pty. Both are Node since #487 and #488, so 'not ported' is no longer the reason: whether the pty library works on Windows is not measured (D7 of #470), and the Windows installer still installs neither, as install.ps1 did. The line now says that, and cites ADR-0033, which superseded ADR-0011. What is installed is unchanged: no shell start-up file, no prompt hook."
+  },
+  {
+    "name": "the dry run's merge line no longer names ConvertTo-Json",
+    "stream": "stdout",
+    "pattern": " The file is re-serialized by ConvertTo-Json\\.$",
+    "replace": " The file is re-serialized as JSON.",
+    "why": "install.ps1 re-serialized ~/.claude/settings.json with PowerShell's ConvertTo-Json and said so. The Node installer writes it with JSON.stringify (see the next entry); the line says the file is re-serialized, without naming a PowerShell cmdlet that no longer runs."
+  },
+  {
+    "name": "the usage error for both modes names the mhw flags",
+    "case": "usage-dry-run-and-check",
+    "stream": "stderr",
+    "pattern": "^use -DryRun or -Check, not both$",
+    "replace": "use --dry-run or --check, not both",
+    "why": "install.ps1's parameters were -DryRun and -Check; mhw install-windows takes --dry-run and --check (mhw's spelling, as mhw install-user). Same refusal, same exit code 2, nothing written."
+  },
+  {
+    "name": "settings.json is written as two-space JSON with a final newline",
+    "stream": "tree",
+    "pattern": null,
+    "why": "Normalised, not replaced: the parity test compares every JSON file as its parsed value with its key order kept. install.ps1 wrote ConvertTo-Json -Depth 100, whose layout differs by edition (PowerShell 5.1: four-space alignment and \\u0027-style escapes of ' < > &; PowerShell 7: two spaces), with CRLF and no final newline. mhw install-windows writes JSON.stringify(value, null, 2) plus a newline, LF, the layout PowerShell 7 used minus the CRLF. Every key, rule and value, and their order, is the same; the backups (settings.json.pmhwc-backup, .pmhwc-allow-backup) hold whatever was there before, as they did."
+  },
+  {
+    "name": "stdout and stderr end their lines with LF",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "Normalised, not replaced: PowerShell wrote every output line with CRLF on Windows; Node writes LF. The text of each line is the same, and the paths are the same Windows paths (the test also turns backslashes into slashes so one golden serves every OS)."
+  },
+  {
+    "name": "a settings.json that is not UTF-8 ASCII is read as UTF-8 by every edition",
+    "stream": "tree",
+    "pattern": null,
+    "why": "Not exercised by a scenario (every input is ASCII). Windows PowerShell 5.1's Get-Content -Raw read a settings.json without a byte-order mark in the ANSI code page, so a non-ASCII value was rewritten as mojibake by the merge; PowerShell 7 read UTF-8. The Node installer reads UTF-8 (a leading byte-order mark is dropped, as Get-Content dropped it) and writes UTF-8 without one, as both editions wrote."
+  },
+  {
+    "name": "settings.json is read as strict JSON",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario. ConvertFrom-Json in PowerShell 7 accepted a comment and, in some versions, a trailing comma; JSON.parse refuses both, so such a file is refused with the same 'REFUSE  <file>: not a readable JSON object; left untouched' line, exit 3, and left as it was, where PowerShell 7 merged into it and dropped the comment. PowerShell 5.1 refused it too. A file with two keys that differ only in case, which ConvertFrom-Json refused, is read with both keys kept. An integer past 2^53 loses precision in JSON.parse."
+  },
+  {
+    "name": "mhw install, check and status run the steps on the node that runs mhw",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "Not exercised by a scenario (they call mhw install-windows directly). install.ps1 ran each Node step on an absolute MHW_NODE, else the first node PowerShell's Get-Command found on PATH (node.exe, or a node.cmd or node.bat through PATHEXT). Through mhw install, check and status, MHW_NODE is now the node running mhw (process.execPath), as mhw install sets it on macOS and Linux, so a different node earlier on PATH is no longer chosen, and 'SKIP ... node (26 or later) is required' cannot happen there. mhw install-windows called directly keeps install.ps1's lookup, except that PATH is searched for node.exe only and relative PATH entries are skipped (src/lib/onpath.js)."
+  },
+  {
+    "name": "arguments: repeated flags are accepted; an unknown one is a mhw usage error",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario. PowerShell refused a parameter given twice (-Method -Method, two -Overlay) with its own parameter-binding error and exit 1; mhw install-windows accepts a repeated flag and the last --overlay wins. An unknown argument was PowerShell's binding error, exit 1; it is now 'mhw install-windows: unknown argument: <arg>', exit 2. Through mhw install, check and status the mapping in src/cli.js still refuses everything but --method (install only) and --overlay=DIR, with the same messages as before (test/golden/S01: windows-install-admin, windows-uninstall, windows-update-*; the usage line's change is declared there)."
+  },
+  {
+    "name": "an owner-only backup is decided by SID through icacls, and one that cannot be made is a REFUSE of that file",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "install.ps1's Copy-Private set the access list through .NET by SID: protection on, every rule removed, one FullControl rule for the current user. src/lib/private-copy.js has no .NET: it runs icacls /inheritance:r /grant:r *<SID>:F, removes every other entry (grant and deny) by the account name icacls prints, and then decides by SID, on the SDDL icacls /save writes: exactly one entry, an allow, not inherited, whose trustee is the SID whoami /user gives, or LA or LG when the user is this machine's Administrator or Guest (whoami's domain is COMPUTERNAME and the SID ends in -500 or -501). Measured on the Windows runner, and only there: with exact-SID matching alone (f4ebe1cd, tests run 44975590845) every backup in the S27 suites was refused with '1 entries', about 150 of them; with the LA/LG alias accepted (186f38ce, run 44976795831) they were all made and every owner-only assertion held. That the runner's one entry was LA is inferred from that pair of runs, not read from an SDDL shape. Not measured, and refused rather than written readable by others where they occur: an entry whose printed name does not round-trip through icacls (a localised account name in the OEM code page, an unresolved SID that cannot be removed by its label); a user who is a domain account, whose -500 or -501 RID makes LA or LG this machine's account and not theirs (refused by design: test/lib/private-copy-windows.test.js). test/lib/private-copy-windows.test.js drives each shape with stand-in whoami.exe and icacls.exe and requires the refusal with no file left. What a refusal does differs too: install.ps1's Copy-Private threw and the whole run stopped, exit 1, after the briefs and the Codex rules and before the Kiro floor, the model pins, the retired allows and the method. Now the file is REFUSED and left as it was ('REFUSE  <settings.json>: left untouched, because its backup could not be made readable by you alone (<reason>). Check who can read <dir> (icacls \"<dir>\"), then run mhw install again'), exit 3, and the later steps run. The consequence for the deny floor: on such a machine the Claude Code deny floor is not merged into settings.json (nor the retired allows removed from it) until its backup can be made; the Codex rules file and the Kiro floor are written, and mhw check reports the settings file as DRIFT or MISSING, never as OK."
+  },
+  {
+    "name": "a settings.json the deny-floor merge refused is not changed by the retired-allow step either",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario that has a retired allow (deny-not-a-list has none, and its 'OK ... no allow entry the policy retired' line is unchanged). When install.ps1's Merge-DenyFloor refused a settings.json because its deny list had the wrong shape, Remove-RetiredAllow still removed the retired find and awk allows from the same file, after its REFUSE line had said 'left untouched'. mhw install-windows keeps such a file untouched: the retired-allow step prints 'REFUSE  <settings.json>: permissions.allow <...> left in place, because this file was refused above', exit 3, and writes nothing (test/install/windows.test.js case 14d). The same holds when the file's own backup could not be made (case 14c). --check and --dry-run report as before."
+  },
+  {
+    "name": "an unset USERPROFILE, or a directory where a managed file goes, is refused by name",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario. With USERPROFILE unset install.ps1 failed inside Join-Path and exited 1 with PowerShell's error record; mhw install-windows prints 'mhw install-windows: USERPROFILE is not set' and exits 2, before anything is read or written. A directory at a managed brief's path made install.ps1's Get-Content throw and the whole run stop (exit 1); it is now 'REFUSE  <path>: exists and is NOT managed by this project; ...', exit 3, and the later steps run, as for any unmanaged file."
+  }
+]

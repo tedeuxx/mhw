@@ -1,0 +1,16 @@
+[tool.bumpversion]
+current_version = "10.1.0"
+parse           = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+serialize       = ["{major}.{minor}.{patch}"]
+commit          = true
+tag             = true
+tag_name        = "v{new_version}"
+message         = "bump: {current_version} → {new_version}"
+tag_message     = "bump: {current_version} → {new_version}"
+allow_dirty     = false
+
+# The npm package carries the same version (Issue #68, ADR-0034), bumped in the same commit.
+[[tool.bumpversion.files]]
+filename = "package.json"
+search   = "\"version\": \"{current_version}\""
+replace  = "\"version\": \"{new_version}\""

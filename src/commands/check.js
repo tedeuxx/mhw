@@ -14,7 +14,7 @@
 // `mhw install-admin --check` on this node (global/install-managed.sh until #496), and names
 // what differs there. The validated --overlay reaches the installers and the prerequisites through
 // WORKSTATION_OVERLAY, never their argv. The exit code is the largest of the sections'. macOS and Linux;
-// on Windows `mhw check` stays install.ps1 -Check (src/cli.js). node: modules only.
+// on Windows `mhw check` is `mhw install-windows --check` (src/cli.js, #497). node: modules only.
 import fs from 'node:fs';
 import path from 'node:path';
 import { managedRoot, homeOf, resolvePath, runLines } from '../lib/readers/common.js';

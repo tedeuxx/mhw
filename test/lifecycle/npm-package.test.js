@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { which } from '../helpers/home.js';
 import { decide, undoPrepareLink } from '../../src/commands/postinstall.js';
@@ -170,24 +170,33 @@ test('the workstation alias is gone (Issue #206), and mhw prints no rename notic
   }
 });
 
-test('the Windows mapping onto install.ps1, with a stub PowerShell', { skip: !POSIX && 'the stub is a POSIX script' }, () => {
-  const stub = path.join(fresh('ps'), 'ps');
-  writeExe(stub, '#!/bin/sh\nfor a in "$@"; do printf \'%s\\n\' "$a"; done\n');
-  const env = { ...process.env, WORKSTATION_LAUNCHER_PLATFORM: 'win32', WORKSTATION_POWERSHELL: stub };
-  const ps1 = path.join(ROOT, 'global', 'install.ps1');
-  const pre = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', ps1];
+test('the Windows mapping onto mhw install-windows (#497; install.ps1 until then)', async () => {
+  const { windowsPlan } = await import(pathToFileURL(path.join(ROOT, 'src', 'cli.js')).href);
+  assert.deepEqual(windowsPlan(['install']), { code: 0, argv: [] });
+  assert.deepEqual(windowsPlan(['install', '--method', '--overlay=none']), { code: 0, argv: ['--method', '--overlay=none'] });
+  assert.deepEqual(windowsPlan(['check']), { code: 0, argv: ['--check'] });
+  assert.deepEqual(windowsPlan(['status', '--overlay=x']), { code: 0, argv: ['--check', '--overlay=x'] });
+  // End to end on a throwaway profile: install, then check and status, through bin/mhw.js on the Windows path.
+  const prof = fresh('win-profile');
+  /** @type {Record<string, string | undefined>} */
+  const env = { ...process.env, WORKSTATION_LAUNCHER_PLATFORM: 'win32', USERPROFILE: prof, HOME: prof };
+  delete env.CODEX_HOME;
+  delete env.MHW_NODE;
   /** @param {string[]} args */
   const run = (...args) => {
     const p = spawnSync(NODE, [path.join(ROOT, 'bin', 'mhw.js'), ...args], { env, encoding: 'utf8' });
-    return { code: p.status, out: p.stdout.split('\n').filter(Boolean), err: p.stderr };
+    return { code: p.status, out: p.stdout.split(/\r?\n/).filter(Boolean), err: p.stderr };
   };
-  assert.deepEqual(run('install'), { code: 0, out: pre, err: '' });
-  assert.deepEqual(run('install', '--method', '--overlay=none'), { code: 0, out: [...pre, '-Method', '-Overlay', 'none'], err: '' });
-  assert.deepEqual(run('check'), { code: 0, out: [...pre, '-Check'], err: '' });
-  const st = run('status');
-  assert.deepEqual([st.code, st.out.slice(2), st.err], [0, [...pre, '-Check'], '']);
+  const inst = run('install', '--overlay=none');
+  assert.equal(inst.code, 0, inst.out.join('\n') + inst.err);
+  assert.ok(inst.out.some((l) => l.startsWith('WROTE   ') && l.includes('CLAUDE.md')), inst.out.join('\n'));
+  assert.ok(fs.existsSync(path.join(prof, '.claude', 'CLAUDE.md')));
+  assert.equal(run('check', '--overlay=none').code, 0);
+  const st = run('status', '--overlay=none');
+  assert.equal(st.code, 0, st.out.join('\n'));
   assert.match(st.out[0], /^NODE {4}(ok|FAIL) {2}/);
   assert.match(st.out[1], /^PASTE {3}n\/a {3}the paste wrapper is not installed on Windows/);
+  assert.match(st.out[2], /^OK {6}.*CLAUDE\.md \(release: /);
   for (const args of [['install', '--admin'], ['uninstall'], ['check', '--method'], ['install', '--overlay=']]) {
     const r = run(...args);
     assert.deepEqual([r.code, r.out], [2, []], args.join(' '));
@@ -329,13 +338,13 @@ test('the packed file list: what mhw needs, no Python file, nothing private (npm
     'npm-shrinkwrap.json', 'src/vendor/smol-toml/dist/index.js', 'src/vendor/smol-toml/LICENSE', 'src/commands/install.js', 'src/commands/update.js',
     'src/commands/uninstall.js', 'src/commands/postinstall.js', 'src/commands/lifecycle.js', 'src/lib/lifecycle.js', 'src/commands/status.js',
     'src/commands/check.js', 'src/lib/prerequisites.js', 'src/lib/http-get.js', 'src/lib/merge-authority.js', 'src/commands/install-user.js', 'src/commands/install-admin.js',
-    'global/install.ps1', 'global/AGENTS.md', 'global/deny-floor.conf', 'global/project-policy/project-policy.schema.json', 'overlay/profile.json', 'package.json']) {
+    'src/commands/install-windows.js', 'global/AGENTS.md', 'global/deny-floor.conf', 'global/project-policy/project-policy.schema.json', 'overlay/profile.json', 'package.json']) {
     assert.ok(names.has(needed), needed);
   }
   const all = [...names];
   assert.deepEqual(all.filter((n) => n.endsWith('.py')), [], 'the tarball carries a Python file');
   assert.deepEqual(all.filter((n) => /\.test\.(sh|ps1|stub)$/.test(n)), []);
-  for (const gone of ['workstation', 'bin/workstation.js', 'global/workstation.py', 'global/install.sh', 'global/install.test.sh', 'global/github-repo-settings.sh', 'global/method/plugin_retire.py', 'global/mcp/mcp_retire.py']) {
+  for (const gone of ['workstation', 'bin/workstation.js', 'global/workstation.py', 'global/install.sh', 'global/install.test.sh', 'global/install.ps1', 'global/install.test.ps1', 'global/install-managed.sh', 'global/github-repo-settings.sh', 'global/method/plugin_retire.py', 'global/mcp/mcp_retire.py']) {
     assert.ok(!names.has(gone), gone);
   }
   assert.deepEqual(all.filter((n) => /^(docs|workspace|\.github|\.git|test|node_modules)\//.test(n)), []);

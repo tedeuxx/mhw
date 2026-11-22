@@ -14,7 +14,9 @@
     { "name": "windows-update-not-a-tag", "args": ["update", "main"], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32" } },
     { "name": "windows-uninstall", "args": ["uninstall"], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32" } },
     { "name": "windows-install-admin", "args": ["install", "--admin"], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32" } },
-    { "name": "windows-install-relative-powershell", "args": ["install"], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32", "WORKSTATION_POWERSHELL": "pwsh.exe" } },
-    { "name": "windows-status-relative-powershell", "args": ["status"], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32", "WORKSTATION_POWERSHELL": "pwsh.exe" } }
+    { "name": "windows-install-relative-powershell", "args": ["install"], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32", "WORKSTATION_POWERSHELL": "pwsh.exe" },
+      "retired": "S27 (#497): mhw no longer runs PowerShell on Windows, so WORKSTATION_POWERSHELL is read by nothing and a relative one is no longer refused; mhw install runs mhw install-windows, whose parity with install.ps1 is test/golden/S27/" },
+    { "name": "windows-status-relative-powershell", "args": ["status"], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32", "WORKSTATION_POWERSHELL": "pwsh.exe" },
+      "retired": "S27 (#497): as windows-install-relative-powershell; mhw status prints its NODE and PASTE lines, then runs mhw install-windows --check (test/install/windows.test.js)" }
   ]
 }

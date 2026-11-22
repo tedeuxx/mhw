@@ -1,6 +1,6 @@
 // src/render/settings-merge.js and src/render/floor-report.js (#491, S20 of #470): install.test.sh's merge
 // cases as node:test, the deny floor's own invariants, and the allow-list floor invariant in both directions.
-// The pure functions run on every OS; the install.sh arms are POSIX only (install.ps1 merges its own
+// The pure functions run on every OS; the install.sh arms are POSIX only (mhw install-windows, #497, merges its own
 // settings), each in a throwaway HOME and admin root, with --overlay=none and --shell-rc=none.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';

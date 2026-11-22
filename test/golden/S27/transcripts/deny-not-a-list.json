@@ -1,0 +1,95 @@
+{
+  "name": "deny-not-a-list",
+  "runs": [
+    {
+      "args": [
+        "<ov:models-off>"
+      ],
+      "code": 3,
+      "stdout": "WROTE   <T>/home/.claude/CLAUDE.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.codex/AGENTS.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.kiro/steering/workstation-global-brief.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.codex/rules/workstation-deny-floor.rules (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nMERGED  <T>/home/.kiro/settings/permissions.yaml (new file; 260 deny-floor patterns)\nOK      <T>/home/.claude/settings.json: no allow entry the policy retired\nNOTE    the paste wrapper and the paste filter are not ported to Windows (ADR-0011); no shell start-up file is written, and no Kiro prompt hook (Issue #455)\nMETHOD  not installed (opt-in: ./mhw install --method; off by default until the plugin cutover, #63 #64)\n",
+      "stderr": "REFUSE  <T>/home/.claude/settings.json: its permissions section has an unexpected shape; left untouched\n",
+      "tree": [
+        {
+          "path": "home/.claude",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.claude/CLAUDE.md",
+          "kind": "file",
+          "data": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.claude/settings.json",
+          "kind": "file",
+          "data": "{\n  \"permissions\": {\n    \"deny\": \"Bash(rm -rf:*)\"\n  }\n}"
+        },
+        {
+          "path": "home/.codex",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.codex/AGENTS.md",
+          "kind": "file",
+          "data": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.codex/rules",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.codex/rules/workstation-deny-floor.rules",
+          "kind": "file",
+          "data": "sha256:d69463a18346cff9923c02465e89baec7cda59406234d66acf334c3eb1656c34"
+        },
+        {
+          "path": "home/.kiro",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/settings",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/settings/permissions.yaml",
+          "kind": "file",
+          "data": "sha256:c91b6b5f97330f7fc613b2cfb6d1e5eae8cc6fa4134e99bcd2c58aed7e1aa2b9"
+        },
+        {
+          "path": "home/.kiro/steering",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/steering/workstation-global-brief.md",
+          "kind": "file",
+          "data": "---\ninclusion: always\n---\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json",
+          "kind": "file",
+          "data": "sha256:1e37b18693bbd0d527afa3c2075be4397db931c64aff54992e8105a12f76a211"
+        }
+      ]
+    }
+  ]
+}

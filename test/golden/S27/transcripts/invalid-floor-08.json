@@ -1,0 +1,14 @@
+{
+  "name": "invalid-floor-08",
+  "runs": [
+    {
+      "args": [
+        "<ov:floor>"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "invalid deny-floor entry (a glob holds * only at the end of its last word): glob terraform -c*hdir=*\n",
+      "tree": []
+    }
+  ]
+}

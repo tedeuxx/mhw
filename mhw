@@ -6,5 +6,5 @@
 // bin/mhw.js, so both give the same output. It was a shell script that ran global/workstation.py, now gone.
 // Line 2 is for a caller that still runs this file under /bin/sh: an earlier release's `mhw update` in an
 // npm install runs `/bin/sh <the new package>/mhw install`. To sh it is a no-op and an exec of node on
-// bin/mhw.js; to node it is a string and a comment. Windows keeps global/install.ps1, through bin/mhw.js.
+// bin/mhw.js; to node it is a string and a comment. On Windows bin/mhw.js answers every command in Node too (#497).
 import './bin/mhw.js';

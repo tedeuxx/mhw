@@ -9,7 +9,7 @@
 //           Python original and the Node renderer side by side, on the golden cases and on this
 //           repository's own method/. POSIX only. MHW_UPDATE_GOLDEN=1 rewrites the golden transcripts from
 //           the Python side, never from the Node side.
-//   entry:  cases through `node src/render/method.js`, the form install.sh and install.ps1 run.
+//   entry:  cases through `node src/render/method.js`, the form mhw install-user and mhw install-windows run.
 // The intended differences are test/golden/S18/expected-differences.json; each is applied to both sides,
 // so everything around it is still compared.
 import { test, after } from 'node:test';

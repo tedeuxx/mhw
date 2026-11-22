@@ -20,7 +20,26 @@ const SLICE = 'S01';
 const spec = readGolden(SLICE, 'cases.json');
 const expected = readGolden(SLICE, 'expected-differences.json');
 /** @type {Array<import('./helpers/parity.js').Case & { posix?: boolean, golden?: boolean }>} */
-const cases = spec.cases.filter((/** @type {{ posix?: boolean, golden?: boolean }} */ c) => !c.posix || process.platform !== 'win32');
+// A case with "retired" (#497) tests a behaviour a later slice removed; it is kept in cases.json, with the
+// reason, and runs in neither arm.
+const cases = spec.cases.filter((/** @type {{ posix?: boolean, retired?: string }} */ c) => (!c.posix || process.platform !== 'win32') && !c.retired);
+
+/**
+ * The original's transcript with each "replace" entry applied (#497): a line the head prints differently,
+ * by declaration, is rewritten on the original's side to what the head prints, so the new text is still
+ * compared. The other streams of entries only remove lines the head added (withoutExpected).
+ * @param {any} original @param {Array<{ case: string, stream: string, pattern: string, replace?: string }>} rules
+ */
+function replaced(original, rules) {
+  const out = { ...original };
+  for (const e of rules) {
+    if (e.replace === undefined || (e.case !== '*' && e.case !== original.name)) continue;
+    if (e.stream === 'stdout' || e.stream === 'stderr') out[e.stream] = out[e.stream].replace(new RegExp(e.pattern, 'gm'), e.replace);
+  }
+  return out;
+}
+/** The entries withoutExpected applies: every one but a "replace". @param {any[]} rules */
+const removals = (rules) => rules.filter((e) => e.replace === undefined);
 
 // The head runs from a copy of this working tree with no .git beside it, as the base revision does:
 // both sides then answer as an installed package, and nothing here can check out a tag in the checkout.
@@ -80,7 +99,7 @@ test('golden: the head matches the original transcripts', { skip: UPDATE && 'MHW
   const diffs = [];
   for (const c of cases.filter((x) => x.golden !== false)) {
     const golden = readGolden(SLICE, goldenName(c.name));
-    diffs.push(...differences(golden, withoutExpected(transcript(HEAD, c), expected)));
+    diffs.push(...differences(replaced(golden, expected), withoutExpected(transcript(HEAD, c), removals(expected))));
   }
   assert.deepEqual(diffs, []);
 });
@@ -103,7 +122,7 @@ test('live: the head matches the base revision run on its own throwaway HOMEs', 
       // Once S01 itself is in the base (every slice after it, #473), the base prints the S01 intended
       // difference too, so it is taken out of both sides here. The golden arm above still holds it
       // against the pre-S01 transcripts.
-      diffs.push(...differences(withoutExpected(original, live), withoutExpected(transcript(HEAD, c), live)));
+      diffs.push(...differences(withoutExpected(replaced(original, live), removals(live)), withoutExpected(transcript(HEAD, c), removals(live))));
     }
     assert.deepEqual(diffs, []);
   } finally {
@@ -111,13 +130,16 @@ test('live: the head matches the base revision run on its own throwaway HOMEs', 
   }
 });
 
-test('the expected difference is real: status adds exactly a NODE line and, since S16 (#487), a PASTE line', () => {
-  const c = cases.find((x) => x.name === 'windows-status-relative-powershell');
+// The status case is retired since S27 (#497): it ran install.ps1 -Check, which is gone, so what follows the
+// two lines is now mhw install-windows --check (test/install/windows.test.js). The two lines are still the
+// first two.
+test('the expected difference is real: status prints a NODE line and, since S16 (#487), a PASTE line first', () => {
+  const c = spec.cases.find((/** @type {{ name: string }} */ x) => x.name === 'windows-status-relative-powershell');
   assert.ok(c);
   const head = transcript(HEAD, c);
   const golden = readGolden(SLICE, goldenName(c.name));
-  const added = head.stdout.split('\n').filter((l) => !golden.stdout.split('\n').includes(l));
-  assert.equal(added.length, 2, head.stdout);
-  assert.match(added[0], /^NODE    /);
-  assert.match(added[1], /^PASTE   /);
+  assert.equal(golden.stdout, '');
+  const lines = head.stdout.split('\n');
+  assert.match(lines[0], /^NODE    /);
+  assert.match(lines[1], /^PASTE   /);
 });

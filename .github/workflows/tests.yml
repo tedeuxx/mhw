@@ -757,9 +757,9 @@ jobs:
   # reference-delivery-gate.yml, nothing else of that gate). macOS: the same script, throwaway HOME.
   # #501 (S31 of #470): the canary is .github/scripts/prod-canary.js (Node; prod_canary.py and
   # prod-canary-container.sh are deleted), and it also checks that the installed package carries no .py,
-  # .sh or .ps1 file but CANARY_LEGACY, the ones a later slice still retires (S27 install.ps1; S25 retired
-  # install.sh, #503, and S26 install-managed.sh, #496). A listed file the package no longer carries is red, so
-  # each of those slices removes its name here.
+  # .sh or .ps1 file but CANARY_LEGACY, the ones a later slice still retires. None is left: S25 retired
+  # install.sh (#503), S26 install-managed.sh (#496) and S27 install.ps1 (#497), so CANARY_LEGACY is empty
+  # and the check requires no .py, .sh or .ps1 file at all (prod-canary.js splits '' into no names).
   # EVIDENCE LEVEL: installed, never enforced. No agent harness session runs, so nothing here shows a
   # rule is loaded or enforced; the real /Library or /etc managed layer and the Keychain are not reached.
   prod-canary-installed-not-enforced:
@@ -779,7 +779,7 @@ jobs:
       # from registry-1.docker.io on 2026-11-18 (linux/amd64 and linux/arm64 in the index). It replaced
       # node:22-bookworm @ sha256:7702d8aa4d5910871692af4480eb3ba86f23047a6417a44d857d06c95d060d3f.
       CANARY_IMAGE: docker.io/library/node@sha256:b7087bc4d973034b30854b378ba107f9fab622b47514cb7e2592e41b8bab8d49
-      CANARY_LEGACY: global/install.ps1
+      CANARY_LEGACY: ""
     steps:
       # actions/checkout v6.1.0 (same pin as version-main.yml, verified with git ls-remote 2026-10-01).
       # The exact head (not the merge ref), and every tag, to find the latest published one.
@@ -825,48 +825,73 @@ jobs:
           node .github/scripts/prod-canary.js run --source "$CANARY_PKG/src-HEAD" --tgz "$CANARY_PKG/mhw-HEAD.tgz" \
             --from-tgz "$CANARY_PKG/mhw-from.tgz" --work "$RUNNER_TEMP/prod-canary-upgrade" --commit "$CANARY_HEAD" --legacy "$CANARY_LEGACY"
 
-  # install.ps1 on a real Windows host (Issue #9, ADR-0010). Throwaway USERPROFILEs under RUNNER_TEMP
-  # only. Runs under Windows PowerShell 5.1 (what a stock Windows has) and PowerShell 7. The runner's git
-  # checks out with core.autocrlf=true, so this also exercises a CRLF source tree.
+  # The Windows user layer on a real Windows host (Issue #9, ADR-0010): `mhw install-windows`, which mhw
+  # install, check and status run there since #497 (S27 of #470; it was global/install.ps1). Throwaway
+  # USERPROFILEs under RUNNER_TEMP only. The runner's git checks out with core.autocrlf=true, so this also
+  # exercises a CRLF source tree. No PowerShell runs mhw any more; the live parity step below runs the base
+  # revision's install.ps1 under Windows PowerShell 5.1 and PowerShell 7 while the base still holds it.
   windows:
-    strategy:
-      fail-fast: false
-      matrix:
-        ps: [powershell, pwsh]
     runs-on: windows-latest
     permissions:
       contents: read
     steps:
-      # actions/checkout v6.1.0 (same pin as version-main.yml, verified with git ls-remote 2026-10-01)
+      # actions/checkout v6.1.0 (same pin as version-main.yml, verified with git ls-remote 2026-10-01). Full
+      # history, so the live parity step can read the base revision's install.ps1.
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
+          fetch-depth: 0
       # Node 26, the engines.node floor (#472), instead of the runner's preinstalled node.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 26.13.1
-      - name: installer suite (install.ps1 under ${{ matrix.ps }})
-        shell: pwsh
+      # The cases of the deleted global/install.test.ps1, as node:test (test/install/windows.test.js), and the
+      # golden arm against install.ps1's recorded transcripts (test/install/windows-golden.test.js). The node
+      # job's npm test runs both too, on every OS; this step names them on Windows.
+      - name: Windows installer suite (mhw install-windows, node:test)
+        shell: bash
         env:
-          PS_EXE: ${{ matrix.ps }}
+          TMPDIR: ${{ runner.temp }}
         run: |
           git config --get core.autocrlf
-          & $env:PS_EXE -NoProfile -Command '$PSVersionTable | Format-Table -AutoSize | Out-String'
-          & $env:PS_EXE -NoProfile -NonInteractive -ExecutionPolicy Bypass -File global\install.test.ps1 "$env:RUNNER_TEMP\install-$env:PS_EXE"
-          exit $LASTEXITCODE
+          node --version
+          node --test --test-reporter=tap test/install/windows.test.js test/install/windows-golden.test.js
+      # #497 (S27 of #470): the live arm of test/install/windows-golden.test.js runs the base revision's
+      # global/install.ps1, under PowerShell 7 and Windows PowerShell 5.1, beside this tree's
+      # `mhw install-windows` on every scenario, in throwaway profiles, on frozen inputs. MHW_S27_LIVE_REQUIRED=1
+      # is the requirement: while the base still holds global/install.ps1 the live line must be reported and
+      # not as SKIP; once it does not (this slice has merged), the step says the arm retired and passes, as
+      # the S14 and S25 steps do (#534). A missing base fails. The original is PowerShell and Node, so no
+      # CPython is pinned for it.
+      - name: S27 live parity against install.ps1
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S27_LIVE_REQUIRED: "1"
+        run: |
+          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
+          [ -n "$base" ] || { echo "no base revision"; exit 1; }
+          if ! git cat-file -e "$base:global/install.ps1" 2>/dev/null; then
+            echo "S27 live arm retired: base $base no longer holds global/install.ps1"
+            exit 0
+          fi
+          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/install/windows-golden.test.js) || { echo "$out"; exit 1; }
+          echo "$out"
+          echo "$out" | grep -E "^ *ok [0-9]+ - live: install.ps1 at the base revision" | grep -vq SKIP
       # Issue #68, ADR-0034: the npm package on Windows. git archive of HEAD (what GitHub serves, with
       # .workstation-archive filled in), npm pack, npm install -g into a throwaway prefix and cache; its
-      # postinstall runs install.ps1 under ${{ matrix.ps }} against a throwaway USERPROFILE (set BEFORE
-      # npm runs), then mhw.cmd; no workstation.cmd alias since #206. No registry is contacted.
-      - name: npm package (npm install -g into a throwaway prefix; postinstall, then mhw under ${{ matrix.ps }})
+      # postinstall installs nothing (#113); then mhw.cmd install, check, update and uninstall against a
+      # throwaway USERPROFILE (set BEFORE npm runs). No workstation.cmd alias since #206. No registry is
+      # contacted.
+      - name: npm package (npm install -g into a throwaway prefix; postinstall, then mhw)
+        if: ${{ !cancelled() }}
         shell: pwsh
-        env:
-          PS_EXE: ${{ matrix.ps }}
         run: |
           $ErrorActionPreference = 'Stop'
           function Fail([string]$m) { Write-Output "FAIL  $m"; exit 1 }
           node --version; npm --version
-          $t = Join-Path $env:RUNNER_TEMP "npm-$env:PS_EXE"
+          $t = Join-Path $env:RUNNER_TEMP "npm-package"
           $prefix = Join-Path $t 'prefix'; $cache = Join-Path $t 'cache'; $prof = Join-Path $t 'profile'
           $src = Join-Path $t 'src'
           New-Item -ItemType Directory -Force -Path $t, $prefix, $prof, $src | Out-Null
@@ -883,13 +908,13 @@ jobs:
           # mhw install writes the user layer (the postinstall installs nothing, #113): point every
           # user-level path at the throwaway profile first.
           $env:USERPROFILE = $prof; $env:HOME = $prof; $env:CODEX_HOME = Join-Path $prof '.codex'
-          $env:WORKSTATION_POWERSHELL = (Get-Command $env:PS_EXE -CommandType Application | Select-Object -First 1).Source
           $env:MHW_POSTINSTALL_TTY = '0'
           Push-Location $env:RUNNER_TEMP
           npm install -g --offline --foreground-scripts --prefix $prefix --cache $cache $tgz
           if ($LASTEXITCODE) { Fail 'npm install -g' }
           $pkg = Join-Path $prefix 'node_modules\mhw'
           if (Test-Path -LiteralPath (Join-Path $pkg '.git')) { Fail 'the installed package carries .git' }
+          if (Test-Path -LiteralPath (Join-Path $pkg 'global\install.ps1')) { Fail 'the installed package carries the deleted install.ps1 (#497)' }
           $archive = (Get-Content -LiteralPath (Join-Path $pkg '.workstation-archive')) -join ' | '
           if (-not $archive.Contains("commit: $sha")) { Fail "the archive stamp is not filled in: $archive" }
           $stamp = "commit: $sha"
@@ -901,11 +926,14 @@ jobs:
           if (-not $brief.Contains("; release: ") -or -not $brief.Contains("; $stamp;")) { Fail "mhw install did not install the stamped brief: $brief" }
           & $mhw check
           if ($LASTEXITCODE) { Fail "mhw check exited $LASTEXITCODE" }
+          $st = @(& $mhw status)
+          if ($LASTEXITCODE) { Fail "mhw status exited $LASTEXITCODE" }
+          if (-not ($st[0] -like 'NODE    *' -and $st[1] -like 'PASTE   *' -and ($st | Where-Object { $_ -like 'OK      *CLAUDE.md (release: *' }))) { Fail "mhw status: $($st -join ' | ')" }
           if (Test-Path -LiteralPath (Join-Path $prefix 'workstation.cmd')) { Fail 'the removed workstation alias was installed (#206)' }
           $out = (& $mhw update v4.2.0) -join ' | '
           if ($LASTEXITCODE -or -not $out.Contains('npm install -g github:tedeuxx/mhw#v4.2.0')) { Fail "update: $out" }
           & $mhw uninstall 2>$null
           if ($LASTEXITCODE -ne 2) { Fail "uninstall should be refused on Windows, exited $LASTEXITCODE" }
           Pop-Location
-          Write-Output "PASS  npm package under $env:PS_EXE ($brief)"
+          Write-Output "PASS  npm package ($brief)"
           exit 0

@@ -264,7 +264,7 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   [#481](https://github.com/tedeuxx/mhw/issues/481): same files and exit codes; the output differences are declared in
   `test/golden/S10/expected-differences.json`). *Written and tested* in throwaway homes; **not installed**
   on the reference machine, and no default checked in a new session. ~~macOS and Linux only.~~ Windows
-  too since the #145 follow-up (`install.ps1`, CI-tested). ~~On that
+  too since the #145 follow-up (~~`install.ps1`~~ `mhw install-windows` since #497, CI-tested). ~~On that
   machine the owner holds his own Claude Code `model` and Codex `model_reasoning_effort`; install keeps
   them, so those two pins take effect only after he deletes the keys.~~ *Struck 2026-10-11
   ([#145](https://github.com/tedeuxx/mhw/issues/145)):* install writes the pin over any value, reports
@@ -312,4 +312,7 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   *Amended 2026-11-08 ([#455](https://github.com/tedeuxx/mhw/issues/455),
   [#463](https://github.com/tedeuxx/mhw/pull/463)):* on Kiro CLI 3.1.0 (V3) the wrapper cleaned a
   synthetic paste (*measured* once); it does not check typed text. ~~Windows does not render the Kiro floor.~~ *Amended 2026-10-11:*
-  `install.ps1` renders it too (*written and CI-tested*; Kiro on Windows not measured).
+  `install.ps1` renders it too (*written and CI-tested*; Kiro on Windows not measured). *Amended 2026-11-21
+  ([#497](https://github.com/tedeuxx/mhw/issues/497)):* `install.ps1` is deleted; on Windows `mhw install`,
+  `check` and `status` run `mhw install-windows`, the same steps in Node (*written and CI-tested*), and the
+  paste wrapper there stays *not measured* (D7).

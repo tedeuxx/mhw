@@ -1,0 +1,16 @@
+{
+  "name": "usage-dry-run-and-check",
+  "runs": [
+    {
+      "args": [
+        "--dry-run",
+        "--check",
+        "<ov:models-off>"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "use -DryRun or -Check, not both\n",
+      "tree": []
+    }
+  ]
+}

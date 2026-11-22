@@ -27,10 +27,10 @@ macOS/Linux:
 node bin/mhw.js install-user --overlay=none --dry-run
 ```
 
-Windows PowerShell:
+Windows (PowerShell or any shell; `install.ps1` until #497):
 
 ```powershell
-.\global\install.ps1 -Overlay none -DryRun
+node bin\mhw.js install-windows --overlay=none --dry-run
 ```
 
 For a personal profile, copy `global/profile/profile.example.json` into a directory you control and
@@ -44,7 +44,7 @@ node /path/to/repository/bin/mhw.js profile render --source profile.json --outpu
 
 Paths above are placeholders (after an npm install, `mhw profile` is the same command). On Windows, use
 your chosen Windows paths.
-Pass the generated directory with `--overlay=PATH` or `-Overlay PATH` for preview, apply and check.
+Pass the generated directory with `--overlay=PATH` (on Windows too since #497; ~~`-Overlay PATH`~~ was install.ps1's) for preview, apply and check.
 The repository's `overlay/` is the reference owner's profile, not a universal default for every adopter.
 Hand-authored overlays remain supported; the compiler refuses to overwrite their unmarked files.
 Both installers verify structured profiles before writing. If you edit `profile.json`, regenerate
@@ -65,11 +65,11 @@ macOS/Linux:
 `./mhw install --overlay=none` in your own terminal also installs the admin layer: it asks for your
 administrator password once, after RETURN. `--no-admin` leaves it out.
 
-Windows PowerShell:
+Windows (PowerShell or any shell; `install.ps1` until #497):
 
 ```powershell
-.\global\install.ps1 -Overlay none
-.\global\install.ps1 -Overlay none -Check
+node bin\mhw.js install --overlay=none
+node bin\mhw.js check --overlay=none
 ```
 
 Use the same overlay choice in preview, apply and check. The installer refuses unmanaged conflicts;

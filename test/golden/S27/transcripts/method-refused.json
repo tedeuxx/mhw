@@ -1,0 +1,216 @@
+{
+  "name": "method-refused",
+  "runs": [
+    {
+      "args": [
+        "--method",
+        "<ov:models-off>"
+      ],
+      "code": 3,
+      "stdout": "WROTE   <T>/home/.claude/CLAUDE.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.codex/AGENTS.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.kiro/steering/workstation-global-brief.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.codex/rules/workstation-deny-floor.rules (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nMERGED  <T>/home/.claude/settings.json\nMERGED  <T>/home/.kiro/settings/permissions.yaml (new file; 260 deny-floor patterns)\nOK      <T>/home/.claude/settings.json: no allow entry the policy retired\nNOTE    the paste wrapper and the paste filter are not ported to Windows (ADR-0011); no shell start-up file is written, and no Kiro prompt hook (Issue #455)\nWROTE   <T>/home/.claude/skills/shell/SKILL.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.agents/skills/shell/SKILL.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.kiro/skills/shell/SKILL.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.claude/commands/new-prd.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.agents/skills/new-prd/SKILL.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.agents/skills/new-prd/agents/openai.yaml (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.kiro/skills/new-prd/SKILL.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.codex/agents/developer.toml (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.kiro/agents/developer.json (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nMETHOD  installed: 1 agents, 1 skills, 1 commands from method/ into Claude Code (agents, skills, commands), Codex (custom agents without a tool list, skills; commands as skills with implicit invocation off) and Kiro (agents, skills; commands as skills); the documents its rites name in <T>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts (no scripts: the rites run mhw commands)\n",
+      "stderr": "REFUSE  <T>/home/.claude/agents/developer.md: exists and is NOT managed by this project's method step; move it aside or merge it by hand\n",
+      "tree": [
+        {
+          "path": "home/.agents",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.agents/skills",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.agents/skills/new-prd",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.agents/skills/new-prd/SKILL.md",
+          "kind": "file",
+          "data": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/new-prd.md; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; do not edit, re-run the installer\nname: \"new-prd\"\ndescription: \"Owner-typed command $new-prd; run it only when the owner invokes it. A frozen stand-in command for the S27 golden: turn an idea into a requirements document.\"\nmetadata:\n  purpose: \"give the S27 parity scenarios one command, so the working-method step renders a command that does not move when method/ does\"\n---\n\n> **Owner-typed command `$new-prd`.** Run it only when the owner invokes it by name. Its arguments are the text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\nA frozen, ASCII-only stand-in for method/commands/new-prd.md.\n"
+        },
+        {
+          "path": "home/.agents/skills/new-prd/agents",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.agents/skills/new-prd/agents/openai.yaml",
+          "kind": "file",
+          "data": "# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/new-prd.md; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; do not edit, re-run the installer\npolicy:\n  allow_implicit_invocation: false\n"
+        },
+        {
+          "path": "home/.agents/skills/shell",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.agents/skills/shell/SKILL.md",
+          "kind": "file",
+          "data": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/shell/SKILL.md; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; do not edit, re-run the installer\nname: \"shell\"\ndescription: \"A frozen stand-in skill for the S27 golden: where scratch files go.\"\nmetadata:\n  purpose: \"give the S27 parity scenarios one skill, so the working-method step renders a skill that does not move when method/ does\"\n---\n\nA frozen, ASCII-only stand-in for method/skills/shell/SKILL.md.\n"
+        },
+        {
+          "path": "home/.claude",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.claude/CLAUDE.md",
+          "kind": "file",
+          "data": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.claude/agents",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.claude/agents/developer.md",
+          "kind": "file",
+          "data": "the owner's own agent\n"
+        },
+        {
+          "path": "home/.claude/commands",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.claude/commands/new-prd.md",
+          "kind": "file",
+          "data": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/new-prd.md; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; do not edit, re-run the installer\ndescription: \"A frozen stand-in command for the S27 golden: turn an idea into a requirements document.\"\n---\n\nA frozen, ASCII-only stand-in for method/commands/new-prd.md.\n"
+        },
+        {
+          "path": "home/.claude/settings.json",
+          "kind": "file",
+          "data": "sha256:e53b33dda24022e70a7022ddaccf324ce9e75fc756000f55236a2694071a25c1"
+        },
+        {
+          "path": "home/.claude/skills",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.claude/skills/shell",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.claude/skills/shell/SKILL.md",
+          "kind": "file",
+          "data": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/shell/SKILL.md; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; do not edit, re-run the installer\nname: \"shell\"\ndescription: \"A frozen stand-in skill for the S27 golden: where scratch files go.\"\nmetadata:\n  purpose: \"give the S27 parity scenarios one skill, so the working-method step renders a skill that does not move when method/ does\"\n---\n\nA frozen, ASCII-only stand-in for method/skills/shell/SKILL.md.\n"
+        },
+        {
+          "path": "home/.codex",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.codex/AGENTS.md",
+          "kind": "file",
+          "data": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.codex/agents",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.codex/agents/developer.toml",
+          "kind": "file",
+          "data": "# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/developer.md; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; do not edit, re-run the installer\nname = \"developer\"\ndescription = \"A frozen stand-in agent for the S27 golden: builds a slice end to end.\"\ndeveloper_instructions = \"You are the `developer` agent of the owner's working method (source: method/agents/developer.md)./n/nPreloaded skills: $shell. In Claude Code and Kiro these are loaded into your context before you start. A Codex custom agent has no preload field, so load each of them by name before you act and follow it./n/nAllowed tools for this agent: Read, Grep, Glob, Write, Edit, Bash. A Codex custom agent carries no tool list (ADR-0027): here this limit is an instruction, not a control. Do not use a tool outside it. Codex documents a per-agent `mcp_servers` narrowing that this method does not render, so you inherit the parent session's MCP servers: use none that your tool list does not name./n/n---/n/nA frozen, ASCII-only stand-in for method/agents/developer.md./n\"\n"
+        },
+        {
+          "path": "home/.codex/rules",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.codex/rules/workstation-deny-floor.rules",
+          "kind": "file",
+          "data": "sha256:d69463a18346cff9923c02465e89baec7cda59406234d66acf334c3eb1656c34"
+        },
+        {
+          "path": "home/.kiro",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/agents",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/agents/developer.json",
+          "kind": "file",
+          "data": "{\n  \"name\": \"developer\",\n  \"description\": \"A frozen stand-in agent for the S27 golden: builds a slice end to end.\",\n  \"prompt\": \"<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/agents/developer.md; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; do not edit, re-run the installer -->\\n\\nA frozen, ASCII-only stand-in for method/agents/developer.md.\\n\",\n  \"tools\": [\n    \"read\",\n    \"write\",\n    \"shell\"\n  ],\n  \"resources\": [\n    \"file://<T>/home/.kiro/skills/shell/SKILL.md\"\n  ]\n}"
+        },
+        {
+          "path": "home/.kiro/settings",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/settings/permissions.yaml",
+          "kind": "file",
+          "data": "sha256:c91b6b5f97330f7fc613b2cfb6d1e5eae8cc6fa4134e99bcd2c58aed7e1aa2b9"
+        },
+        {
+          "path": "home/.kiro/skills",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/skills/new-prd",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/skills/new-prd/SKILL.md",
+          "kind": "file",
+          "data": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/new-prd.md; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; do not edit, re-run the installer\nname: \"new-prd\"\ndescription: \"Owner-typed command /new-prd; run it only when the owner invokes it. A frozen stand-in command for the S27 golden: turn an idea into a requirements document.\"\nmetadata:\n  purpose: \"give the S27 parity scenarios one command, so the working-method step renders a command that does not move when method/ does\"\n---\n\n> **Owner-typed command `/new-prd`.** Run it only when the owner invokes it by name. Its arguments are the text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\nA frozen, ASCII-only stand-in for method/commands/new-prd.md.\n"
+        },
+        {
+          "path": "home/.kiro/skills/shell",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/skills/shell/SKILL.md",
+          "kind": "file",
+          "data": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/shell/SKILL.md; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; do not edit, re-run the installer\nname: \"shell\"\ndescription: \"A frozen stand-in skill for the S27 golden: where scratch files go.\"\nmetadata:\n  purpose: \"give the S27 parity scenarios one skill, so the working-method step renders a skill that does not move when method/ does\"\n---\n\nA frozen, ASCII-only stand-in for method/skills/shell/SKILL.md.\n"
+        },
+        {
+          "path": "home/.kiro/steering",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/steering/workstation-global-brief.md",
+          "kind": "file",
+          "data": "---\ninclusion: always\n---\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json",
+          "kind": "file",
+          "data": "sha256:1e37b18693bbd0d527afa3c2075be4397db931c64aff54992e8105a12f76a211"
+        }
+      ]
+    }
+  ]
+}

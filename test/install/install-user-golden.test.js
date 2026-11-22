@@ -10,7 +10,7 @@
 // Both sides run a tree assembled in the scenario's directory from their own src/, bin/ and method/ and the
 // frozen inputs of test/golden/S25/inputs (the global brief, the floor, the allow list, the clipboard
 // defaults, the policy MCP servers and an owner overlay), so a later change to those sources does not move
-// the goldens. POSIX only: the user layer is macOS and Linux (install.ps1 on Windows, install.test.ps1).
+// the goldens. POSIX only: the user layer is macOS and Linux (mhw install-windows on Windows, test/install/windows.test.js; #497).
 // Normalised: the scenario's directory (<T>), the node (<NODE>), the stamp, Chrome's Local State path (it is
 // per OS) and the byte counts of WOULD WRITE lines (they carry the stamp).
 import { test, after } from 'node:test';

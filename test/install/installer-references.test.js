@@ -62,7 +62,12 @@ test('no live document runs an installer script that is not in the tree', () => 
     });
   }
   assert.deepEqual(dead, []);
-  assert.ok(seen > 0, 'the detector read no run at all: the scope or the pattern is dead');
+  // ~~assert.ok(seen > 0, ...)~~ (#497): since S26 and S27 deleted the last installer scripts, no live
+  // document runs one, so zero runs is the expected state. The pattern is held by the calibration test above;
+  // here the scope is: the README and the runbooks must be among the files read.
+  const scope = files();
+  assert.ok(scope.includes('README.md') && scope.some((f) => f.startsWith('docs/runbooks/')), 'the scope is dead');
+  console.log('# installer runs read: ' + seen);
   for (const [f, why] of EXEMPT) assert.ok(fs.existsSync(path.join(ROOT, f)) && why.length > 40, f);
 });
 
@@ -81,4 +86,50 @@ test('every mhw install-user command in a live document is one the installer acc
   }
   assert.deepEqual(bad, []);
   assert.ok(seen > 0, 'no install-user command was read');
+});
+
+// #497 (PR #547 lens F1): a live instruction may not name a deleted installer file or one of the deleted
+// install.ps1's PowerShell parameters (-Overlay, -Method, -DryRun, -Check; mhw's are --overlay=, --method,
+// --dry-run, --check). A struck span (~~...~~) is history and is not read; a line that names the old route
+// as history says so in one of these words: until, was, were, deleted, retired, removed, replaced, formerly.
+const HISTORY = /\b(until|was|were|deleted|retired|removed|replaced|formerly)\b/i;
+const PS_PARAM = /(?:^|[\s`'"(])(-(?:Overlay|Method|DryRun|Check))\b/g;
+const INSTALLER = /global[\\/][A-Za-z0-9_.-]+\.(?:sh|ps1)\b/g;
+/** Exempt by name from the stale-name check only. */
+const STALE_EXEMPT = new Map([['docs/mhw-product-requirements-document-node-runtime.md',
+  "the Node runtime migration's requirements: its 'Current state' lists the installers the migration deletes, as they were when it was agreed"]]);
+
+/** The stale names a line carries: a missing installer path, or a PowerShell parameter. @param {string} line */
+export function staleNames(line) {
+  const live = line.replace(/~~[^~]*~~/g, '');
+  if (HISTORY.test(live)) return [];
+  const paths = [...live.matchAll(INSTALLER)].map((m) => m[0].replaceAll('\\', '/')).filter((p) => !fs.existsSync(path.join(ROOT, p)));
+  return [...paths, ...[...live.matchAll(PS_PARAM)].map((m) => m[1])];
+}
+
+test('the stale-name detector finds a deleted installer or a PowerShell parameter, and skips history (calibration)', () => {
+  assert.deepEqual(staleNames('Windows: `.\\global\\install.ps1 -Overlay none`'), ['global/install.ps1', '-Overlay']);
+  assert.deepEqual(staleNames('`--overlay=PATH` or `-Overlay PATH`'), ['-Overlay']);
+  assert.deepEqual(staleNames('tested by `global/install.test.ps1` on Windows'), ['global/install.test.ps1']);
+  assert.deepEqual(staleNames('~~`global/install.ps1 -Method`~~ `mhw install-windows --method`'), []);
+  assert.deepEqual(staleNames('`install.ps1` until #497 ran `global/install.ps1 -Check`'), []);
+  assert.deepEqual(staleNames('`mhw install --overlay=none --method`'), []);
+});
+
+test('no live document names a deleted installer file or a PowerShell parameter of install.ps1', () => {
+  const git = which('git');
+  assert.ok(git, 'needs git');
+  const extra = spawnSync(git, ['-C', ROOT, 'ls-files', '-z', '--', 'global/profile/README.md'], { encoding: 'utf8' }).stdout.split('\0').filter(Boolean);
+  /** @type {string[]} */
+  const stale = [];
+  for (const f of [...files(), ...extra]) {
+    if (EXEMPT.has(f) || STALE_EXEMPT.has(f)) continue;
+    // A struck span may run across lines: it is blanked first, its line breaks kept, so numbers still hold.
+    const text = fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/~~[^~]*~~/g, (m) => m.replace(/[^\n]/g, ''));
+    text.split(/\r?\n/).forEach((line, i) => {
+      for (const s of staleNames(line)) stale.push(f + ':' + (i + 1) + ' names ' + s);
+    });
+  }
+  assert.deepEqual(stale, []);
+  for (const [f, why] of STALE_EXEMPT) assert.ok(fs.existsSync(path.join(ROOT, f)) && why.length > 40, f);
 });

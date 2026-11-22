@@ -1,5 +1,21 @@
 [
   {
+    "case": "windows-help",
+    "stream": "stdout",
+    "pattern": "^\\(Windows: install\\.ps1; install --admin, scan and uninstall are macOS and Linux only\\)$",
+    "replace": "(Windows: install --admin, scan and uninstall are macOS and Linux only)",
+    "whenBaseHas": "global/install.ps1",
+    "why": "S27 (#497): install.ps1 is deleted and mhw install, check and status run mhw install-windows on Windows, so the usage line no longer names it. The other words, and the exit code, are unchanged."
+  },
+  {
+    "case": "windows-no-args",
+    "stream": "stdout",
+    "pattern": "^\\(Windows: install\\.ps1; install --admin, scan and uninstall are macOS and Linux only\\)$",
+    "replace": "(Windows: install --admin, scan and uninstall are macOS and Linux only)",
+    "whenBaseHas": "global/install.ps1",
+    "why": "S27 (#497): the same usage line as windows-help, printed with exit 2 when no command is given."
+  },
+  {
     "case": "windows-status-relative-powershell",
     "stream": "stdout",
     "pattern": "^NODE    (ok    node|FAIL  node|FAIL  cannot compare node) ",

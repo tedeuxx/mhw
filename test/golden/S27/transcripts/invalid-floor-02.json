@@ -1,0 +1,14 @@
+{
+  "name": "invalid-floor-02",
+  "runs": [
+    {
+      "args": [
+        "<ov:floor>"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "invalid deny-floor entry (a cmd word may not hold *): cmd git push --force*\n",
+      "tree": []
+    }
+  ]
+}

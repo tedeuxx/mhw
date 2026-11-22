@@ -688,7 +688,7 @@ describe('render', () => {
   });
 
   test('the home argument wins over HOME', () => {
-    // install.ps1 passes --home=<profile> so a HOME set on Windows is never written to.
+    // mhw install-windows (install.ps1 until #497) passes --home=<profile> so a HOME set on Windows is never written to.
     const home = methodHome();
     const other = methodHome('other');
     const r = home.run(['--mode=install', '--home=' + other.root]);
@@ -853,7 +853,7 @@ describe('the harness token', () => {
   });
 });
 
-describe('through the installer', { skip: !POSIX && 'the user-layer installer is POSIX; install.test.ps1 holds install.ps1' }, () => {
+describe('through the installer', { skip: !POSIX && 'the user-layer installer is POSIX; test/install/windows.test.js holds mhw install-windows (#497)' }, () => {
   // mhw install-user (install.sh until #503) runs the method as its own step, with its own stamp, by the
   // node that runs mhw; uninstall removes it. The admin root is a throwaway directory, as every installer run here.
   /** @param {string} home @param {string[]} args */

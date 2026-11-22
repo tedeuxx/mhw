@@ -9,7 +9,7 @@
 //           held to the golden too; until then the same functions cut out of this tree's install.sh.
 //   live:   where the base revision still holds the jq programs (until this slice merges), both run on the
 //           same inputs. MHW_UPDATE_GOLDEN=1 rewrites the goldens from the base side, never from Node.
-// POSIX only: install.sh never runs on Windows (install.ps1 merges its own settings). The pure functions are
+// POSIX only: install.sh never runs on Windows (mhw install-windows, #497, merges its own settings). The pure functions are
 // tested on every OS in settings-merge.test.js. Normalised before comparing: the scenario's directory (<T>)
 // and CRLF. Intended differences: test/golden/S20/expected-differences.json.
 import { test, after } from 'node:test';

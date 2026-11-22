@@ -58,7 +58,7 @@ describe('arguments', () => {
   });
 });
 
-describe('the --project section', { skip: process.platform === 'win32' && 'mhw check is install.ps1 -Check on Windows; the --project section is POSIX only' }, () => {
+describe('the --project section', { skip: process.platform === 'win32' && 'mhw check is mhw install-windows --check on Windows (#497); the --project section is POSIX only' }, () => {
   /** @type {import('../helpers/home.js').Home} */
   let h;
   /** @type {string} */

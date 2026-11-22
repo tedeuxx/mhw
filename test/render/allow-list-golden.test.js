@@ -6,7 +6,7 @@
 //           revision's install.sh, then allow_parse, then allow_step or allow_uninstall.
 //   live:   where the base revision still holds global/allow-list.sh (until this slice merges), both run on
 //           the same inputs. MHW_UPDATE_GOLDEN=1 rewrites the goldens from the shell side, never from Node.
-// POSIX only: install.sh, the only caller, never runs on Windows (install.ps1 renders no allow list). The
+// POSIX only: install.sh, the only caller, never runs on Windows (mhw install-windows, #497, renders no allow list). The
 // pure functions are tested on every OS in allow-list.test.js. Normalised before comparing: the scenario's
 // directory (<T>) and CRLF. Intended differences: test/golden/S19/expected-differences.json; one pattern
 // (a head diagnostic on stderr) is applied, and the live arm compares dry-run hunks as sets of lines.

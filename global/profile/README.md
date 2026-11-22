@@ -74,7 +74,7 @@ Exit codes: `0` success; `1` generated output missing or stale; `2` invalid prof
 ## Install the prepared overlay
 
 After reviewing it, use the existing installer with the generated directory as `--overlay=PATH`
-(PowerShell: `-Overlay PATH`). Follow [the onboarding guide](../../docs/new-workstation.md). Compilation
+(Windows too: `--overlay=PATH`; ~~`-Overlay PATH`~~ was install.ps1's, deleted by #497). Follow [the onboarding guide](../../docs/new-workstation.md). Compilation
 and the installer's file check are separate checks. When an overlay contains `profile.json`, both
 installers run the compiler's drift check before writing any target and refuse stale output. Such an
 overlay therefore requires node (26 or later) at installation too. Hand-authored overlays and `none` retain
