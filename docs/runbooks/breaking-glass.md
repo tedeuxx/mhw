@@ -33,7 +33,11 @@ Windows installs no hook and no admin file.
 1. In the repository checkout, as yourself: `./mhw install-admin --uninstall` (`mhw install-admin` from an
    npm install; it was `global/install-managed.sh` until #496). It prints one line,
    `sudo "<node>" "<checkout>/bin/mhw.js" install-admin --remove`. Run it in your own terminal. It needs the
-   node that runs mhw; when no node runs, delete the documents listed above as root instead.
+   node that runs mhw. When no node runs, delete the documents listed above as root instead, each **only
+   if it is ours** (its first lines or its `personal-multi-harness-workstation-configuration` key carry
+   `managed-by: personal-multi-harness-workstation-configuration`): for example
+   `sudo rm "/Library/Application Support/Kiro/managed-settings.json"` after checking it with
+   `grep managed-by "/Library/Application Support/Kiro/managed-settings.json"`.
 2. This also removes the **admin copy of the deny floor**, which lives in the same documents, plus
    Kiro's `managed-settings.json`, which carries only the floor. The
    user-level copy stays when the user-layer installer installed it; check with `./mhw install-user --check

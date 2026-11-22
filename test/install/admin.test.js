@@ -12,7 +12,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { which } from '../helpers/home.js';
 import { parseToml } from '../../src/lib/toml.js';
-import { validate, USAGE, HOOK_FILES, FILES, renderedNode } from '../../src/commands/install-admin.js';
+import { main as adminMain, validate, USAGE, HOOK_FILES, FILES, renderedNode } from '../../src/commands/install-admin.js';
 import { pasteWrap } from '../../src/commands/install-user.js';
 import { hookNodeText, nodeOwnership } from '../../src/lib/readers/hooks.js';
 import { stageDigest, targetsOf } from './admin-cases.js';
@@ -286,3 +286,59 @@ test('codex execpolicy: the admin token lists forbid workflow run and force-push
   assert.deepEqual([decide(['gh', 'workflow', 'run', 'deploy']), decide(['git', 'push', '--force', 'origin', 'x']), decide(['git', 'push', 'origin', 'feature/x'])],
     ['forbidden', 'forbidden', 'none']);
 });
+
+// QA B1 on PR #548: the refusal predicates of --apply and --remove, in process. Each row was calibrated red on
+// its source mutant: (a) hashing the stage instead of root's copy, or installing from the stage; (b) accepting a
+// hash prefix; (c) reading a Kiro file that holds our key without the marker as ours.
+const APPLY_ROWS = /** @type {Array<{ name: string, run: () => void }>} */ ([
+  {
+    name: 'a stage rewritten after the copy installs the verified copy, not the change (TOCTOU)',
+    run: () => {
+      const r2 = path.join(base, 'root-toctou');
+      const t2 = targetsOf(r2);
+      const want = fs.readFileSync(path.join(stage, 'claude.json'), 'utf8');
+      const real = fs.copyFileSync;
+      let done = false;
+      fs.copyFileSync = (from, to, mode) => {
+        real(from, to, mode);
+        if (!done && String(from) === path.join(stage, 'kiro.json')) {
+          done = true;
+          fs.writeFileSync(path.join(stage, 'claude.json'), want.replace('"deny": [', '"deny": ["Bash(tampered:*)", '));
+        }
+      };
+      let code;
+      try {
+        code = adminMain(['--apply=' + stage, '--sha256=' + sha, '--root=' + r2], envFor(), { out: () => {}, err: () => {} });
+      } finally {
+        fs.copyFileSync = real;
+        fs.writeFileSync(path.join(stage, 'claude.json'), want);
+      }
+      assert.equal(done, true, 'the stage was rewritten after its copy');
+      assert.equal(code, 0);
+      assert.equal(fs.readFileSync(t2.claude, 'utf8'), want);
+    },
+  },
+  {
+    name: 'a hash that is only a prefix of the stage digest is refused, and nothing is installed',
+    run: () => {
+      const r2 = path.join(base, 'root-prefix');
+      assert.equal(adminMain(['--apply=' + stage, '--sha256=' + sha.slice(0, 8), '--root=' + r2], envFor(), { out: () => {}, err: () => {} }), 3);
+      assert.ok(!fs.existsSync(targetsOf(r2).claude));
+    },
+  },
+  {
+    name: 'a Kiro file holding our key without the marker is foreign: --apply refuses it, --remove leaves it',
+    run: () => {
+      const r2 = path.join(base, 'root-kiro-key');
+      const t2 = targetsOf(r2);
+      fs.mkdirSync(path.dirname(t2.kiro), { recursive: true });
+      const theirs = '{"' + NAME + '": "theirs"}\n';
+      fs.writeFileSync(t2.kiro, theirs);
+      const io = { out: () => {}, err: () => {} };
+      assert.equal(adminMain(['--apply=' + stage, '--sha256=' + sha, '--root=' + r2], envFor(), io), 3);
+      assert.equal(adminMain(['--remove', '--root=' + r2], envFor(), io), 0);
+      assert.equal(fs.readFileSync(t2.kiro, 'utf8'), theirs);
+    },
+  },
+]);
+for (const row of APPLY_ROWS) test('--apply and --remove refusals: ' + row.name, { skip: SKIP }, row.run);

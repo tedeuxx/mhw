@@ -411,6 +411,11 @@ const rootArg = (ctx) => (ctx.root ? ' --root="' + ctx.root + '"' : '');
 
 /** @param {Ctx} ctx */
 function renderMode(ctx) {
+  // The sudo line names this node, quoted: a path that would break that quoting is refused, as the hook node is.
+  if (QUOTED.test(process.execPath) || QUOTED.test(MHW_JS)) {
+    warn(ctx, 'REFUSE  the node or package path holds a quote, backslash, dollar sign or backtick');
+    return 2;
+  }
   const st = mktemp(ctx.env, 'pmhwc-managed');
   render(ctx, st);
   if (codexForeign(ctx.t.codex)) {
@@ -430,6 +435,10 @@ function renderMode(ctx) {
 
 /** @param {Ctx} ctx */
 function uninstallMode(ctx) {
+  if (QUOTED.test(process.execPath) || QUOTED.test(MHW_JS)) {
+    warn(ctx, 'REFUSE  the node or package path holds a quote, backslash, dollar sign or backtick');
+    return 2;
+  }
   say(ctx, 'RUN     ' + sudoProgram() + ' --remove' + rootArg(ctx));
   say(ctx, 'THEN    ' + (ctx.env.MHW_CMD || './mhw') + ' install   (restores the user-level hooks), then open fresh sessions');
   return 0;
