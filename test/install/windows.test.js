@@ -324,6 +324,32 @@ test('8b. a backup that cannot be made is a REFUSE that says what to do; the fil
   assert.ok(r.out.some((l) => l.startsWith('NOTE ')), 'the later steps ran');
 });
 
+test('14c. a refused allow backup leaves settings.json as the merge wrote it: the retired allow stays, exit 3', () => {
+  const h = profile('allow-backup-refused');
+  fs.mkdirSync(path.join(h, '.claude'));
+  const sf = path.join(h, '.claude', 'settings.json');
+  fs.writeFileSync(sf, '{ "permissions": { "allow": [ "Bash(find:*)", "Bash(ls:*)" ] } }');
+  fs.mkdirSync(sf + '.pmhwc-allow-backup');
+  const r = run(h, ['--overlay=none']);
+  assert.equal(r.code, 3, r.out.join('\n') + r.err);
+  assert.match(r.err, /^REFUSE {2}.*settings\.json: left untouched, because its backup could not be made/m);
+  assert.deepEqual(settings(h).permissions.allow, ['Bash(find:*)', 'Bash(ls:*)']);
+  assert.ok(!r.out.some((l) => l.startsWith('CHANGED ')));
+});
+
+test('14d. a file whose floor merge was refused stays untouched by the retired-allow step too', () => {
+  const h = profile('refused-then-allow');
+  fs.mkdirSync(path.join(h, '.claude'));
+  const sf = path.join(h, '.claude', 'settings.json');
+  fs.writeFileSync(sf, '{ "permissions": { "deny": "Bash(rm -rf:*)", "allow": [ "Bash(find:*)" ] } }');
+  const before = sha(sf);
+  const r = run(h, ['--overlay=none']);
+  assert.equal(r.code, 3);
+  assert.match(r.err, /^REFUSE {2}.*settings\.json: permissions\.allow Bash\(find:\*\) present -> absent left in place, because this file was refused above$/m);
+  assert.equal(sha(sf), before);
+  assert.ok(!fs.existsSync(sf + '.pmhwc-allow-backup'));
+});
+
 test('14b. when every allow entry is retired, the allow key goes, and the rest of permissions stays', () => {
   const h = profile('allow-all-retired');
   fs.mkdirSync(path.join(h, '.claude'));

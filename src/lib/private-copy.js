@@ -48,7 +48,7 @@ function ownerOnlyAcl(file, env) {
     if (rm.code !== 0) throw new Error('icacls /remove exited ' + rm.code);
   }
   const left = dacl(icacls, file);
-  const mine = (/** @type {string} */ s) => isSid(s, sid);
+  const mine = (/** @type {string} */ s) => isSid(s, sid, me, env.COMPUTERNAME || '');
   const own = left.length === 1 && left[0].type === 'A' && !left[0].flags.includes('ID') && mine(left[0].sid);
   if (!own) {
     // The entries, as SDDL shapes, with the user's SID as "you" and any other full SID as "another".
@@ -58,15 +58,19 @@ function ownerOnlyAcl(file, env) {
 }
 
 /**
- * Is an SDDL trustee the user? Its full SID, or the alias SDDL writes for a local account with a well-known
- * RID in its own domain: LA (the built-in Administrator, RID 500) and LG (Guest, 501).
- * @param {string} trustee @param {string} sid
+ * Is an SDDL trustee the user? Its full SID, or one of the aliases SDDL writes for this machine's own
+ * accounts with a well-known RID: LA (its Administrator, RID 500) and LG (its Guest, 501). An alias counts
+ * only when the user is an account of this machine: the domain whoami prints before the backslash is the
+ * computer's name (COMPUTERNAME). A domain account with RID 500 or 501 is not this machine's LA or LG, so
+ * an LA or LG entry is never counted as theirs.
+ * @param {string} trustee @param {string} sid @param {string} name whoami's DOMAIN\user, lower case @param {string} computer
  */
-function isSid(trustee, sid) {
+function isSid(trustee, sid, name, computer) {
   const t = trustee.toUpperCase();
   const s = sid.toUpperCase();
   if (t === s) return true;
-  return (t === 'LA' && s.startsWith('S-1-5-21-') && s.endsWith('-500')) || (t === 'LG' && s.startsWith('S-1-5-21-') && s.endsWith('-501'));
+  const local = computer !== '' && name.split('\\')[0] === computer.toLowerCase() && s.startsWith('S-1-5-21-');
+  return local && ((t === 'LA' && s.endsWith('-500')) || (t === 'LG' && s.endsWith('-501')));
 }
 
 /**

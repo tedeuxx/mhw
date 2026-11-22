@@ -24,7 +24,11 @@ const MODES = {
   deny: { who: '"dom\\me","' + ME + '"', names: ['dom\\me'], sddl: 'D:PAI(D;;FA;;;WD)(A;;FA;;;' + ME + ')' },
   'deny-me': { who: '"dom\\me","' + ME + '"', names: ['dom\\me'], sddl: 'D:PAI(D;;FA;;;' + ME + ')' },
   'me-first': { who: '"dom\\me","' + ME + '"', names: ['dom\\me'], sddl: 'D:PAI(A;;FA;;;' + ME + ')(A;;FA;;;BA)' },
-  'alias-la': { who: '"dom\\admin","S-1-5-21-9-500"', names: ['dom\\admin'], sddl: 'D:PAI(A;;FA;;;LA)' },
+  'alias-la': { who: '"host\\admin","S-1-5-21-9-500"', names: ['host\\admin'], sddl: 'D:PAI(A;;FA;;;LA)' },
+  'alias-lg': { who: '"host\\guest","S-1-5-21-9-501"', names: ['host\\guest'], sddl: 'D:PAI(A;;FA;;;LG)' },
+  'la-not-500': { who: '"host\\me","S-1-5-21-9-1000"', names: ['host\\me'], sddl: 'D:PAI(A;;FA;;;LA)' },
+  'lg-not-501': { who: '"host\\me","S-1-5-21-9-1000"', names: ['host\\me'], sddl: 'D:PAI(A;;FA;;;LG)' },
+  'alias-la-domain': { who: '"dom\\admin","S-1-5-21-9-500"', names: ['dom\\admin'], sddl: 'D:PAI(A;;FA;;;LA)' },
   'other-sid': { who: '"dom\\me","' + ME + '"', names: ['dom\\me'], sddl: 'D:PAI(A;;FA;;;S-1-5-21-2000)' },
   'no-name': { who: '"' + ME + '"', names: ['dom\\me'], sddl: 'D:PAI(A;;FA;;;' + ME + ')' },
 };
@@ -58,7 +62,7 @@ function copyUnder(mode) {
   /** @type {string | null} */
   let error = null;
   try {
-    privateCopy(src, dst, { platform: 'win32', env: { SystemRoot: root } });
+    privateCopy(src, dst, { platform: 'win32', env: { SystemRoot: root, COMPUTERNAME: 'HOST' } });
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
   }
@@ -76,10 +80,26 @@ test('the user alone, by SID: the backup is written, and nothing is removed', { 
   assert.deepEqual(r.leftovers, [], 'the /save directory is removed');
 });
 
-test('the built-in Administrator, whom SDDL names LA, is the user (RID 500 of the own domain)', { skip }, () => {
-  const r = copyUnder('alias-la');
-  assert.equal(r.error, null);
-  assert.equal(r.data, '{"x":1}\n');
+test("this machine's Administrator and Guest, whom SDDL names LA and LG, are the user when the user is them", { skip }, () => {
+  for (const mode of /** @type {const} */ (['alias-la', 'alias-lg'])) {
+    const r = copyUnder(mode);
+    assert.equal(r.error, null, mode);
+    assert.equal(r.data, '{"x":1}\n', mode);
+  }
+});
+
+for (const [mode, alias] of /** @type {const} */ ([['la-not-500', 'LA'], ['lg-not-501', 'LG']])) {
+  test('a local user with RID 1000 is not ' + alias + ': refused, and no backup is left (' + mode + ')', { skip }, () => {
+    const r = copyUnder(mode);
+    assert.match(String(r.error), new RegExp('not the current user alone \\(1 entries: A;;' + alias + '\\)'));
+    assert.equal(r.exists, false);
+  });
+}
+
+test("a domain account with RID 500 is not this machine's LA: refused, and no backup is left", { skip }, () => {
+  const r = copyUnder('alias-la-domain');
+  assert.match(String(r.error), /not the current user alone \(1 entries: A;;LA\)/);
+  assert.equal(r.exists, false);
 });
 
 test('a refusal names the entries it saw, as SDDL shapes, without a full SID', { skip }, () => {

@@ -65,7 +65,8 @@ Exit codes: 0 ok · 1 drift, stamp or missing (--check) · 2 usage, invalid floo
  * @typedef {{
  *   env: Env, io: Io, mode: string, method: boolean, overlay: string, repoRoot: string, scriptDir: string,
  *   home: string, codexHome: string, stamp: string, brief: Buffer, briefSha: string, briefFrom: string,
- *   floorLines: string[], floorFrom: string, claudeRules: string[], codexWords: string[], status: number
+ *   floorLines: string[], floorFrom: string, claudeRules: string[], codexWords: string[], status: number,
+ *   refused: Set<string>
  * }} Ctx
  */
 
@@ -240,7 +241,7 @@ export function prepare(argv, env, io, repoRoot = ROOT) {
     env, io, mode: a.mode, method: a.method, overlay, repoRoot, scriptDir, home,
     codexHome: env.CODEX_HOME || path.join(home, '.codex'), stamp, brief,
     briefSha: crypto.createHash('sha256').update(brief).digest('hex'), briefFrom, floorLines, floorFrom,
-    claudeRules: floor.claude, codexWords: floor.codex, status: 0,
+    claudeRules: floor.claude, codexWords: floor.codex, status: 0, refused: new Set(),
   };
 }
 
@@ -355,6 +356,7 @@ function backup(ctx, src, dst) {
       + (e instanceof Error ? e.message : String(e)) + '). Check who can read ' + path.dirname(src)
       + ' (icacls "' + path.dirname(src) + '"), then run mhw install again');
     raise(ctx, 3);
+    ctx.refused.add(src);
     return false;
   }
 }
@@ -382,6 +384,7 @@ export function mergeDenyFloor(ctx, settings) {
     if (read === null) {
       warn(ctx, 'REFUSE  ' + settings + ': not a readable JSON object; left untouched');
       raise(ctx, 3);
+      ctx.refused.add(settings);
       return;
     }
     obj = read;
@@ -389,6 +392,7 @@ export function mergeDenyFloor(ctx, settings) {
   const shape = () => {
     warn(ctx, 'REFUSE  ' + settings + ': its permissions section has an unexpected shape; left untouched');
     raise(ctx, 3);
+    ctx.refused.add(settings);
   };
   const hasPerms = Object.hasOwn(obj, 'permissions');
   const perms = obj.permissions;
@@ -464,6 +468,13 @@ export function removeRetiredAllow(ctx, settings) {
   } else if (ctx.mode === 'dry-run') {
     say(ctx, 'WOULD CHANGE ' + settings + ': permissions.allow ' + what + ' (backup ' + backupFile + ')');
   } else {
+    // A file the deny-floor merge refused stays untouched, as its REFUSE line says (PR #547 QA; install.ps1
+    // removed the allows from it anyway when only its deny list had the wrong shape).
+    if (ctx.refused.has(settings)) {
+      warn(ctx, 'REFUSE  ' + settings + ': permissions.allow ' + what + ' left in place, because this file was refused above');
+      raise(ctx, 3);
+      return;
+    }
     const keep = allow.filter((x) => !isRetired(x));
     if (keep.length === 0) delete perms.allow;
     else setLast(perms, 'allow', keep);
