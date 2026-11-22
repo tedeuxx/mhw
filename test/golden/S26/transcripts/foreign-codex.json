@@ -1,0 +1,65 @@
+[
+  {
+    "run": "render beside a clean root",
+    "code": 0,
+    "stdout": "STAGED  <T>/tmp/pmhwc-managed.<X> (validated; nothing installed)\nRUN     sudo /bin/sh \"<T>/tree/global/install-managed.sh\" --apply=\"<T>/tmp/pmhwc-managed.<X>\" --sha256=<SHA> --root=\"<T>/clean\"\nTHEN    ./mhw install   (detects the admin layer and removes the user-level duplicates), then open fresh sessions\n",
+    "stderr": "",
+    "tree": []
+  },
+  {
+    "run": "render beside a foreign requirements file",
+    "code": 3,
+    "stdout": "",
+    "stderr": "REFUSE  <CODEX_DIR>/requirements.toml exists and is NOT managed by this project; nothing to apply\n",
+    "tree": [
+      {
+        "path": "<CODEX_DIR>/requirements.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "# owned by someone else\n"
+      }
+    ]
+  },
+  {
+    "run": "--apply=STAGE --sha256=SHA R",
+    "code": 3,
+    "stdout": "",
+    "stderr": "REFUSE  <CODEX_DIR>/requirements.toml exists and is NOT managed by this project\n",
+    "tree": [
+      {
+        "path": "<CODEX_DIR>/requirements.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "# owned by someone else\n"
+      }
+    ]
+  },
+  {
+    "run": "--check R",
+    "code": 1,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nMISSING <BASE>/bin/clipboard.conf\nMISSING <BASE>/bin/hook/package.json\nMISSING <BASE>/bin/hook/src/commands/hook-entry.js\nMISSING <BASE>/bin/hook/src/commands/hook-prompt.js\nMISSING <BASE>/bin/hook/src/lib/clean.js\nMISSING <BASE>/bin/hook/src/lib/clean-unicode.js\nMISSING <CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json\nDRIFT   <CODEX_DIR>/requirements.toml (none)\nMISSING <KIRO_FILE>\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": "<CODEX_DIR>/requirements.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "# owned by someone else\n"
+      }
+    ]
+  },
+  {
+    "run": "--remove R",
+    "code": 0,
+    "stdout": "REMOVED the admin-layer hooks; run install.sh as yourself to restore the user-level ones\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": "<CODEX_DIR>/requirements.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "# owned by someone else\n"
+      }
+    ]
+  }
+]

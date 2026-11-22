@@ -62,7 +62,12 @@ test('no live document runs an installer script that is not in the tree', () => 
     });
   }
   assert.deepEqual(dead, []);
-  assert.ok(seen > 0, 'the detector read no run at all: the scope or the pattern is dead');
+  // ~~assert.ok(seen > 0, ...)~~ (#497): since S26 and S27 deleted the last installer scripts, no live
+  // document runs one, so zero runs is the expected state. The pattern is held by the calibration test above;
+  // here the scope is: the README and the runbooks must be among the files read.
+  const scope = files();
+  assert.ok(scope.includes('README.md') && scope.some((f) => f.startsWith('docs/runbooks/')), 'the scope is dead');
+  console.log('# installer runs read: ' + seen);
   for (const [f, why] of EXEMPT) assert.ok(fs.existsSync(path.join(ROOT, f)) && why.length > 40, f);
 });
 

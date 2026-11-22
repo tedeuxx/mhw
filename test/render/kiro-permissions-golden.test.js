@@ -267,7 +267,9 @@ function differences(name, original, head) {
     if (JSON.stringify(o.args) !== JSON.stringify(h.args)) diffs.push(where + ': args differ');
     if (o.code !== h.code) diffs.push(where + ': exit ' + o.code + ' -> ' + h.code);
     for (const s of /** @type {const} */ (['stdout', 'stderr'])) {
-      if (o[s] !== h[s]) diffs.push(where + ': ' + s + ' differs\n--- original\n' + o[s] + '\n--- head\n' + h[s]);
+      // The golden was recorded normalised; an expected difference added later (#496) is applied to it here too.
+      const was = intended(o[s]);
+      if (was !== h[s]) diffs.push(where + ': ' + s + ' differs\n--- original\n' + was + '\n--- head\n' + h[s]);
     }
     /** @param {string[]} t */
     const cmp = (t) => (POSIX ? t : t.map((l) => l.replace(/^(\S+ (?:file|dir)) \S+/, '$1 -')));

@@ -144,8 +144,8 @@ controls without inheriting the reference owner's overlay.
 
 **With npm, from GitHub by tag** ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md),
 [runbook](docs/runbooks/npm-install.md)). Nothing is published to the npm registry. You need Node.js 18
-or later and git; on macOS and Linux also Python 3.9+, and `jq` for the admin layer only (`install-managed.sh`,
-until [#496](https://github.com/tedeuxx/mhw/issues/496); the user layer needs none since #491). The package and its command are `mhw`
+or later and git; on macOS and Linux also Python 3.9+ (still listed as a prerequisite until S32; since
+[#496](https://github.com/tedeuxx/mhw/issues/496) no installer runs it, and none runs `jq`). The package and its command are `mhw`
 (multi-harness managed workstation):
 
 ```sh
@@ -183,8 +183,8 @@ The first installable tag is the first release that carries `package.json`; olde
 `mhw` takes the same subcommands as `./mhw` below. On Windows `install`, `check` and `status` run `mhw install-windows`, in Node (~~`install.ps1`~~ until [#497](https://github.com/tedeuxx/mhw/issues/497)).
 
 **Or from a git clone**, the alternative. macOS and Linux, from the repository root (Node.js 26 or
-later and Python 3.9+ required, and `jq` for the admin layer only, until #496; `./mhw` is a Node file
-since #495, the same command as the npm `mhw`, and Python is still needed by `install-managed.sh`). The
+later and Python 3.9+ listed as a prerequisite until S32; `./mhw` is a Node file since #495, the same
+command as the npm `mhw`, and since #496 neither installer runs Python or `jq`). The
 same conversation as above, from the checkout
 ([runbook](docs/runbooks/deny-floor-admin-layer.md)):
 
@@ -209,13 +209,17 @@ stays beside the file and is overwritten by the next install or uninstall.
 
 `--overlay=DIR|none` selects a profile other than the repository's `overlay/`. `mhw install-user` (the
 user layer, `src/commands/install-user.js`; it was `global/install.sh` until
-[#503](https://github.com/tedeuxx/mhw/issues/503)) and `global/install-managed.sh` stay as the internals
-([#67](https://github.com/tedeuxx/mhw/issues/67)). `mhw install-user` takes `install.sh`'s flags and
-exit codes, and runs on the node that runs mhw.
+[#503](https://github.com/tedeuxx/mhw/issues/503)) and `mhw install-admin` (the admin layer,
+`src/commands/install-admin.js`; it was `global/install-managed.sh` until
+[#496](https://github.com/tedeuxx/mhw/issues/496)) stay as the internals
+([#67](https://github.com/tedeuxx/mhw/issues/67)). Each takes its script's flags and exit codes, and runs on
+the node that runs mhw. The admin layer's prompt hook names that node by absolute path; on Homebrew or nvm it
+is owner-writable, which the owner accepted until S32 (#536): `mhw install-admin` names its ownership, and
+`mhw status` flags an owner-writable one.
 The `sudo` route to turn a hook off is in the [breaking-glass runbook](docs/runbooks/breaking-glass.md).
 
 **What `check` reports.** `./mhw check` runs `mhw install-user --check` (with the hooks mode it
-detects), `install-managed.sh --check` whenever any admin layer of this repository is on disk (stamped,
+detects), `mhw install-admin --check` whenever any admin layer of this repository is on disk (stamped,
 or installed by an earlier release without the #66 stamp), and the prerequisites section. When the
 admin layer differs, `check`, `install` and `status` name each `STALE` and `DRIFT` target, each removed
 control still installed (restart guard, picker guard, session intake, timed breaking-glass) and the

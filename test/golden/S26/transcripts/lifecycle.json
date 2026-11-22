@@ -1,0 +1,865 @@
+[
+  {
+    "run": "R",
+    "code": 0,
+    "stdout": "STAGED  <T>/tmp/pmhwc-managed.<X> (validated; nothing installed)\nRUN     sudo /bin/sh \"<T>/tree/global/install-managed.sh\" --apply=\"<T>/tmp/pmhwc-managed.<X>\" --sha256=<SHA> --root=\"<T>/root\"\nTHEN    ./mhw install   (detects the admin layer and removes the user-level duplicates), then open fresh sessions\n",
+    "stderr": "",
+    "tree": []
+  },
+  {
+    "run": "--check R",
+    "code": 1,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nMISSING <BASE>/bin/clipboard.conf\nMISSING <BASE>/bin/hook/package.json\nMISSING <BASE>/bin/hook/src/commands/hook-entry.js\nMISSING <BASE>/bin/hook/src/commands/hook-prompt.js\nMISSING <BASE>/bin/hook/src/lib/clean.js\nMISSING <BASE>/bin/hook/src/lib/clean-unicode.js\nMISSING <CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json\nMISSING <CODEX_DIR>/requirements.toml\nMISSING <KIRO_FILE>\n",
+    "stderr": "",
+    "tree": []
+  },
+  {
+    "run": "apply a wrong hash",
+    "code": 3,
+    "stdout": "",
+    "stderr": "REFUSE  the stage does not match its hash; nothing installed\n",
+    "tree": []
+  },
+  {
+    "run": "--apply=STAGE --sha256=SHA R",
+    "code": 0,
+    "stdout": "INSTALLED <BASE>/bin, <CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json, <CODEX_DIR>/requirements.toml, <KIRO_FILE>\nTHEN    as yourself: mhw install (./mhw install in a checkout); then open fresh Claude Code, Codex and Kiro sessions\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": "<BASE>/bin",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:c21671ca8041060a9f5d450b019b01b0065200dcf764dc4eb81c3336b2ba0273"
+      },
+      {
+        "path": "<BASE>/bin/hook",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/package.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"type\": \"module\", \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\"}\n"
+      },
+      {
+        "path": "<BASE>/bin/hook/src",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-entry.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-entry.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-entry.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-prompt.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-prompt.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-prompt.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean-unicode.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean-unicode.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean-unicode.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean.js>"
+      },
+      {
+        "path": "<CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:e4b3cc11a1dd956a310ce61ce00dc096b0c59841341c72dceb5bfbb1418bb34f"
+      },
+      {
+        "path": "<CODEX_DIR>/requirements.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:367f0ee2a48b40da824495941daa89449158bf9054b6084ebbd1e580c4c4cfe6"
+      },
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh via src/render/kiro-permissions.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"rules\": [\n    {\n      \"capability\": \"shell\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"claude --dangerously-skip-permissions *\",\n        \"claude --allow-dangerously-skip-permissions *\",\n        \"claude --permission-mode bypassPermissions *\",\n        \"codex --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex exec --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex --dangerously-bypass-hook-trust *\",\n        \"codex exec --dangerously-bypass-hook-trust *\",\n        \"codex --sandbox danger-full-access *\",\n        \"codex -s danger-full-access *\",\n        \"codex exec --sandbox danger-full-access *\",\n        \"codex exec -s danger-full-access *\",\n        \"sudo *\",\n        \"gh auth token *\",\n        \"security find-generic-password *\",\n        \"security find-internet-password *\",\n        \"security dump-keychain *\",\n        \"aws configure export-credentials *\",\n        \"aws configure get aws_secret_access_key *\",\n        \"aws secretsmanager get-secret-value *\",\n        \"aws ssm get-parameter --with-decryption *\",\n        \"aws ssm get-parameters --with-decryption *\",\n        \"aws ssm get-parameters-by-path --with-decryption *\",\n        \"aws ssm get-parameter-history --with-decryption *\",\n        \"aws sso login *\",\n        \"gh secret set *\",\n        \"gh secret delete *\",\n        \"gh secret remove *\",\n        \"aws secretsmanager create-secret *\",\n        \"aws secretsmanager put-secret-value *\",\n        \"aws secretsmanager update-secret *\",\n        \"aws secretsmanager delete-secret *\",\n        \"aws secretsmanager restore-secret *\",\n        \"aws ssm put-parameter *\",\n        \"aws iam create-access-key *\",\n        \"security add-generic-password *\",\n        \"security add-internet-password *\",\n        \"security delete-generic-password *\",\n        \"security delete-internet-password *\",\n        \"git push --force *\",\n        \"git push --force-with-lease *\",\n        \"git push --force-if-includes *\",\n        \"git push -f *\",\n        \"git push --mirror *\",\n        \"git reset --hard *\",\n        \"git filter-branch *\",\n        \"git filter-repo *\",\n        \"git reflog expire *\",\n        \"git reflog delete *\",\n        \"git gc --prune=now *\",\n        \"git commit --no-verify *\",\n        \"git commit -n *\",\n        \"git commit -a --no-verify *\",\n        \"git commit -a -n *\",\n        \"git commit --all --no-verify *\",\n        \"git commit --amend --no-verify *\",\n        \"git commit --amend -n *\",\n        \"git push --no-verify *\",\n        \"git push origin --no-verify *\",\n        \"git push -u --no-verify *\",\n        \"git push --set-upstream --no-verify *\",\n        \"gh pr merge --squash *\",\n        \"gh pr merge -s *\",\n        \"rm -rf *\",\n        \"rm -fr *\",\n        \"rm -Rf *\",\n        \"rm -fR *\",\n        \"rm -r -f *\",\n        \"rm -f -r *\",\n        \"rm -R -f *\",\n        \"rm -f -R *\",\n        \"rm --recursive --force *\",\n        \"rm --force --recursive *\",\n        \"git clean -f *\",\n        \"git clean -fd *\",\n        \"git clean -df *\",\n        \"git clean -fx *\",\n        \"git clean -xf *\",\n        \"git clean -fdx *\",\n        \"git clean -fxd *\",\n        \"git clean -dfx *\",\n        \"git clean -dxf *\",\n        \"git clean -xdf *\",\n        \"git clean -xfd *\",\n        \"git clean --force *\",\n        \"git clean -d -f *\",\n        \"git clean -x -f *\",\n        \"git worktree remove --force *\",\n        \"git worktree remove -f *\",\n        \"terraform init *\",\n        \"terraform plan *\",\n        \"terraform apply *\",\n        \"terraform destroy *\",\n        \"terraform console *\",\n        \"terraform env *\",\n        \"terraform force-unlock *\",\n        \"terraform get *\",\n        \"terraform graph *\",\n        \"terraform import *\",\n        \"terraform login *\",\n        \"terraform logout *\",\n        \"terraform metadata *\",\n        \"terraform modules *\",\n        \"terraform output *\",\n        \"terraform providers *\",\n        \"terraform refresh *\",\n        \"terraform show *\",\n        \"terraform state *\",\n        \"terraform taint *\",\n        \"terraform test *\",\n        \"terraform untaint *\",\n        \"terraform workspace *\",\n        \"tofu init *\",\n        \"tofu plan *\",\n        \"tofu apply *\",\n        \"tofu destroy *\",\n        \"tofu console *\",\n        \"tofu env *\",\n        \"tofu force-unlock *\",\n        \"tofu get *\",\n        \"tofu graph *\",\n        \"tofu import *\",\n        \"tofu login *\",\n        \"tofu logout *\",\n        \"tofu metadata *\",\n        \"tofu modules *\",\n        \"tofu output *\",\n        \"tofu providers *\",\n        \"tofu refresh *\",\n        \"tofu show *\",\n        \"tofu state *\",\n        \"tofu taint *\",\n        \"tofu test *\",\n        \"tofu untaint *\",\n        \"tofu workspace *\",\n        \"terraform -chdir=*\",\n        \"tofu -chdir=*\",\n        \"gh workflow run *\",\n        \"gh api -X POST *\",\n        \"gh api -X PUT *\",\n        \"gh api -X PATCH *\",\n        \"gh api -X DELETE *\",\n        \"gh api --method POST *\",\n        \"gh api --method PUT *\",\n        \"gh api --method PATCH *\",\n        \"gh api --method DELETE *\",\n        \"gh repo delete *\",\n        \"gh repo archive *\",\n        \"gh repo rename *\",\n        \"gh repo edit --visibility *\",\n        \"gh release create *\",\n        \"gh release delete *\",\n        \"gh release edit *\",\n        \"gh release upload *\",\n        \"gh gist create *\",\n        \"npm publish *\",\n        \"npm unpublish *\",\n        \"pnpm publish *\",\n        \"yarn publish *\",\n        \"yarn npm publish *\",\n        \"cargo publish *\",\n        \"twine upload *\",\n        \"gem push *\",\n        \"docker push *\"\n      ]\n    },\n    {\n      \"capability\": \"fs_read\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    },\n    {\n      \"capability\": \"fs_write\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    }\n  ]\n}\n"
+      }
+    ]
+  },
+  {
+    "run": "--check R",
+    "code": 0,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/clipboard.conf (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/package.json (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/commands/hook-entry.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/commands/hook-prompt.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/lib/clean.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/lib/clean-unicode.js (release: <RELEASE>; commit: <COMMIT>\nOK      <CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json (release: <RELEASE>; commit: <COMMIT>\nOK      <CODEX_DIR>/requirements.toml (release: <RELEASE>; commit: <COMMIT>\nOK      <KIRO_FILE> (release: <RELEASE>; commit: <COMMIT>\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": "<BASE>/bin",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:c21671ca8041060a9f5d450b019b01b0065200dcf764dc4eb81c3336b2ba0273"
+      },
+      {
+        "path": "<BASE>/bin/hook",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/package.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"type\": \"module\", \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\"}\n"
+      },
+      {
+        "path": "<BASE>/bin/hook/src",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-entry.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-entry.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-entry.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-prompt.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-prompt.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-prompt.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean-unicode.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean-unicode.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean-unicode.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean.js>"
+      },
+      {
+        "path": "<CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:e4b3cc11a1dd956a310ce61ce00dc096b0c59841341c72dceb5bfbb1418bb34f"
+      },
+      {
+        "path": "<CODEX_DIR>/requirements.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:367f0ee2a48b40da824495941daa89449158bf9054b6084ebbd1e580c4c4cfe6"
+      },
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh via src/render/kiro-permissions.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"rules\": [\n    {\n      \"capability\": \"shell\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"claude --dangerously-skip-permissions *\",\n        \"claude --allow-dangerously-skip-permissions *\",\n        \"claude --permission-mode bypassPermissions *\",\n        \"codex --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex exec --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex --dangerously-bypass-hook-trust *\",\n        \"codex exec --dangerously-bypass-hook-trust *\",\n        \"codex --sandbox danger-full-access *\",\n        \"codex -s danger-full-access *\",\n        \"codex exec --sandbox danger-full-access *\",\n        \"codex exec -s danger-full-access *\",\n        \"sudo *\",\n        \"gh auth token *\",\n        \"security find-generic-password *\",\n        \"security find-internet-password *\",\n        \"security dump-keychain *\",\n        \"aws configure export-credentials *\",\n        \"aws configure get aws_secret_access_key *\",\n        \"aws secretsmanager get-secret-value *\",\n        \"aws ssm get-parameter --with-decryption *\",\n        \"aws ssm get-parameters --with-decryption *\",\n        \"aws ssm get-parameters-by-path --with-decryption *\",\n        \"aws ssm get-parameter-history --with-decryption *\",\n        \"aws sso login *\",\n        \"gh secret set *\",\n        \"gh secret delete *\",\n        \"gh secret remove *\",\n        \"aws secretsmanager create-secret *\",\n        \"aws secretsmanager put-secret-value *\",\n        \"aws secretsmanager update-secret *\",\n        \"aws secretsmanager delete-secret *\",\n        \"aws secretsmanager restore-secret *\",\n        \"aws ssm put-parameter *\",\n        \"aws iam create-access-key *\",\n        \"security add-generic-password *\",\n        \"security add-internet-password *\",\n        \"security delete-generic-password *\",\n        \"security delete-internet-password *\",\n        \"git push --force *\",\n        \"git push --force-with-lease *\",\n        \"git push --force-if-includes *\",\n        \"git push -f *\",\n        \"git push --mirror *\",\n        \"git reset --hard *\",\n        \"git filter-branch *\",\n        \"git filter-repo *\",\n        \"git reflog expire *\",\n        \"git reflog delete *\",\n        \"git gc --prune=now *\",\n        \"git commit --no-verify *\",\n        \"git commit -n *\",\n        \"git commit -a --no-verify *\",\n        \"git commit -a -n *\",\n        \"git commit --all --no-verify *\",\n        \"git commit --amend --no-verify *\",\n        \"git commit --amend -n *\",\n        \"git push --no-verify *\",\n        \"git push origin --no-verify *\",\n        \"git push -u --no-verify *\",\n        \"git push --set-upstream --no-verify *\",\n        \"gh pr merge --squash *\",\n        \"gh pr merge -s *\",\n        \"rm -rf *\",\n        \"rm -fr *\",\n        \"rm -Rf *\",\n        \"rm -fR *\",\n        \"rm -r -f *\",\n        \"rm -f -r *\",\n        \"rm -R -f *\",\n        \"rm -f -R *\",\n        \"rm --recursive --force *\",\n        \"rm --force --recursive *\",\n        \"git clean -f *\",\n        \"git clean -fd *\",\n        \"git clean -df *\",\n        \"git clean -fx *\",\n        \"git clean -xf *\",\n        \"git clean -fdx *\",\n        \"git clean -fxd *\",\n        \"git clean -dfx *\",\n        \"git clean -dxf *\",\n        \"git clean -xdf *\",\n        \"git clean -xfd *\",\n        \"git clean --force *\",\n        \"git clean -d -f *\",\n        \"git clean -x -f *\",\n        \"git worktree remove --force *\",\n        \"git worktree remove -f *\",\n        \"terraform init *\",\n        \"terraform plan *\",\n        \"terraform apply *\",\n        \"terraform destroy *\",\n        \"terraform console *\",\n        \"terraform env *\",\n        \"terraform force-unlock *\",\n        \"terraform get *\",\n        \"terraform graph *\",\n        \"terraform import *\",\n        \"terraform login *\",\n        \"terraform logout *\",\n        \"terraform metadata *\",\n        \"terraform modules *\",\n        \"terraform output *\",\n        \"terraform providers *\",\n        \"terraform refresh *\",\n        \"terraform show *\",\n        \"terraform state *\",\n        \"terraform taint *\",\n        \"terraform test *\",\n        \"terraform untaint *\",\n        \"terraform workspace *\",\n        \"tofu init *\",\n        \"tofu plan *\",\n        \"tofu apply *\",\n        \"tofu destroy *\",\n        \"tofu console *\",\n        \"tofu env *\",\n        \"tofu force-unlock *\",\n        \"tofu get *\",\n        \"tofu graph *\",\n        \"tofu import *\",\n        \"tofu login *\",\n        \"tofu logout *\",\n        \"tofu metadata *\",\n        \"tofu modules *\",\n        \"tofu output *\",\n        \"tofu providers *\",\n        \"tofu refresh *\",\n        \"tofu show *\",\n        \"tofu state *\",\n        \"tofu taint *\",\n        \"tofu test *\",\n        \"tofu untaint *\",\n        \"tofu workspace *\",\n        \"terraform -chdir=*\",\n        \"tofu -chdir=*\",\n        \"gh workflow run *\",\n        \"gh api -X POST *\",\n        \"gh api -X PUT *\",\n        \"gh api -X PATCH *\",\n        \"gh api -X DELETE *\",\n        \"gh api --method POST *\",\n        \"gh api --method PUT *\",\n        \"gh api --method PATCH *\",\n        \"gh api --method DELETE *\",\n        \"gh repo delete *\",\n        \"gh repo archive *\",\n        \"gh repo rename *\",\n        \"gh repo edit --visibility *\",\n        \"gh release create *\",\n        \"gh release delete *\",\n        \"gh release edit *\",\n        \"gh release upload *\",\n        \"gh gist create *\",\n        \"npm publish *\",\n        \"npm unpublish *\",\n        \"pnpm publish *\",\n        \"yarn publish *\",\n        \"yarn npm publish *\",\n        \"cargo publish *\",\n        \"twine upload *\",\n        \"gem push *\",\n        \"docker push *\"\n      ]\n    },\n    {\n      \"capability\": \"fs_read\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    },\n    {\n      \"capability\": \"fs_write\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    }\n  ]\n}\n"
+      }
+    ]
+  },
+  {
+    "run": "check three restamped documents",
+    "code": 1,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/clipboard.conf (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/package.json (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/commands/hook-entry.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/commands/hook-prompt.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/lib/clean.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/lib/clean-unicode.js (release: <RELEASE>; commit: <COMMIT>\nSTAMP   <CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json: content matches, but it carries (release: <RELEASE>; commit: <COMMIT> and the source is (release: <RELEASE>; commit: <COMMIT>\nSTAMP   <CODEX_DIR>/requirements.toml: content matches, but it carries (release: <RELEASE>; commit: <COMMIT> and the source is (release: <RELEASE>; commit: <COMMIT>\nSTAMP   <KIRO_FILE>: content matches, but it carries (release: <RELEASE>; commit: <COMMIT> and the source is (release: <RELEASE>; commit: <COMMIT>\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": "<BASE>/bin",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:c21671ca8041060a9f5d450b019b01b0065200dcf764dc4eb81c3336b2ba0273"
+      },
+      {
+        "path": "<BASE>/bin/hook",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/package.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"type\": \"module\", \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\"}\n"
+      },
+      {
+        "path": "<BASE>/bin/hook/src",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-entry.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-entry.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-entry.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-prompt.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-prompt.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-prompt.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean-unicode.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean-unicode.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean-unicode.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean.js>"
+      },
+      {
+        "path": "<CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:e4b3cc11a1dd956a310ce61ce00dc096b0c59841341c72dceb5bfbb1418bb34f"
+      },
+      {
+        "path": "<CODEX_DIR>/requirements.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:367f0ee2a48b40da824495941daa89449158bf9054b6084ebbd1e580c4c4cfe6"
+      },
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh via src/render/kiro-permissions.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"rules\": [\n    {\n      \"capability\": \"shell\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"claude --dangerously-skip-permissions *\",\n        \"claude --allow-dangerously-skip-permissions *\",\n        \"claude --permission-mode bypassPermissions *\",\n        \"codex --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex exec --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex --dangerously-bypass-hook-trust *\",\n        \"codex exec --dangerously-bypass-hook-trust *\",\n        \"codex --sandbox danger-full-access *\",\n        \"codex -s danger-full-access *\",\n        \"codex exec --sandbox danger-full-access *\",\n        \"codex exec -s danger-full-access *\",\n        \"sudo *\",\n        \"gh auth token *\",\n        \"security find-generic-password *\",\n        \"security find-internet-password *\",\n        \"security dump-keychain *\",\n        \"aws configure export-credentials *\",\n        \"aws configure get aws_secret_access_key *\",\n        \"aws secretsmanager get-secret-value *\",\n        \"aws ssm get-parameter --with-decryption *\",\n        \"aws ssm get-parameters --with-decryption *\",\n        \"aws ssm get-parameters-by-path --with-decryption *\",\n        \"aws ssm get-parameter-history --with-decryption *\",\n        \"aws sso login *\",\n        \"gh secret set *\",\n        \"gh secret delete *\",\n        \"gh secret remove *\",\n        \"aws secretsmanager create-secret *\",\n        \"aws secretsmanager put-secret-value *\",\n        \"aws secretsmanager update-secret *\",\n        \"aws secretsmanager delete-secret *\",\n        \"aws secretsmanager restore-secret *\",\n        \"aws ssm put-parameter *\",\n        \"aws iam create-access-key *\",\n        \"security add-generic-password *\",\n        \"security add-internet-password *\",\n        \"security delete-generic-password *\",\n        \"security delete-internet-password *\",\n        \"git push --force *\",\n        \"git push --force-with-lease *\",\n        \"git push --force-if-includes *\",\n        \"git push -f *\",\n        \"git push --mirror *\",\n        \"git reset --hard *\",\n        \"git filter-branch *\",\n        \"git filter-repo *\",\n        \"git reflog expire *\",\n        \"git reflog delete *\",\n        \"git gc --prune=now *\",\n        \"git commit --no-verify *\",\n        \"git commit -n *\",\n        \"git commit -a --no-verify *\",\n        \"git commit -a -n *\",\n        \"git commit --all --no-verify *\",\n        \"git commit --amend --no-verify *\",\n        \"git commit --amend -n *\",\n        \"git push --no-verify *\",\n        \"git push origin --no-verify *\",\n        \"git push -u --no-verify *\",\n        \"git push --set-upstream --no-verify *\",\n        \"gh pr merge --squash *\",\n        \"gh pr merge -s *\",\n        \"rm -rf *\",\n        \"rm -fr *\",\n        \"rm -Rf *\",\n        \"rm -fR *\",\n        \"rm -r -f *\",\n        \"rm -f -r *\",\n        \"rm -R -f *\",\n        \"rm -f -R *\",\n        \"rm --recursive --force *\",\n        \"rm --force --recursive *\",\n        \"git clean -f *\",\n        \"git clean -fd *\",\n        \"git clean -df *\",\n        \"git clean -fx *\",\n        \"git clean -xf *\",\n        \"git clean -fdx *\",\n        \"git clean -fxd *\",\n        \"git clean -dfx *\",\n        \"git clean -dxf *\",\n        \"git clean -xdf *\",\n        \"git clean -xfd *\",\n        \"git clean --force *\",\n        \"git clean -d -f *\",\n        \"git clean -x -f *\",\n        \"git worktree remove --force *\",\n        \"git worktree remove -f *\",\n        \"terraform init *\",\n        \"terraform plan *\",\n        \"terraform apply *\",\n        \"terraform destroy *\",\n        \"terraform console *\",\n        \"terraform env *\",\n        \"terraform force-unlock *\",\n        \"terraform get *\",\n        \"terraform graph *\",\n        \"terraform import *\",\n        \"terraform login *\",\n        \"terraform logout *\",\n        \"terraform metadata *\",\n        \"terraform modules *\",\n        \"terraform output *\",\n        \"terraform providers *\",\n        \"terraform refresh *\",\n        \"terraform show *\",\n        \"terraform state *\",\n        \"terraform taint *\",\n        \"terraform test *\",\n        \"terraform untaint *\",\n        \"terraform workspace *\",\n        \"tofu init *\",\n        \"tofu plan *\",\n        \"tofu apply *\",\n        \"tofu destroy *\",\n        \"tofu console *\",\n        \"tofu env *\",\n        \"tofu force-unlock *\",\n        \"tofu get *\",\n        \"tofu graph *\",\n        \"tofu import *\",\n        \"tofu login *\",\n        \"tofu logout *\",\n        \"tofu metadata *\",\n        \"tofu modules *\",\n        \"tofu output *\",\n        \"tofu providers *\",\n        \"tofu refresh *\",\n        \"tofu show *\",\n        \"tofu state *\",\n        \"tofu taint *\",\n        \"tofu test *\",\n        \"tofu untaint *\",\n        \"tofu workspace *\",\n        \"terraform -chdir=*\",\n        \"tofu -chdir=*\",\n        \"gh workflow run *\",\n        \"gh api -X POST *\",\n        \"gh api -X PUT *\",\n        \"gh api -X PATCH *\",\n        \"gh api -X DELETE *\",\n        \"gh api --method POST *\",\n        \"gh api --method PUT *\",\n        \"gh api --method PATCH *\",\n        \"gh api --method DELETE *\",\n        \"gh repo delete *\",\n        \"gh repo archive *\",\n        \"gh repo rename *\",\n        \"gh repo edit --visibility *\",\n        \"gh release create *\",\n        \"gh release delete *\",\n        \"gh release edit *\",\n        \"gh release upload *\",\n        \"gh gist create *\",\n        \"npm publish *\",\n        \"npm unpublish *\",\n        \"pnpm publish *\",\n        \"yarn publish *\",\n        \"yarn npm publish *\",\n        \"cargo publish *\",\n        \"twine upload *\",\n        \"gem push *\",\n        \"docker push *\"\n      ]\n    },\n    {\n      \"capability\": \"fs_read\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    },\n    {\n      \"capability\": \"fs_write\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    }\n  ]\n}\n"
+      }
+    ]
+  },
+  {
+    "run": "apply restores the stamp",
+    "code": 0,
+    "stdout": "INSTALLED <BASE>/bin, <CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json, <CODEX_DIR>/requirements.toml, <KIRO_FILE>\nTHEN    as yourself: mhw install (./mhw install in a checkout); then open fresh Claude Code, Codex and Kiro sessions\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": "<BASE>/bin",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:c21671ca8041060a9f5d450b019b01b0065200dcf764dc4eb81c3336b2ba0273"
+      },
+      {
+        "path": "<BASE>/bin/hook",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/package.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"type\": \"module\", \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\"}\n"
+      },
+      {
+        "path": "<BASE>/bin/hook/src",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-entry.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-entry.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-entry.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-prompt.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-prompt.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-prompt.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean-unicode.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean-unicode.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean-unicode.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean.js>"
+      },
+      {
+        "path": "<CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:e4b3cc11a1dd956a310ce61ce00dc096b0c59841341c72dceb5bfbb1418bb34f"
+      },
+      {
+        "path": "<CODEX_DIR>/requirements.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:367f0ee2a48b40da824495941daa89449158bf9054b6084ebbd1e580c4c4cfe6"
+      },
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh via src/render/kiro-permissions.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"rules\": [\n    {\n      \"capability\": \"shell\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"claude --dangerously-skip-permissions *\",\n        \"claude --allow-dangerously-skip-permissions *\",\n        \"claude --permission-mode bypassPermissions *\",\n        \"codex --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex exec --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex --dangerously-bypass-hook-trust *\",\n        \"codex exec --dangerously-bypass-hook-trust *\",\n        \"codex --sandbox danger-full-access *\",\n        \"codex -s danger-full-access *\",\n        \"codex exec --sandbox danger-full-access *\",\n        \"codex exec -s danger-full-access *\",\n        \"sudo *\",\n        \"gh auth token *\",\n        \"security find-generic-password *\",\n        \"security find-internet-password *\",\n        \"security dump-keychain *\",\n        \"aws configure export-credentials *\",\n        \"aws configure get aws_secret_access_key *\",\n        \"aws secretsmanager get-secret-value *\",\n        \"aws ssm get-parameter --with-decryption *\",\n        \"aws ssm get-parameters --with-decryption *\",\n        \"aws ssm get-parameters-by-path --with-decryption *\",\n        \"aws ssm get-parameter-history --with-decryption *\",\n        \"aws sso login *\",\n        \"gh secret set *\",\n        \"gh secret delete *\",\n        \"gh secret remove *\",\n        \"aws secretsmanager create-secret *\",\n        \"aws secretsmanager put-secret-value *\",\n        \"aws secretsmanager update-secret *\",\n        \"aws secretsmanager delete-secret *\",\n        \"aws secretsmanager restore-secret *\",\n        \"aws ssm put-parameter *\",\n        \"aws iam create-access-key *\",\n        \"security add-generic-password *\",\n        \"security add-internet-password *\",\n        \"security delete-generic-password *\",\n        \"security delete-internet-password *\",\n        \"git push --force *\",\n        \"git push --force-with-lease *\",\n        \"git push --force-if-includes *\",\n        \"git push -f *\",\n        \"git push --mirror *\",\n        \"git reset --hard *\",\n        \"git filter-branch *\",\n        \"git filter-repo *\",\n        \"git reflog expire *\",\n        \"git reflog delete *\",\n        \"git gc --prune=now *\",\n        \"git commit --no-verify *\",\n        \"git commit -n *\",\n        \"git commit -a --no-verify *\",\n        \"git commit -a -n *\",\n        \"git commit --all --no-verify *\",\n        \"git commit --amend --no-verify *\",\n        \"git commit --amend -n *\",\n        \"git push --no-verify *\",\n        \"git push origin --no-verify *\",\n        \"git push -u --no-verify *\",\n        \"git push --set-upstream --no-verify *\",\n        \"gh pr merge --squash *\",\n        \"gh pr merge -s *\",\n        \"rm -rf *\",\n        \"rm -fr *\",\n        \"rm -Rf *\",\n        \"rm -fR *\",\n        \"rm -r -f *\",\n        \"rm -f -r *\",\n        \"rm -R -f *\",\n        \"rm -f -R *\",\n        \"rm --recursive --force *\",\n        \"rm --force --recursive *\",\n        \"git clean -f *\",\n        \"git clean -fd *\",\n        \"git clean -df *\",\n        \"git clean -fx *\",\n        \"git clean -xf *\",\n        \"git clean -fdx *\",\n        \"git clean -fxd *\",\n        \"git clean -dfx *\",\n        \"git clean -dxf *\",\n        \"git clean -xdf *\",\n        \"git clean -xfd *\",\n        \"git clean --force *\",\n        \"git clean -d -f *\",\n        \"git clean -x -f *\",\n        \"git worktree remove --force *\",\n        \"git worktree remove -f *\",\n        \"terraform init *\",\n        \"terraform plan *\",\n        \"terraform apply *\",\n        \"terraform destroy *\",\n        \"terraform console *\",\n        \"terraform env *\",\n        \"terraform force-unlock *\",\n        \"terraform get *\",\n        \"terraform graph *\",\n        \"terraform import *\",\n        \"terraform login *\",\n        \"terraform logout *\",\n        \"terraform metadata *\",\n        \"terraform modules *\",\n        \"terraform output *\",\n        \"terraform providers *\",\n        \"terraform refresh *\",\n        \"terraform show *\",\n        \"terraform state *\",\n        \"terraform taint *\",\n        \"terraform test *\",\n        \"terraform untaint *\",\n        \"terraform workspace *\",\n        \"tofu init *\",\n        \"tofu plan *\",\n        \"tofu apply *\",\n        \"tofu destroy *\",\n        \"tofu console *\",\n        \"tofu env *\",\n        \"tofu force-unlock *\",\n        \"tofu get *\",\n        \"tofu graph *\",\n        \"tofu import *\",\n        \"tofu login *\",\n        \"tofu logout *\",\n        \"tofu metadata *\",\n        \"tofu modules *\",\n        \"tofu output *\",\n        \"tofu providers *\",\n        \"tofu refresh *\",\n        \"tofu show *\",\n        \"tofu state *\",\n        \"tofu taint *\",\n        \"tofu test *\",\n        \"tofu untaint *\",\n        \"tofu workspace *\",\n        \"terraform -chdir=*\",\n        \"tofu -chdir=*\",\n        \"gh workflow run *\",\n        \"gh api -X POST *\",\n        \"gh api -X PUT *\",\n        \"gh api -X PATCH *\",\n        \"gh api -X DELETE *\",\n        \"gh api --method POST *\",\n        \"gh api --method PUT *\",\n        \"gh api --method PATCH *\",\n        \"gh api --method DELETE *\",\n        \"gh repo delete *\",\n        \"gh repo archive *\",\n        \"gh repo rename *\",\n        \"gh repo edit --visibility *\",\n        \"gh release create *\",\n        \"gh release delete *\",\n        \"gh release edit *\",\n        \"gh release upload *\",\n        \"gh gist create *\",\n        \"npm publish *\",\n        \"npm unpublish *\",\n        \"pnpm publish *\",\n        \"yarn publish *\",\n        \"yarn npm publish *\",\n        \"cargo publish *\",\n        \"twine upload *\",\n        \"gem push *\",\n        \"docker push *\"\n      ]\n    },\n    {\n      \"capability\": \"fs_read\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    },\n    {\n      \"capability\": \"fs_write\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    }\n  ]\n}\n"
+      }
+    ]
+  },
+  {
+    "run": "check a drifted conf",
+    "code": 1,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nDRIFT   <BASE>/bin/clipboard.conf (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/package.json (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/commands/hook-entry.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/commands/hook-prompt.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/lib/clean.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/lib/clean-unicode.js (release: <RELEASE>; commit: <COMMIT>\nOK      <CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json (release: <RELEASE>; commit: <COMMIT>\nOK      <CODEX_DIR>/requirements.toml (release: <RELEASE>; commit: <COMMIT>\nOK      <KIRO_FILE> (release: <RELEASE>; commit: <COMMIT>\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": "<BASE>/bin",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:f5ad5bf9ead97af951112e1decf60457ec120dff235dba5f5749b5d6201af69c"
+      },
+      {
+        "path": "<BASE>/bin/hook",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/package.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"type\": \"module\", \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\"}\n"
+      },
+      {
+        "path": "<BASE>/bin/hook/src",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-entry.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-entry.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-entry.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-prompt.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-prompt.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-prompt.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean-unicode.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean-unicode.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean-unicode.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean.js>"
+      },
+      {
+        "path": "<CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:e4b3cc11a1dd956a310ce61ce00dc096b0c59841341c72dceb5bfbb1418bb34f"
+      },
+      {
+        "path": "<CODEX_DIR>/requirements.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:367f0ee2a48b40da824495941daa89449158bf9054b6084ebbd1e580c4c4cfe6"
+      },
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh via src/render/kiro-permissions.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"rules\": [\n    {\n      \"capability\": \"shell\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"claude --dangerously-skip-permissions *\",\n        \"claude --allow-dangerously-skip-permissions *\",\n        \"claude --permission-mode bypassPermissions *\",\n        \"codex --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex exec --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex --dangerously-bypass-hook-trust *\",\n        \"codex exec --dangerously-bypass-hook-trust *\",\n        \"codex --sandbox danger-full-access *\",\n        \"codex -s danger-full-access *\",\n        \"codex exec --sandbox danger-full-access *\",\n        \"codex exec -s danger-full-access *\",\n        \"sudo *\",\n        \"gh auth token *\",\n        \"security find-generic-password *\",\n        \"security find-internet-password *\",\n        \"security dump-keychain *\",\n        \"aws configure export-credentials *\",\n        \"aws configure get aws_secret_access_key *\",\n        \"aws secretsmanager get-secret-value *\",\n        \"aws ssm get-parameter --with-decryption *\",\n        \"aws ssm get-parameters --with-decryption *\",\n        \"aws ssm get-parameters-by-path --with-decryption *\",\n        \"aws ssm get-parameter-history --with-decryption *\",\n        \"aws sso login *\",\n        \"gh secret set *\",\n        \"gh secret delete *\",\n        \"gh secret remove *\",\n        \"aws secretsmanager create-secret *\",\n        \"aws secretsmanager put-secret-value *\",\n        \"aws secretsmanager update-secret *\",\n        \"aws secretsmanager delete-secret *\",\n        \"aws secretsmanager restore-secret *\",\n        \"aws ssm put-parameter *\",\n        \"aws iam create-access-key *\",\n        \"security add-generic-password *\",\n        \"security add-internet-password *\",\n        \"security delete-generic-password *\",\n        \"security delete-internet-password *\",\n        \"git push --force *\",\n        \"git push --force-with-lease *\",\n        \"git push --force-if-includes *\",\n        \"git push -f *\",\n        \"git push --mirror *\",\n        \"git reset --hard *\",\n        \"git filter-branch *\",\n        \"git filter-repo *\",\n        \"git reflog expire *\",\n        \"git reflog delete *\",\n        \"git gc --prune=now *\",\n        \"git commit --no-verify *\",\n        \"git commit -n *\",\n        \"git commit -a --no-verify *\",\n        \"git commit -a -n *\",\n        \"git commit --all --no-verify *\",\n        \"git commit --amend --no-verify *\",\n        \"git commit --amend -n *\",\n        \"git push --no-verify *\",\n        \"git push origin --no-verify *\",\n        \"git push -u --no-verify *\",\n        \"git push --set-upstream --no-verify *\",\n        \"gh pr merge --squash *\",\n        \"gh pr merge -s *\",\n        \"rm -rf *\",\n        \"rm -fr *\",\n        \"rm -Rf *\",\n        \"rm -fR *\",\n        \"rm -r -f *\",\n        \"rm -f -r *\",\n        \"rm -R -f *\",\n        \"rm -f -R *\",\n        \"rm --recursive --force *\",\n        \"rm --force --recursive *\",\n        \"git clean -f *\",\n        \"git clean -fd *\",\n        \"git clean -df *\",\n        \"git clean -fx *\",\n        \"git clean -xf *\",\n        \"git clean -fdx *\",\n        \"git clean -fxd *\",\n        \"git clean -dfx *\",\n        \"git clean -dxf *\",\n        \"git clean -xdf *\",\n        \"git clean -xfd *\",\n        \"git clean --force *\",\n        \"git clean -d -f *\",\n        \"git clean -x -f *\",\n        \"git worktree remove --force *\",\n        \"git worktree remove -f *\",\n        \"terraform init *\",\n        \"terraform plan *\",\n        \"terraform apply *\",\n        \"terraform destroy *\",\n        \"terraform console *\",\n        \"terraform env *\",\n        \"terraform force-unlock *\",\n        \"terraform get *\",\n        \"terraform graph *\",\n        \"terraform import *\",\n        \"terraform login *\",\n        \"terraform logout *\",\n        \"terraform metadata *\",\n        \"terraform modules *\",\n        \"terraform output *\",\n        \"terraform providers *\",\n        \"terraform refresh *\",\n        \"terraform show *\",\n        \"terraform state *\",\n        \"terraform taint *\",\n        \"terraform test *\",\n        \"terraform untaint *\",\n        \"terraform workspace *\",\n        \"tofu init *\",\n        \"tofu plan *\",\n        \"tofu apply *\",\n        \"tofu destroy *\",\n        \"tofu console *\",\n        \"tofu env *\",\n        \"tofu force-unlock *\",\n        \"tofu get *\",\n        \"tofu graph *\",\n        \"tofu import *\",\n        \"tofu login *\",\n        \"tofu logout *\",\n        \"tofu metadata *\",\n        \"tofu modules *\",\n        \"tofu output *\",\n        \"tofu providers *\",\n        \"tofu refresh *\",\n        \"tofu show *\",\n        \"tofu state *\",\n        \"tofu taint *\",\n        \"tofu test *\",\n        \"tofu untaint *\",\n        \"tofu workspace *\",\n        \"terraform -chdir=*\",\n        \"tofu -chdir=*\",\n        \"gh workflow run *\",\n        \"gh api -X POST *\",\n        \"gh api -X PUT *\",\n        \"gh api -X PATCH *\",\n        \"gh api -X DELETE *\",\n        \"gh api --method POST *\",\n        \"gh api --method PUT *\",\n        \"gh api --method PATCH *\",\n        \"gh api --method DELETE *\",\n        \"gh repo delete *\",\n        \"gh repo archive *\",\n        \"gh repo rename *\",\n        \"gh repo edit --visibility *\",\n        \"gh release create *\",\n        \"gh release delete *\",\n        \"gh release edit *\",\n        \"gh release upload *\",\n        \"gh gist create *\",\n        \"npm publish *\",\n        \"npm unpublish *\",\n        \"pnpm publish *\",\n        \"yarn publish *\",\n        \"yarn npm publish *\",\n        \"cargo publish *\",\n        \"twine upload *\",\n        \"gem push *\",\n        \"docker push *\"\n      ]\n    },\n    {\n      \"capability\": \"fs_read\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    },\n    {\n      \"capability\": \"fs_write\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    }\n  ]\n}\n"
+      }
+    ]
+  },
+  {
+    "run": "check a floor rule removed from the drop-in",
+    "code": 1,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nDRIFT   <BASE>/bin/clipboard.conf (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/package.json (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/commands/hook-entry.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/commands/hook-prompt.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/lib/clean.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/lib/clean-unicode.js (release: <RELEASE>; commit: <COMMIT>\nDRIFT   <CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json (release: <RELEASE>; commit: <COMMIT>\nOK      <CODEX_DIR>/requirements.toml (release: <RELEASE>; commit: <COMMIT>\nOK      <KIRO_FILE> (release: <RELEASE>; commit: <COMMIT>\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": "<BASE>/bin",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:f5ad5bf9ead97af951112e1decf60457ec120dff235dba5f5749b5d6201af69c"
+      },
+      {
+        "path": "<BASE>/bin/hook",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/package.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"type\": \"module\", \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\"}\n"
+      },
+      {
+        "path": "<BASE>/bin/hook/src",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-entry.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-entry.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-entry.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-prompt.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-prompt.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-prompt.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean-unicode.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean-unicode.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean-unicode.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean.js>"
+      },
+      {
+        "path": "<CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:ff2820629dfd8870f6ae96268bcbc3c9de1b4323ce935a558f4e2c7b50ba2fad"
+      },
+      {
+        "path": "<CODEX_DIR>/requirements.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:367f0ee2a48b40da824495941daa89449158bf9054b6084ebbd1e580c4c4cfe6"
+      },
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh via src/render/kiro-permissions.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"rules\": [\n    {\n      \"capability\": \"shell\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"claude --dangerously-skip-permissions *\",\n        \"claude --allow-dangerously-skip-permissions *\",\n        \"claude --permission-mode bypassPermissions *\",\n        \"codex --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex exec --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex --dangerously-bypass-hook-trust *\",\n        \"codex exec --dangerously-bypass-hook-trust *\",\n        \"codex --sandbox danger-full-access *\",\n        \"codex -s danger-full-access *\",\n        \"codex exec --sandbox danger-full-access *\",\n        \"codex exec -s danger-full-access *\",\n        \"sudo *\",\n        \"gh auth token *\",\n        \"security find-generic-password *\",\n        \"security find-internet-password *\",\n        \"security dump-keychain *\",\n        \"aws configure export-credentials *\",\n        \"aws configure get aws_secret_access_key *\",\n        \"aws secretsmanager get-secret-value *\",\n        \"aws ssm get-parameter --with-decryption *\",\n        \"aws ssm get-parameters --with-decryption *\",\n        \"aws ssm get-parameters-by-path --with-decryption *\",\n        \"aws ssm get-parameter-history --with-decryption *\",\n        \"aws sso login *\",\n        \"gh secret set *\",\n        \"gh secret delete *\",\n        \"gh secret remove *\",\n        \"aws secretsmanager create-secret *\",\n        \"aws secretsmanager put-secret-value *\",\n        \"aws secretsmanager update-secret *\",\n        \"aws secretsmanager delete-secret *\",\n        \"aws secretsmanager restore-secret *\",\n        \"aws ssm put-parameter *\",\n        \"aws iam create-access-key *\",\n        \"security add-generic-password *\",\n        \"security add-internet-password *\",\n        \"security delete-generic-password *\",\n        \"security delete-internet-password *\",\n        \"git push --force *\",\n        \"git push --force-with-lease *\",\n        \"git push --force-if-includes *\",\n        \"git push -f *\",\n        \"git push --mirror *\",\n        \"git reset --hard *\",\n        \"git filter-branch *\",\n        \"git filter-repo *\",\n        \"git reflog expire *\",\n        \"git reflog delete *\",\n        \"git gc --prune=now *\",\n        \"git commit --no-verify *\",\n        \"git commit -n *\",\n        \"git commit -a --no-verify *\",\n        \"git commit -a -n *\",\n        \"git commit --all --no-verify *\",\n        \"git commit --amend --no-verify *\",\n        \"git commit --amend -n *\",\n        \"git push --no-verify *\",\n        \"git push origin --no-verify *\",\n        \"git push -u --no-verify *\",\n        \"git push --set-upstream --no-verify *\",\n        \"gh pr merge --squash *\",\n        \"gh pr merge -s *\",\n        \"rm -rf *\",\n        \"rm -fr *\",\n        \"rm -Rf *\",\n        \"rm -fR *\",\n        \"rm -r -f *\",\n        \"rm -f -r *\",\n        \"rm -R -f *\",\n        \"rm -f -R *\",\n        \"rm --recursive --force *\",\n        \"rm --force --recursive *\",\n        \"git clean -f *\",\n        \"git clean -fd *\",\n        \"git clean -df *\",\n        \"git clean -fx *\",\n        \"git clean -xf *\",\n        \"git clean -fdx *\",\n        \"git clean -fxd *\",\n        \"git clean -dfx *\",\n        \"git clean -dxf *\",\n        \"git clean -xdf *\",\n        \"git clean -xfd *\",\n        \"git clean --force *\",\n        \"git clean -d -f *\",\n        \"git clean -x -f *\",\n        \"git worktree remove --force *\",\n        \"git worktree remove -f *\",\n        \"terraform init *\",\n        \"terraform plan *\",\n        \"terraform apply *\",\n        \"terraform destroy *\",\n        \"terraform console *\",\n        \"terraform env *\",\n        \"terraform force-unlock *\",\n        \"terraform get *\",\n        \"terraform graph *\",\n        \"terraform import *\",\n        \"terraform login *\",\n        \"terraform logout *\",\n        \"terraform metadata *\",\n        \"terraform modules *\",\n        \"terraform output *\",\n        \"terraform providers *\",\n        \"terraform refresh *\",\n        \"terraform show *\",\n        \"terraform state *\",\n        \"terraform taint *\",\n        \"terraform test *\",\n        \"terraform untaint *\",\n        \"terraform workspace *\",\n        \"tofu init *\",\n        \"tofu plan *\",\n        \"tofu apply *\",\n        \"tofu destroy *\",\n        \"tofu console *\",\n        \"tofu env *\",\n        \"tofu force-unlock *\",\n        \"tofu get *\",\n        \"tofu graph *\",\n        \"tofu import *\",\n        \"tofu login *\",\n        \"tofu logout *\",\n        \"tofu metadata *\",\n        \"tofu modules *\",\n        \"tofu output *\",\n        \"tofu providers *\",\n        \"tofu refresh *\",\n        \"tofu show *\",\n        \"tofu state *\",\n        \"tofu taint *\",\n        \"tofu test *\",\n        \"tofu untaint *\",\n        \"tofu workspace *\",\n        \"terraform -chdir=*\",\n        \"tofu -chdir=*\",\n        \"gh workflow run *\",\n        \"gh api -X POST *\",\n        \"gh api -X PUT *\",\n        \"gh api -X PATCH *\",\n        \"gh api -X DELETE *\",\n        \"gh api --method POST *\",\n        \"gh api --method PUT *\",\n        \"gh api --method PATCH *\",\n        \"gh api --method DELETE *\",\n        \"gh repo delete *\",\n        \"gh repo archive *\",\n        \"gh repo rename *\",\n        \"gh repo edit --visibility *\",\n        \"gh release create *\",\n        \"gh release delete *\",\n        \"gh release edit *\",\n        \"gh release upload *\",\n        \"gh gist create *\",\n        \"npm publish *\",\n        \"npm unpublish *\",\n        \"pnpm publish *\",\n        \"yarn publish *\",\n        \"yarn npm publish *\",\n        \"cargo publish *\",\n        \"twine upload *\",\n        \"gem push *\",\n        \"docker push *\"\n      ]\n    },\n    {\n      \"capability\": \"fs_read\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    },\n    {\n      \"capability\": \"fs_write\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    }\n  ]\n}\n"
+      }
+    ]
+  },
+  {
+    "run": "check a floor pattern removed from the Kiro copy",
+    "code": 1,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nDRIFT   <BASE>/bin/clipboard.conf (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/package.json (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/commands/hook-entry.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/commands/hook-prompt.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/lib/clean.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/lib/clean-unicode.js (release: <RELEASE>; commit: <COMMIT>\nDRIFT   <CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json (release: <RELEASE>; commit: <COMMIT>\nOK      <CODEX_DIR>/requirements.toml (release: <RELEASE>; commit: <COMMIT>\nDRIFT   <KIRO_FILE> (release: <RELEASE>; commit: <COMMIT>\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": "<BASE>/bin",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:f5ad5bf9ead97af951112e1decf60457ec120dff235dba5f5749b5d6201af69c"
+      },
+      {
+        "path": "<BASE>/bin/hook",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/package.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"type\": \"module\", \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\"}\n"
+      },
+      {
+        "path": "<BASE>/bin/hook/src",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-entry.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-entry.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-entry.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-prompt.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-prompt.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-prompt.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean-unicode.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean-unicode.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean-unicode.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean.js>"
+      },
+      {
+        "path": "<CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:ff2820629dfd8870f6ae96268bcbc3c9de1b4323ce935a558f4e2c7b50ba2fad"
+      },
+      {
+        "path": "<CODEX_DIR>/requirements.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:367f0ee2a48b40da824495941daa89449158bf9054b6084ebbd1e580c4c4cfe6"
+      },
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh via src/render/kiro-permissions.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"rules\": [\n    {\n      \"capability\": \"shell\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"claude --dangerously-skip-permissions *\",\n        \"claude --allow-dangerously-skip-permissions *\",\n        \"claude --permission-mode bypassPermissions *\",\n        \"codex --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex exec --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex --dangerously-bypass-hook-trust *\",\n        \"codex exec --dangerously-bypass-hook-trust *\",\n        \"codex --sandbox danger-full-access *\",\n        \"codex -s danger-full-access *\",\n        \"codex exec --sandbox danger-full-access *\",\n        \"codex exec -s danger-full-access *\",\n        \"gh auth token *\",\n        \"security find-generic-password *\",\n        \"security find-internet-password *\",\n        \"security dump-keychain *\",\n        \"aws configure export-credentials *\",\n        \"aws configure get aws_secret_access_key *\",\n        \"aws secretsmanager get-secret-value *\",\n        \"aws ssm get-parameter --with-decryption *\",\n        \"aws ssm get-parameters --with-decryption *\",\n        \"aws ssm get-parameters-by-path --with-decryption *\",\n        \"aws ssm get-parameter-history --with-decryption *\",\n        \"aws sso login *\",\n        \"gh secret set *\",\n        \"gh secret delete *\",\n        \"gh secret remove *\",\n        \"aws secretsmanager create-secret *\",\n        \"aws secretsmanager put-secret-value *\",\n        \"aws secretsmanager update-secret *\",\n        \"aws secretsmanager delete-secret *\",\n        \"aws secretsmanager restore-secret *\",\n        \"aws ssm put-parameter *\",\n        \"aws iam create-access-key *\",\n        \"security add-generic-password *\",\n        \"security add-internet-password *\",\n        \"security delete-generic-password *\",\n        \"security delete-internet-password *\",\n        \"git push --force *\",\n        \"git push --force-with-lease *\",\n        \"git push --force-if-includes *\",\n        \"git push -f *\",\n        \"git push --mirror *\",\n        \"git reset --hard *\",\n        \"git filter-branch *\",\n        \"git filter-repo *\",\n        \"git reflog expire *\",\n        \"git reflog delete *\",\n        \"git gc --prune=now *\",\n        \"git commit --no-verify *\",\n        \"git commit -n *\",\n        \"git commit -a --no-verify *\",\n        \"git commit -a -n *\",\n        \"git commit --all --no-verify *\",\n        \"git commit --amend --no-verify *\",\n        \"git commit --amend -n *\",\n        \"git push --no-verify *\",\n        \"git push origin --no-verify *\",\n        \"git push -u --no-verify *\",\n        \"git push --set-upstream --no-verify *\",\n        \"gh pr merge --squash *\",\n        \"gh pr merge -s *\",\n        \"rm -rf *\",\n        \"rm -fr *\",\n        \"rm -Rf *\",\n        \"rm -fR *\",\n        \"rm -r -f *\",\n        \"rm -f -r *\",\n        \"rm -R -f *\",\n        \"rm -f -R *\",\n        \"rm --recursive --force *\",\n        \"rm --force --recursive *\",\n        \"git clean -f *\",\n        \"git clean -fd *\",\n        \"git clean -df *\",\n        \"git clean -fx *\",\n        \"git clean -xf *\",\n        \"git clean -fdx *\",\n        \"git clean -fxd *\",\n        \"git clean -dfx *\",\n        \"git clean -dxf *\",\n        \"git clean -xdf *\",\n        \"git clean -xfd *\",\n        \"git clean --force *\",\n        \"git clean -d -f *\",\n        \"git clean -x -f *\",\n        \"git worktree remove --force *\",\n        \"git worktree remove -f *\",\n        \"terraform init *\",\n        \"terraform plan *\",\n        \"terraform apply *\",\n        \"terraform destroy *\",\n        \"terraform console *\",\n        \"terraform env *\",\n        \"terraform force-unlock *\",\n        \"terraform get *\",\n        \"terraform graph *\",\n        \"terraform import *\",\n        \"terraform login *\",\n        \"terraform logout *\",\n        \"terraform metadata *\",\n        \"terraform modules *\",\n        \"terraform output *\",\n        \"terraform providers *\",\n        \"terraform refresh *\",\n        \"terraform show *\",\n        \"terraform state *\",\n        \"terraform taint *\",\n        \"terraform test *\",\n        \"terraform untaint *\",\n        \"terraform workspace *\",\n        \"tofu init *\",\n        \"tofu plan *\",\n        \"tofu apply *\",\n        \"tofu destroy *\",\n        \"tofu console *\",\n        \"tofu env *\",\n        \"tofu force-unlock *\",\n        \"tofu get *\",\n        \"tofu graph *\",\n        \"tofu import *\",\n        \"tofu login *\",\n        \"tofu logout *\",\n        \"tofu metadata *\",\n        \"tofu modules *\",\n        \"tofu output *\",\n        \"tofu providers *\",\n        \"tofu refresh *\",\n        \"tofu show *\",\n        \"tofu state *\",\n        \"tofu taint *\",\n        \"tofu test *\",\n        \"tofu untaint *\",\n        \"tofu workspace *\",\n        \"terraform -chdir=*\",\n        \"tofu -chdir=*\",\n        \"gh workflow run *\",\n        \"gh api -X POST *\",\n        \"gh api -X PUT *\",\n        \"gh api -X PATCH *\",\n        \"gh api -X DELETE *\",\n        \"gh api --method POST *\",\n        \"gh api --method PUT *\",\n        \"gh api --method PATCH *\",\n        \"gh api --method DELETE *\",\n        \"gh repo delete *\",\n        \"gh repo archive *\",\n        \"gh repo rename *\",\n        \"gh repo edit --visibility *\",\n        \"gh release create *\",\n        \"gh release delete *\",\n        \"gh release edit *\",\n        \"gh release upload *\",\n        \"gh gist create *\",\n        \"npm publish *\",\n        \"npm unpublish *\",\n        \"pnpm publish *\",\n        \"yarn publish *\",\n        \"yarn npm publish *\",\n        \"cargo publish *\",\n        \"twine upload *\",\n        \"gem push *\",\n        \"docker push *\"\n      ]\n    },\n    {\n      \"capability\": \"fs_read\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    },\n    {\n      \"capability\": \"fs_write\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    }\n  ]\n}\n"
+      }
+    ]
+  },
+  {
+    "run": "check a Kiro copy over the condition ceiling",
+    "code": 1,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nDRIFT   <BASE>/bin/clipboard.conf (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/package.json (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/commands/hook-entry.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/commands/hook-prompt.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/lib/clean.js (release: <RELEASE>; commit: <COMMIT>\nOK      <BASE>/bin/hook/src/lib/clean-unicode.js (release: <RELEASE>; commit: <COMMIT>\nDRIFT   <CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json (release: <RELEASE>; commit: <COMMIT>\nOK      <CODEX_DIR>/requirements.toml (release: <RELEASE>; commit: <COMMIT>\nDRIFT   <KIRO_FILE> (release: <RELEASE>; commit: <COMMIT>\nREFUSE  <KIRO_FILE>: Kiro would reject it, and then Kiro IDE and the Kiro CLI V3 engine deny EVERY tool call; --apply rewrites it, --remove deletes it (Kiro CLI 2.x is unaffected)\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": "<BASE>/bin",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:f5ad5bf9ead97af951112e1decf60457ec120dff235dba5f5749b5d6201af69c"
+      },
+      {
+        "path": "<BASE>/bin/hook",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/package.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"type\": \"module\", \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\"}\n"
+      },
+      {
+        "path": "<BASE>/bin/hook/src",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-entry.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-entry.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-entry.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-prompt.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-prompt.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-prompt.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean-unicode.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean-unicode.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean-unicode.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean.js>"
+      },
+      {
+        "path": "<CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:ff2820629dfd8870f6ae96268bcbc3c9de1b4323ce935a558f4e2c7b50ba2fad"
+      },
+      {
+        "path": "<CODEX_DIR>/requirements.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:367f0ee2a48b40da824495941daa89449158bf9054b6084ebbd1e580c4c4cfe6"
+      },
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh via src/render/kiro-permissions.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"rules\": [\n    {\n      \"capability\": \"shell\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"claude --dangerously-skip-permissions *\",\n        \"claude --allow-dangerously-skip-permissions *\",\n        \"claude --permission-mode bypassPermissions *\",\n        \"codex --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex exec --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex --dangerously-bypass-hook-trust *\",\n        \"codex exec --dangerously-bypass-hook-trust *\",\n        \"codex --sandbox danger-full-access *\",\n        \"codex -s danger-full-access *\",\n        \"codex exec --sandbox danger-full-access *\",\n        \"codex exec -s danger-full-access *\",\n        \"gh auth token *\",\n        \"security find-generic-password *\",\n        \"security find-internet-password *\",\n        \"security dump-keychain *\",\n        \"aws configure export-credentials *\",\n        \"aws configure get aws_secret_access_key *\",\n        \"aws secretsmanager get-secret-value *\",\n        \"aws ssm get-parameter --with-decryption *\",\n        \"aws ssm get-parameters --with-decryption *\",\n        \"aws ssm get-parameters-by-path --with-decryption *\",\n        \"aws ssm get-parameter-history --with-decryption *\",\n        \"aws sso login *\",\n        \"gh secret set *\",\n        \"gh secret delete *\",\n        \"gh secret remove *\",\n        \"aws secretsmanager create-secret *\",\n        \"aws secretsmanager put-secret-value *\",\n        \"aws secretsmanager update-secret *\",\n        \"aws secretsmanager delete-secret *\",\n        \"aws secretsmanager restore-secret *\",\n        \"aws ssm put-parameter *\",\n        \"aws iam create-access-key *\",\n        \"security add-generic-password *\",\n        \"security add-internet-password *\",\n        \"security delete-generic-password *\",\n        \"security delete-internet-password *\",\n        \"git push --force *\",\n        \"git push --force-with-lease *\",\n        \"git push --force-if-includes *\",\n        \"git push -f *\",\n        \"git push --mirror *\",\n        \"git reset --hard *\",\n        \"git filter-branch *\",\n        \"git filter-repo *\",\n        \"git reflog expire *\",\n        \"git reflog delete *\",\n        \"git gc --prune=now *\",\n        \"git commit --no-verify *\",\n        \"git commit -n *\",\n        \"git commit -a --no-verify *\",\n        \"git commit -a -n *\",\n        \"git commit --all --no-verify *\",\n        \"git commit --amend --no-verify *\",\n        \"git commit --amend -n *\",\n        \"git push --no-verify *\",\n        \"git push origin --no-verify *\",\n        \"git push -u --no-verify *\",\n        \"git push --set-upstream --no-verify *\",\n        \"gh pr merge --squash *\",\n        \"gh pr merge -s *\",\n        \"rm -rf *\",\n        \"rm -fr *\",\n        \"rm -Rf *\",\n        \"rm -fR *\",\n        \"rm -r -f *\",\n        \"rm -f -r *\",\n        \"rm -R -f *\",\n        \"rm -f -R *\",\n        \"rm --recursive --force *\",\n        \"rm --force --recursive *\",\n        \"git clean -f *\",\n        \"git clean -fd *\",\n        \"git clean -df *\",\n        \"git clean -fx *\",\n        \"git clean -xf *\",\n        \"git clean -fdx *\",\n        \"git clean -fxd *\",\n        \"git clean -dfx *\",\n        \"git clean -dxf *\",\n        \"git clean -xdf *\",\n        \"git clean -xfd *\",\n        \"git clean --force *\",\n        \"git clean -d -f *\",\n        \"git clean -x -f *\",\n        \"git worktree remove --force *\",\n        \"git worktree remove -f *\",\n        \"terraform init *\",\n        \"terraform plan *\",\n        \"terraform apply *\",\n        \"terraform destroy *\",\n        \"terraform console *\",\n        \"terraform env *\",\n        \"terraform force-unlock *\",\n        \"terraform get *\",\n        \"terraform graph *\",\n        \"terraform import *\",\n        \"terraform login *\",\n        \"terraform logout *\",\n        \"terraform metadata *\",\n        \"terraform modules *\",\n        \"terraform output *\",\n        \"terraform providers *\",\n        \"terraform refresh *\",\n        \"terraform show *\",\n        \"terraform state *\",\n        \"terraform taint *\",\n        \"terraform test *\",\n        \"terraform untaint *\",\n        \"terraform workspace *\",\n        \"tofu init *\",\n        \"tofu plan *\",\n        \"tofu apply *\",\n        \"tofu destroy *\",\n        \"tofu console *\",\n        \"tofu env *\",\n        \"tofu force-unlock *\",\n        \"tofu get *\",\n        \"tofu graph *\",\n        \"tofu import *\",\n        \"tofu login *\",\n        \"tofu logout *\",\n        \"tofu metadata *\",\n        \"tofu modules *\",\n        \"tofu output *\",\n        \"tofu providers *\",\n        \"tofu refresh *\",\n        \"tofu show *\",\n        \"tofu state *\",\n        \"tofu taint *\",\n        \"tofu test *\",\n        \"tofu untaint *\",\n        \"tofu workspace *\",\n        \"terraform -chdir=*\",\n        \"tofu -chdir=*\",\n        \"gh workflow run *\",\n        \"gh api -X POST *\",\n        \"gh api -X PUT *\",\n        \"gh api -X PATCH *\",\n        \"gh api -X DELETE *\",\n        \"gh api --method POST *\",\n        \"gh api --method PUT *\",\n        \"gh api --method PATCH *\",\n        \"gh api --method DELETE *\",\n        \"gh repo delete *\",\n        \"gh repo archive *\",\n        \"gh repo rename *\",\n        \"gh repo edit --visibility *\",\n        \"gh release create *\",\n        \"gh release delete *\",\n        \"gh release edit *\",\n        \"gh release upload *\",\n        \"gh gist create *\",\n        \"npm publish *\",\n        \"npm unpublish *\",\n        \"pnpm publish *\",\n        \"yarn publish *\",\n        \"yarn npm publish *\",\n        \"cargo publish *\",\n        \"twine upload *\",\n        \"gem push *\",\n        \"docker push *\"\n      ],\n      \"exclude\": [\n        \"x0\",\n        \"x1\",\n        \"x2\",\n        \"x3\",\n        \"x4\",\n        \"x5\",\n        \"x6\",\n        \"x7\",\n        \"x8\",\n        \"x9\",\n        \"x10\",\n        \"x11\",\n        \"x12\",\n        \"x13\",\n        \"x14\",\n        \"x15\",\n        \"x16\",\n        \"x17\",\n        \"x18\",\n        \"x19\",\n        \"x20\",\n        \"x21\",\n        \"x22\",\n        \"x23\",\n        \"x24\",\n        \"x25\",\n        \"x26\",\n        \"x27\",\n        \"x28\",\n        \"x29\",\n        \"x30\",\n        \"x31\",\n        \"x32\",\n        \"x33\",\n        \"x34\",\n        \"x35\",\n        \"x36\",\n        \"x37\",\n        \"x38\",\n        \"x39\"\n      ]\n    },\n    {\n      \"capability\": \"fs_read\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    },\n    {\n      \"capability\": \"fs_write\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    }\n  ]\n}\n"
+      }
+    ]
+  },
+  {
+    "run": "--uninstall R",
+    "code": 0,
+    "stdout": "RUN     sudo /bin/sh \"<T>/tree/global/install-managed.sh\" --remove --root=\"<T>/root\"\nTHEN    ./mhw install   (restores the user-level hooks), then open fresh sessions\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": "<BASE>/bin",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:f5ad5bf9ead97af951112e1decf60457ec120dff235dba5f5749b5d6201af69c"
+      },
+      {
+        "path": "<BASE>/bin/hook",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/package.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"type\": \"module\", \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\"}\n"
+      },
+      {
+        "path": "<BASE>/bin/hook/src",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-entry.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-entry.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-entry.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/commands/hook-prompt.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/hook-prompt.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/commands/hook-prompt.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean-unicode.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean-unicode.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean-unicode.js>"
+      },
+      {
+        "path": "<BASE>/bin/hook/src/lib/clean.js",
+        "kind": "file",
+        "mode": "644",
+        "data": "// managed-by: personal-multi-harness-workstation-configuration; source: src/lib/clean.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n<the source of src/lib/clean.js>"
+      },
+      {
+        "path": "<CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:ff2820629dfd8870f6ae96268bcbc3c9de1b4323ce935a558f4e2c7b50ba2fad"
+      },
+      {
+        "path": "<CODEX_DIR>/requirements.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:367f0ee2a48b40da824495941daa89449158bf9054b6084ebbd1e580c4c4cfe6"
+      },
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh via src/render/kiro-permissions.js; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"rules\": [\n    {\n      \"capability\": \"shell\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"claude --dangerously-skip-permissions *\",\n        \"claude --allow-dangerously-skip-permissions *\",\n        \"claude --permission-mode bypassPermissions *\",\n        \"codex --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex exec --dangerously-bypass-approvals-and-sandbox *\",\n        \"codex --dangerously-bypass-hook-trust *\",\n        \"codex exec --dangerously-bypass-hook-trust *\",\n        \"codex --sandbox danger-full-access *\",\n        \"codex -s danger-full-access *\",\n        \"codex exec --sandbox danger-full-access *\",\n        \"codex exec -s danger-full-access *\",\n        \"gh auth token *\",\n        \"security find-generic-password *\",\n        \"security find-internet-password *\",\n        \"security dump-keychain *\",\n        \"aws configure export-credentials *\",\n        \"aws configure get aws_secret_access_key *\",\n        \"aws secretsmanager get-secret-value *\",\n        \"aws ssm get-parameter --with-decryption *\",\n        \"aws ssm get-parameters --with-decryption *\",\n        \"aws ssm get-parameters-by-path --with-decryption *\",\n        \"aws ssm get-parameter-history --with-decryption *\",\n        \"aws sso login *\",\n        \"gh secret set *\",\n        \"gh secret delete *\",\n        \"gh secret remove *\",\n        \"aws secretsmanager create-secret *\",\n        \"aws secretsmanager put-secret-value *\",\n        \"aws secretsmanager update-secret *\",\n        \"aws secretsmanager delete-secret *\",\n        \"aws secretsmanager restore-secret *\",\n        \"aws ssm put-parameter *\",\n        \"aws iam create-access-key *\",\n        \"security add-generic-password *\",\n        \"security add-internet-password *\",\n        \"security delete-generic-password *\",\n        \"security delete-internet-password *\",\n        \"git push --force *\",\n        \"git push --force-with-lease *\",\n        \"git push --force-if-includes *\",\n        \"git push -f *\",\n        \"git push --mirror *\",\n        \"git reset --hard *\",\n        \"git filter-branch *\",\n        \"git filter-repo *\",\n        \"git reflog expire *\",\n        \"git reflog delete *\",\n        \"git gc --prune=now *\",\n        \"git commit --no-verify *\",\n        \"git commit -n *\",\n        \"git commit -a --no-verify *\",\n        \"git commit -a -n *\",\n        \"git commit --all --no-verify *\",\n        \"git commit --amend --no-verify *\",\n        \"git commit --amend -n *\",\n        \"git push --no-verify *\",\n        \"git push origin --no-verify *\",\n        \"git push -u --no-verify *\",\n        \"git push --set-upstream --no-verify *\",\n        \"gh pr merge --squash *\",\n        \"gh pr merge -s *\",\n        \"rm -rf *\",\n        \"rm -fr *\",\n        \"rm -Rf *\",\n        \"rm -fR *\",\n        \"rm -r -f *\",\n        \"rm -f -r *\",\n        \"rm -R -f *\",\n        \"rm -f -R *\",\n        \"rm --recursive --force *\",\n        \"rm --force --recursive *\",\n        \"git clean -f *\",\n        \"git clean -fd *\",\n        \"git clean -df *\",\n        \"git clean -fx *\",\n        \"git clean -xf *\",\n        \"git clean -fdx *\",\n        \"git clean -fxd *\",\n        \"git clean -dfx *\",\n        \"git clean -dxf *\",\n        \"git clean -xdf *\",\n        \"git clean -xfd *\",\n        \"git clean --force *\",\n        \"git clean -d -f *\",\n        \"git clean -x -f *\",\n        \"git worktree remove --force *\",\n        \"git worktree remove -f *\",\n        \"terraform init *\",\n        \"terraform plan *\",\n        \"terraform apply *\",\n        \"terraform destroy *\",\n        \"terraform console *\",\n        \"terraform env *\",\n        \"terraform force-unlock *\",\n        \"terraform get *\",\n        \"terraform graph *\",\n        \"terraform import *\",\n        \"terraform login *\",\n        \"terraform logout *\",\n        \"terraform metadata *\",\n        \"terraform modules *\",\n        \"terraform output *\",\n        \"terraform providers *\",\n        \"terraform refresh *\",\n        \"terraform show *\",\n        \"terraform state *\",\n        \"terraform taint *\",\n        \"terraform test *\",\n        \"terraform untaint *\",\n        \"terraform workspace *\",\n        \"tofu init *\",\n        \"tofu plan *\",\n        \"tofu apply *\",\n        \"tofu destroy *\",\n        \"tofu console *\",\n        \"tofu env *\",\n        \"tofu force-unlock *\",\n        \"tofu get *\",\n        \"tofu graph *\",\n        \"tofu import *\",\n        \"tofu login *\",\n        \"tofu logout *\",\n        \"tofu metadata *\",\n        \"tofu modules *\",\n        \"tofu output *\",\n        \"tofu providers *\",\n        \"tofu refresh *\",\n        \"tofu show *\",\n        \"tofu state *\",\n        \"tofu taint *\",\n        \"tofu test *\",\n        \"tofu untaint *\",\n        \"tofu workspace *\",\n        \"terraform -chdir=*\",\n        \"tofu -chdir=*\",\n        \"gh workflow run *\",\n        \"gh api -X POST *\",\n        \"gh api -X PUT *\",\n        \"gh api -X PATCH *\",\n        \"gh api -X DELETE *\",\n        \"gh api --method POST *\",\n        \"gh api --method PUT *\",\n        \"gh api --method PATCH *\",\n        \"gh api --method DELETE *\",\n        \"gh repo delete *\",\n        \"gh repo archive *\",\n        \"gh repo rename *\",\n        \"gh repo edit --visibility *\",\n        \"gh release create *\",\n        \"gh release delete *\",\n        \"gh release edit *\",\n        \"gh release upload *\",\n        \"gh gist create *\",\n        \"npm publish *\",\n        \"npm unpublish *\",\n        \"pnpm publish *\",\n        \"yarn publish *\",\n        \"yarn npm publish *\",\n        \"cargo publish *\",\n        \"twine upload *\",\n        \"gem push *\",\n        \"docker push *\"\n      ],\n      \"exclude\": [\n        \"x0\",\n        \"x1\",\n        \"x2\",\n        \"x3\",\n        \"x4\",\n        \"x5\",\n        \"x6\",\n        \"x7\",\n        \"x8\",\n        \"x9\",\n        \"x10\",\n        \"x11\",\n        \"x12\",\n        \"x13\",\n        \"x14\",\n        \"x15\",\n        \"x16\",\n        \"x17\",\n        \"x18\",\n        \"x19\",\n        \"x20\",\n        \"x21\",\n        \"x22\",\n        \"x23\",\n        \"x24\",\n        \"x25\",\n        \"x26\",\n        \"x27\",\n        \"x28\",\n        \"x29\",\n        \"x30\",\n        \"x31\",\n        \"x32\",\n        \"x33\",\n        \"x34\",\n        \"x35\",\n        \"x36\",\n        \"x37\",\n        \"x38\",\n        \"x39\"\n      ]\n    },\n    {\n      \"capability\": \"fs_read\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    },\n    {\n      \"capability\": \"fs_write\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"~/.aws/credentials\",\n        \"~/.netrc\",\n        \"~/.config/gh/hosts.yml\",\n        \"~/.docker/config.json\",\n        \"~/.codex/auth.json\",\n        \"~/.claude/.credentials.json\",\n        \"**/.env\",\n        \"**/.env.*\",\n        \"**/*.pem\",\n        \"**/credentials*\"\n      ]\n    }\n  ]\n}\n"
+      }
+    ]
+  },
+  {
+    "run": "--remove R",
+    "code": 0,
+    "stdout": "REMOVED the admin-layer hooks; run install.sh as yourself to restore the user-level ones\n",
+    "stderr": "",
+    "tree": []
+  },
+  {
+    "run": "check after remove",
+    "code": 1,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nMISSING <BASE>/bin/clipboard.conf\nMISSING <BASE>/bin/hook/package.json\nMISSING <BASE>/bin/hook/src/commands/hook-entry.js\nMISSING <BASE>/bin/hook/src/commands/hook-prompt.js\nMISSING <BASE>/bin/hook/src/lib/clean.js\nMISSING <BASE>/bin/hook/src/lib/clean-unicode.js\nMISSING <CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json\nMISSING <CODEX_DIR>/requirements.toml\nMISSING <KIRO_FILE>\n",
+    "stderr": "",
+    "tree": []
+  }
+]

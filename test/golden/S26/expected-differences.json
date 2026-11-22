@@ -1,0 +1,59 @@
+[
+  {
+    "name": "the sudo line runs mhw install-admin on the node running mhw",
+    "stream": "stdout",
+    "pattern": "^RUN {5}sudo (?:/bin/sh \"<T>/tree/global/install-managed\\.sh\"|\"<NODE>\" \"<T>/tree/bin/mhw\\.js\" install-admin) ",
+    "replace": "RUN     sudo <the admin-layer installer> ",
+    "why": "#496 (S26 of #470) moved global/install-managed.sh to `mhw install-admin`. The one root command it prints for the owner ran /bin/sh on the script; it now runs the node running mhw (process.execPath) on this package's bin/mhw.js with the subcommand install-admin, each quoted, by absolute path. What follows the program is unchanged: --apply=\"STAGE\" --sha256=HEX, or --remove, then --root=\"DIR\" when one was given. The hash is the same digest of the same nine files: the live arm checks each side's printed hash against the stage digest computed by the test (test/install/admin-cases.js, stageDigest)."
+  },
+  {
+    "name": "render names the node the admin hook runs, and whether it is owner-writable",
+    "stream": "stdout",
+    "pattern": "^NODE {4}the admin hook runs <NODE> \\((?:owner-writable: a process running as you can replace it, or the libraries it loads|not writable by you)\\); the owner accepted an owner-writable node until S32 \\(#536\\)\\n",
+    "replace": "",
+    "why": "New in #496 (S26 of #470), an acceptance criterion: the admin hook names an absolute node path, and the slice records its ownership. After STAGED, render prints one NODE line naming the node `mhw install-user` rendered into the hook and whether a process running as the owner can replace it, a directory above it, or the libraries it loads (src/lib/readers/hooks.js, nodeOwnership; the same reading `mhw status` flags on its hook-node line). The owner accepted an owner-writable node until S32 (#536, #502: «Aceitar agora, travar no fim»); the line says so rather than hide it. --check does not print it, so mhw check and status, which relay the --check lines, are unchanged. The line itself is pinned by test/install/admin.test.js."
+  },
+  {
+    "name": "remove names mhw install-user as the way back to the user-level hooks",
+    "stream": "stdout",
+    "pattern": "^REMOVED the admin-layer hooks; run (?:install\\.sh|mhw install-user) as yourself to restore the user-level ones$",
+    "replace": "REMOVED the admin-layer hooks; run <the user-layer installer> as yourself to restore the user-level ones",
+    "why": "--remove ended with 'run install.sh as yourself to restore the user-level ones', a pointer to a file #503 had already deleted. `mhw install-admin --remove` names `mhw install-user`, the user-layer installer since #503 (and `mhw install` runs it). Every other line of a removal is compared unchanged."
+  },
+  {
+    "name": "--help prints the Node usage text",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "Not exercised by a scenario; pinned by test/install/admin.test.js. install-managed.sh printed its own header comment (sed -n '2,30p' \"$0\"), which named the script and described every mode. `mhw install-admin --help` prints src/commands/install-admin.js's USAGE: the same modes, targets and exit codes, named for mhw install-admin. --help still wins over a later argument and loses to an earlier unknown one, as the shell loop read them."
+  },
+  {
+    "name": "no /usr/bin/python3 and no jq",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario (every scenario's machine has both). install-managed.sh refused to run at all without /usr/bin/python3 (it hashed the stage and validated the admin documents with it) or without jq on PATH (it rendered the documents with it): 'REFUSE  /usr/bin/python3 is required' or 'REFUSE  jq is required', exit 2, in every mode, --remove and --uninstall included. The Node installer hashes with node:crypto, renders the JSON with src/lib/jq-json.js and validates the TOML with the vendored parser (src/lib/toml.js), so neither refusal exists. This removes the last caller of /usr/bin/python3 in the installers; python3 stays in global/prerequisites.json until S32 (owner ruling «Adiar para a S32»), and so does jq, which nothing installs with now."
+  },
+  {
+    "name": "the TOML half of validation runs on every machine",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "Not exercised by a scenario (no scenario renders a requirements file that fails it). install-managed.sh's validate() checked the Codex requirements only where /usr/bin/python3 had tomllib (3.11 or later): on macOS, whose /usr/bin/python3 is 3.9, it skipped that half, so a rule-count mismatch between the two admin documents passed there and failed on Linux (PR #118, round 1). The Node installer parses requirements.toml with the vendored TOML 1.0 parser on every OS and checks the same things: a non-empty [rules] prefix_rules list, each rule forbidden with a non-empty pattern, one per Claude Code prefix rule. Stricter on macOS, the same on Linux."
+  },
+  {
+    "name": "--apply, --remove and --uninstall look no node up",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario. install-managed.sh looked node up for --apply too (MHW_NODE, else node on root's PATH, since sudo passes no MHW_NODE), to validate the staged Kiro document, and refused 'REFUSE  node (26 or later) is required for the Kiro admin document' when root's PATH held none. The Node installer is node: --apply validates the stage in the same process, so that refusal is gone for --apply; render and --check still look node up for `mhw install-user`, and refuse as before. --remove and --uninstall still need none. The consequence, stated: removing the admin layer (even a Kiro file that denies every tool call) now needs the node that runs mhw, where it needed /bin/sh; deleting that one file as root is still the way out when no node runs (docs/runbooks/breaking-glass.md)."
+  },
+  {
+    "name": "the tools' own error lines for a failed copy or removal",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario (the shell side's messages are its tools' own and differ between Apple and GNU). install-managed.sh ran cp, rm, mkdir and mv under set -e, so a missing staged file, a directory where a file of ours goes, or a failed write stopped the run with that tool's message and exit 1. The Node installer prints 'cp: <file>: <error>' or 'rm: <file>: is a directory' and exits 1 for the same cases; any other failed write ends the run with Node's own error. A stage whose install-user run left no clipboard.conf is the same: cp's message there, the Node one here, exit 1 on both."
+  },
+  {
+    "name": "the admin documents still name global/install-managed.sh as their source",
+    "stream": "tree",
+    "pattern": null,
+    "why": "Not a difference: kept on purpose, and named so it is not mistaken for an oversight. The Claude Code drop-in's key, the Codex requirements' first line, hook/package.json and the Kiro document ('source: global/install-managed.sh via src/render/kiro-permissions.js') still carry 'source: global/install-managed.sh' in their managed-by text, byte for byte as before. --check compares the installed files byte for byte after removing only the stamp: a new source word would read every admin layer installed by an earlier release as DRIFT, and its repair is a sudo act. The source words are corrected when those files next change for another reason."
+  }
+]

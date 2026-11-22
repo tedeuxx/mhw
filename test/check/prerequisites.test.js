@@ -278,7 +278,7 @@ describe('presence', { skip: !SHELL && 'needs a POSIX sh' }, () => {
     const [code, out] = s.check();
     assert.equal(code, 1, out);
     for (const required of ['claude', 'codex', 'github', 'git', 'python3', 'node']) assert.match(out, new RegExp('^MISSING ' + required + ' \\[required\\]: missing ', 'm'));
-    // jq is optional since #491: mhw install, check and uninstall no longer run it (only install-managed.sh does, until #496).
+    // jq is optional since #491: mhw install, check and uninstall no longer run it (only install-managed.sh did, until #496; since then nothing does).
     assert.match(out, /^ABSENT {2}jq \[optional\]: missing /m);
     assert.match(out, /^ABSENT {2}terraform \[optional; required for site\]/m);
   });

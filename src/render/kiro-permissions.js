@@ -6,7 +6,7 @@
 //   node src/render/kiro-permissions.js --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE
 //                                       [--floor-from=TEXT] [--admin=FILE]   (--admin: report only)
 //   node src/render/kiro-permissions.js --mode=admin-json --stamp=STAMP --from-yaml=FILE
-//                                       (print the admin managed-settings.json install-managed.sh installs)
+//                                       (print the admin managed-settings.json mhw install-admin installs)
 //   node src/render/kiro-permissions.js --mode=admin-validate --file=FILE
 //                                       (exit 3 unless FILE is an admin document Kiro accepts, every statement
 //                                       under the condition ceiling; a file Kiro rejects puts Kiro in deny-all)
@@ -81,7 +81,7 @@ export const LOCK_WAIT = 3000; // milliseconds; Kiro holds its lock only for one
 export const KIRO_CONDITION_LIMIT = 64;
 export const CONDITION_CEILING = 32;
 const ROLLBACK = 'Kiro IDE and the Kiro CLI V3 engine deny every tool call while a file Kiro rejects is there; remove '
-  + 'it with sudo /bin/sh global/install-managed.sh --remove (or delete that one file as root). Kiro CLI '
+  + 'it with mhw install-admin --uninstall and the sudo line it prints (or delete that one file as root). Kiro CLI '
   + '2.x does not read it';
 
 /**
@@ -976,7 +976,8 @@ export function main(argv, io = {}) {
   const has = (/** @type {string} */ k) => Object.hasOwn(opts, k);
   const only = (/** @type {string[]} */ ks) => Object.keys(opts).length === ks.length && ks.every(has);
   if (opts['--mode'] === 'admin-validate') {
-    // install-managed.sh's check of the staged admin document, before it is installed as root.
+    // The admin installer's check of a staged admin document (mhw install-admin calls adminValidate itself since
+    // #496; global/install-managed.sh ran this mode until then), before it is installed as root.
     if (!only(['--mode', '--file'])) {
       ctx.err('usage: ' + PROG + ' --mode=admin-validate --file=FILE (the JSON admin document)\n');
       return 2;
@@ -991,7 +992,8 @@ export function main(argv, io = {}) {
     return 0;
   }
   if (opts['--mode'] === 'admin-json') {
-    // The admin document for install-managed.sh, from the permissions.yaml install.sh rendered into a
+    // The admin document (mhw install-admin calls adminDoc itself since #496; global/install-managed.sh ran this
+    // mode until then), from the permissions.yaml the user-layer installer rendered into a
     // throwaway home: printed on stdout, nothing written.
     if (!opts['--stamp'] || !opts['--from-yaml'] || !only(['--mode', '--stamp', '--from-yaml'])) {
       ctx.err('usage: ' + PROG + ' --mode=admin-json --stamp=STAMP --from-yaml=FILE\n');

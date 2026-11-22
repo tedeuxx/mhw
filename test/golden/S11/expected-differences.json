@@ -10,5 +10,11 @@
     "pattern": "\\b(?:kiro_permissions\\.py|kiro-permissions\\.js) --mode=",
     "replace": "<PROGRAM> --mode=",
     "why": "The usage lines on stderr name the program: kiro_permissions.py in the original, kiro-permissions.js in the Node renderer. The rest of each usage line and the exit code 2 are still compared."
+  },
+  {
+    "name": "the way to remove a Kiro admin file Kiro rejects",
+    "pattern": "sudo /bin/sh global/install-managed\\.sh --remove|mhw install-admin --uninstall and the sudo line it prints",
+    "replace": "<the admin removal>",
+    "why": "#496 (S26 of #470) deleted global/install-managed.sh: the FLOOR report for an admin Kiro file that is unreadable or that Kiro would reject told the owner to remove it with 'sudo /bin/sh global/install-managed.sh --remove', a command that no longer exists. It now names `mhw install-admin --uninstall and the sudo line it prints`, the admin layer's removal since #496. The rest of the line, 'or delete that one file as root' included, is compared unchanged."
   }
 ]

@@ -135,7 +135,7 @@ export function parseFloor(text) {
       if (words.slice(0, -1).some((w) => w.includes('*'))) why = 'a glob holds * only at the end of its last word';
       const last = words[words.length - 1];
       if (!why && !/^[^*]+\*$/.test(last)) why = 'a glob holds * only at the end of its last word';
-      // "Bash(<words>:*)" is the shape of a prefix rule: install-managed.sh would render it for Codex.
+      // "Bash(<words>:*)" is the shape of a prefix rule: mhw install-admin would render it for Codex.
       if (!why && last.endsWith(':*')) why = 'a glob may not end in :* (that is a cmd entry)';
     }
     if (why) {

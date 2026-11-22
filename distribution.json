@@ -27,7 +27,7 @@
       "id": "deny-floor",
       "layer": "managed",
       "paths": ["global/deny-floor.conf", "src/render/kiro-permissions.js", "src/lib/yaml-subset.js"],
-      "gap": "Rendered at user level by mhw install-user (install.sh until #503) and into the admin layer by install-managed.sh (ADR-0016 2026-10-05 amendment; Kiro: ADR-0036, accepted 2026-10-11, where the admin file is read by Kiro IDE and the Kiro CLI V3 engine only)."
+      "gap": "Rendered at user level by mhw install-user (install.sh until #503) and into the admin layer by mhw install-admin (install-managed.sh until #496; ADR-0016 2026-10-05 amendment; Kiro: ADR-0036, accepted 2026-10-11, where the admin file is read by Kiro IDE and the Kiro CLI V3 engine only)."
     },
     {
       "id": "paste-filter",
@@ -57,7 +57,7 @@
     {
       "id": "managed-installer",
       "layer": "managed",
-      "paths": ["global/install-managed.sh"]
+      "paths": ["src/commands/install-admin.js"]
     },
     {
       "id": "user-installer",

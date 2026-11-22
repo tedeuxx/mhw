@@ -1,6 +1,6 @@
 // The admin layer as status reads it (#493, S22 of #470), moved from global/workstation.py: where our
 // Claude Code drop-in, our admin directory and the Codex requirements file live, whether one is present,
-// and what install-managed.sh --check said about it. mhw check, install, update and uninstall use the
+// and what the admin installer's --check said about it (`mhw install-admin`; global/install-managed.sh until #496). mhw check, install, update and uninstall use the
 // same readers since #494 and #495 (S23, S24), when workstation.py's own copy went. node: modules only.
 import { NAME, MARKER, darwin, managedRoot, pathOf, exists, readJson, readText, baseName, isDict, unreadable } from './common.js';
 import { isPyWs, loads } from '../py.js';
@@ -93,7 +93,7 @@ export function adminStamp(env) {
 }
 
 // Files an earlier release's admin layer installed for controls this release removed, by the name of the
-// control (ADR-0028; ADR-0013, 2026-10-05). install-managed.sh --check reports them as STALE.
+// control (ADR-0028; ADR-0013, 2026-10-05). mhw install-admin --check reports them as STALE.
 export const REMOVED_CONTROLS = /** @type {const} */ ([
   ['restart_guard.py', 'restart guard'],
   ['hitl-escalation-guard.sh', 'picker guard'],
@@ -143,7 +143,7 @@ export function entryOf(line) {
 }
 
 /**
- * -> [{kind: [file name]}, [removed control]] from install-managed.sh --check output.
+ * -> [{kind: [file name]}, [removed control]] from mhw install-admin --check output.
  * @param {string[]} lines
  * @returns {[Record<string, string[]>, string[]]}
  */

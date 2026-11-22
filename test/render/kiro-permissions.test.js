@@ -836,7 +836,7 @@ test('admin: report names the deny-all of an invalid file', () => {
   const line = report(h, admin)[0];
   assert.ok(line.includes('INVALID ('));
   assert.ok(line.includes('deny every tool call'));
-  assert.ok(line.includes('install-managed.sh --remove'));
+  assert.ok(line.includes('mhw install-admin --uninstall and the sudo line it prints'));
   fs.writeFileSync(admin, '{not json');
   assert.ok(report(h, admin)[0].includes('deny every tool call'));
 });

@@ -14,8 +14,8 @@ which is a separate step.
 
 - Node.js 26 or later with npm (engines.node; ~~18~~ before #472). Measured with npm 11.13.0.
 - git on `PATH`: npm uses it to resolve the tag.
-- macOS and Linux: Python 3.9 or later, as for a checkout, and `jq` for the admin layer only
-  (`install-managed.sh`, until #496; the user layer needs none since #491).
+- macOS and Linux: Python 3.9 or later, as for a checkout (listed as a prerequisite until S32; since
+  #496 neither installer runs it, and none runs `jq`).
 - Windows: nothing beyond Node and git (~~Windows PowerShell 5.1 or PowerShell 7~~, which install.ps1 needed until #497).
 
 ## Install: npm puts `mhw` on PATH, `mhw install` sets up the workstation

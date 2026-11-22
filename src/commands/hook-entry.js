@@ -1,5 +1,5 @@
 // The prompt hook's entry point (#488, S17 of #470). bin/mhw.js reaches it for `mhw hook prompt`, and the
-// admin layer (global/install-managed.sh, ADR-0025) runs its root-owned copy directly:
+// admin layer (mhw install-admin, global/install-managed.sh until #496; ADR-0025) runs its root-owned copy directly:
 //   node hook-entry.js --harness claude|codex|kiro [--config FILE]
 // It imports nothing but node: modules statically. The hook itself (hook-prompt.js and the cleaning core
 // under it) is loaded with import(), so a file that is missing, unreadable or does not parse is reported in

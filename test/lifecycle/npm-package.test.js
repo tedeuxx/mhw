@@ -337,14 +337,14 @@ test('the packed file list: what mhw needs, no Python file, nothing private (npm
   for (const needed of ['mhw', '.bumpversion.toml', '.workstation-archive', 'bin/mhw.js', 'bin/postinstall.js', 'src/cli.js', 'src/lib/toml.js',
     'npm-shrinkwrap.json', 'src/vendor/smol-toml/dist/index.js', 'src/vendor/smol-toml/LICENSE', 'src/commands/install.js', 'src/commands/update.js',
     'src/commands/uninstall.js', 'src/commands/postinstall.js', 'src/commands/lifecycle.js', 'src/lib/lifecycle.js', 'src/commands/status.js',
-    'src/commands/check.js', 'src/lib/prerequisites.js', 'src/lib/http-get.js', 'src/lib/merge-authority.js', 'src/commands/install-user.js', 'global/install-managed.sh',
+    'src/commands/check.js', 'src/lib/prerequisites.js', 'src/lib/http-get.js', 'src/lib/merge-authority.js', 'src/commands/install-user.js', 'src/commands/install-admin.js',
     'src/commands/install-windows.js', 'global/AGENTS.md', 'global/deny-floor.conf', 'global/project-policy/project-policy.schema.json', 'overlay/profile.json', 'package.json']) {
     assert.ok(names.has(needed), needed);
   }
   const all = [...names];
   assert.deepEqual(all.filter((n) => n.endsWith('.py')), [], 'the tarball carries a Python file');
   assert.deepEqual(all.filter((n) => /\.test\.(sh|ps1|stub)$/.test(n)), []);
-  for (const gone of ['workstation', 'bin/workstation.js', 'global/workstation.py', 'global/install.sh', 'global/install.test.sh', 'global/install.ps1', 'global/install.test.ps1', 'global/github-repo-settings.sh', 'global/method/plugin_retire.py', 'global/mcp/mcp_retire.py']) {
+  for (const gone of ['workstation', 'bin/workstation.js', 'global/workstation.py', 'global/install.sh', 'global/install.test.sh', 'global/install.ps1', 'global/install.test.ps1', 'global/install-managed.sh', 'global/github-repo-settings.sh', 'global/method/plugin_retire.py', 'global/mcp/mcp_retire.py']) {
     assert.ok(!names.has(gone), gone);
   }
   assert.deepEqual(all.filter((n) => /^(docs|workspace|\.github|\.git|test|node_modules)\//.test(n)), []);
@@ -431,7 +431,7 @@ test('a refused install says what to fix (Issue #110, #113)', { skip: npmSkip },
   fs.writeFileSync(foreign, "the owner's own brief, not managed by this project\n");
   let p = npm(d, env, 'install', '-g', '--offline', '--foreground-scripts', tarball());
   assert.equal(p.status, 0, p.stdout + p.stderr);
-  assert.ok(fs.existsSync(path.join(d, 'prefix', 'lib', 'node_modules', 'mhw', 'global', 'install-managed.sh')));
+  assert.ok(fs.existsSync(path.join(d, 'prefix', 'lib', 'node_modules', 'mhw', 'src', 'commands', 'install-admin.js')));
   p = mhw(d, env, 'install', '--yes', '--no-admin');
   assert.equal(p.status, 1, p.stdout + p.stderr);
   assert.match(p.stdout, /^ {4}REFUSE {2}.*CLAUDE\.md: exists and is NOT managed/m);

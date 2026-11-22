@@ -1047,13 +1047,14 @@ test('16. --check reports which layer carries the deny floor; the report never c
   assert.equal(r.code, 0);
   assert.match(r.out, new RegExp('^FLOOR {3}Claude Code: user layer ' + FLOOR_RULES + '/' + FLOOR_RULES + ' rules; admin layer 0/' + FLOOR_RULES + ' rules', 'm'));
   assert.match(r.out, /^FLOOR {3}carried by: the user layer only/m);
-  const mgr = path.join(ROOT, 'global', 'install-managed.sh');
+  // The admin layer by its installer, `mhw install-admin` (global/install-managed.sh until #496), under the throwaway root.
+  const mgr = [path.join(ROOT, 'bin', 'mhw.js'), 'install-admin'];
   const tmp = dir('tmp-mgr');
-  const render = spawnSync('/bin/sh', [mgr, '--root=' + mr], { encoding: 'utf8', env: { PATH: process.env.PATH || '', HOME: hf, TMPDIR: tmp, LANG: 'C' } });
+  const render = spawnSync(process.execPath, [...mgr, '--root=' + mr], { encoding: 'utf8', env: { PATH: process.env.PATH || '', HOME: hf, TMPDIR: tmp, LANG: 'C' } });
   const line = (render.stdout + render.stderr).split('\n').find((l) => l.startsWith('RUN     ')) ?? '';
   const stage = /--apply="([^"]*)"/.exec(line)?.[1];
   const sha = /--sha256=([0-9a-f]*)/.exec(line)?.[1];
-  const apply = spawnSync('/bin/sh', [mgr, '--apply=' + stage, '--sha256=' + sha, '--root=' + mr], { encoding: 'utf8', env: { PATH: process.env.PATH || '', TMPDIR: tmp, LANG: 'C' } });
+  const apply = spawnSync(process.execPath, [...mgr, '--apply=' + stage, '--sha256=' + sha, '--root=' + mr], { encoding: 'utf8', env: { PATH: process.env.PATH || '', TMPDIR: tmp, LANG: 'C' } });
   assert.equal(apply.status, 0, apply.stdout + apply.stderr);
   r = inst(hf, ['--check', '--managed-root=' + mr]);
   assert.equal(r.code, 0);

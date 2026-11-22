@@ -11,7 +11,7 @@
 //
 // Read-only. It runs `mhw install-user --check` on this node (global/install.sh until #503; its lines go
 // straight to this process's stdout and stderr) and, when an admin layer of ours is on disk,
-// global/install-managed.sh --check, under /bin/sh, and names
+// `mhw install-admin --check` on this node (global/install-managed.sh until #496), and names
 // what differs there. The validated --overlay reaches the installers and the prerequisites through
 // WORKSTATION_OVERLAY, never their argv. The exit code is the largest of the sections'. macOS and Linux;
 // on Windows `mhw check` is `mhw install-windows --check` (src/cli.js, #497). node: modules only.
@@ -37,11 +37,15 @@ export function userCheck(extra, env) {
   return [process.execPath, args];
 }
 
-/** The installers' argv: the script, its flags, and the managed root when one is set. @param {string} script @param {string[]} extra @param {string} flag @param {Env} env */
-export function installer(script, extra, flag, env) {
-  const args = [path.join(ROOT, 'global', script), ...extra];
-  if (managedRoot(env)) args.push(flag + managedRoot(env));
-  return args;
+/**
+ * `mhw install-admin`'s argv on this node (#496; global/install-managed.sh until then): [node, args].
+ * @param {string[]} extra @param {Env} env
+ * @returns {[string, string[]]}
+ */
+export function adminCheck(extra, env) {
+  const args = [path.join(ROOT, 'bin', 'mhw.js'), 'install-admin', ...extra];
+  if (managedRoot(env)) args.push('--root=' + managedRoot(env));
+  return [process.execPath, args];
 }
 
 /**
@@ -92,7 +96,7 @@ export function check(o, env, cwd, out) {
     code = r.error ? 2 : r.code;
     if (adminPresent(env)) {
       // Every admin layer of ours, stamped or from an earlier release (Issue #52), read-only.
-      const [acode, alines] = runLines('/bin/sh', installer('install-managed.sh', ['--check'], '--root=', env), env);
+      const [acode, alines] = runLines(...adminCheck(['--check'], env), env);
       const W = words();
       for (const l of [...alines, ...adminReport(alines, acode, 'ADMIN   ', { source: W.source, next: W.adminNext })]) out(l);
       code = Math.max(code, acode);
