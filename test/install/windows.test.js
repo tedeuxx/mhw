@@ -199,6 +199,7 @@ test('2c. a CRLF checkout (core.autocrlf=true) renders the LF brief, on every OS
     fs.writeFileSync(path.join(tree, 'global', f), readLF(path.join(ROOT, 'global', f)).toString('latin1').replaceAll('\n', '\r\n'), 'latin1');
   }
   const h = profile('crlf');
+  /** @type {Record<string, string | undefined>} */
   const env = { ...process.env, USERPROFILE: h, HOME: h };
   for (const k of ['CODEX_HOME', 'XDG_DATA_HOME', 'MHW_NODE']) delete env[k];
   const p = spawnSync(process.execPath, [path.join(tree, 'bin', 'mhw.js'), 'install-windows', '--overlay=none'], { env, encoding: 'utf8' });
