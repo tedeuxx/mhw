@@ -472,6 +472,46 @@ describe('the reader-facing lens before the gate', () => {
   });
 });
 
+// Issue #439: the head the builder reported is the head under review, and nothing it started is still running.
+// Drift checks over STRINGS, at the *written* level: they assert the rule is carried, never that a session followed it.
+const HEAD_CHECK_HEADING = 'Before the gate: the head the builder reported is the head under review';
+const HEAD_CHECK_CLAUSES = [
+  "**Do not dispatch `quality-assurance` until the builder's reported head is the pull request's current head.**",
+  'declares that no background process it started is still running',
+  '**They differ, or the report names no head: do not dispatch the gate.**',
+  '**The report does not declare that nothing it started is still running: do not dispatch the gate.**',
+  'The SHA-pinned verdict and merge are unchanged',
+];
+const BUILDER_CLAUSE = '**Your report of done names the full forty-character head your work is on, and declares that no background process you started is still running** (mhw#439).';
+const BUILDER_BRIEFS = ['agents/developer.md', 'agents/content-writer.md'];
+
+describe('the builder reports a head and nothing running', () => {
+  test('the skill carries the head check before the gate', () => {
+    const section = orchestrationSection('Review is routed by type');
+    assert.ok(section.includes('### ' + HEAD_CHECK_HEADING + ' (#439)'));
+    for (const clause of HEAD_CHECK_CLAUSES) assert.ok(section.includes(clause), clause);
+  });
+  test('every builder brief requires the head and the nothing-running declaration', () => {
+    for (const rel of BUILDER_BRIEFS) assert.ok(liveText(src(rel)).includes(BUILDER_CLAUSE), rel);
+  });
+  test('the rule reaches every agent harness carrier of the skill and of each builder brief', () => {
+    const home = methodHome();
+    const r = home.run(['--mode=install']);
+    assert.equal(r.code, 0, r.out);
+    for (const [harness, [skill]] of Object.entries(preGateCarriers(home))) {
+      for (const clause of HEAD_CHECK_CLAUSES) assert.ok(skill.includes(clause), harness + ': ' + clause);
+    }
+    for (const name of ['developer', 'content-writer']) {
+      for (const [harness, rel] of [['claude-code', '.claude/agents/' + name + '.md'], ['codex', '.codex/agents/' + name + '.toml'], ['kiro', '.kiro/agents/' + name + '.json']]) {
+        let text = read(home.p(rel));
+        if (rel.endsWith('.toml')) text = parseToml(text).developer_instructions;
+        else if (rel.endsWith('.json')) text = JSON.parse(text).prompt;
+        assert.ok(flatten(text).includes(BUILDER_CLAUSE), harness + ' ' + name);
+      }
+    }
+  });
+});
+
 describe('render', () => {
   /** @type {import('../helpers/method-home.js').Home} */
   let h;

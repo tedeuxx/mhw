@@ -100,6 +100,24 @@ forgotten five times in one session, which is why the relay moved into the gate.
 back to the orchestrator and earlier; a forgotten relay now costs one gate round, not, as before
 2026-08-04, a silently unverified criterion.
 
+### Before the gate: the head the builder reported is the head under review (#439)
+
+**Do not dispatch `quality-assurance` until the builder's reported head is the pull request's current
+head.** A builder's report of done names the full forty-character head its work is on, and declares that no
+background process it started is still running (the `developer` and `content-writer` briefs require both).
+
+1. **Read the pull request's current head** with `gh pr view <n> --json headRefOid` (or the REST
+   `pulls/<n>` route where GraphQL is unavailable) and compare it with the head in the report.
+2. **They differ, or the report names no head: do not dispatch the gate.** Ask the builder what moved,
+   or read the commits between the two heads, and start the pre-gate phase again at the current head.
+3. **The report does not declare that nothing it started is still running: do not dispatch the gate.**
+   A process left running can push again after the verdict, and the review was then spent on a head
+   that no longer exists.
+
+**What holds this, at its real level: an instruction.** Nothing checks the report or the comparison.
+The SHA-pinned verdict and merge are unchanged, and they stay the backstop: a moved head still makes
+the merge refuse; this step only stops a review round being spent on it.
+
 ## The loop-mode contract
 
 The **record** of which mode is in force is `docs/loop-mode.md` in each repository. It carries the
@@ -199,4 +217,4 @@ read. Other phrasings pass. It also asserts that the sentence on reporting a `co
 published is in *How to ask the owner*, and that `content-publishing` steps 9 and 10 carry the
 definition and the order (mhw#238). It also pins the clauses of *Before the gate* here, the matching
 clauses in `autonomy`, `quality-assurance` and `product-lead`, and the rendered skill in the Claude
-Code, Codex and Kiro carriers (mhw#197). It asserts the rules are *written*, never that a session followed them.
+Code, Codex and Kiro carriers (mhw#197). It pins the clauses of *the head the builder reported* and the matching clause in each builder brief (mhw#439). It asserts the rules are *written*, never that a session followed them.
