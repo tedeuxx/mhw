@@ -250,6 +250,6 @@ Run on `rc/next` at `37937f8b2af5397068ed6d26e0daff78335c1ba5`:
   rows were corrected.)
 - `gh milestone --help` prints `unknown command "milestone" for "gh"`.
 - `global/deny-floor.conf` lists `gh api -X POST|PUT|PATCH|DELETE` and the `--method` forms.
-- `global/install.sh` registers the paste filter as a Claude Code `UserPromptSubmit` entry and in the
+- `mhw install-user` (~~`global/install.sh`~~ until #503) registers the paste filter as a Claude Code `UserPromptSubmit` entry and in the
   Codex `hooks.json`.
 - ~~`global/method/method_render.py`~~ `src/render/method.js` (#489) replaces `{{method-scripts}}` with the installed scripts directory.

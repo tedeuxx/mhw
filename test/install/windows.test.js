@@ -291,7 +291,11 @@ test('6. the merge into an existing settings file keeps everything else; the bac
 });
 
 test('8 and 10. a settings file that is not a JSON object, or whose deny is not a list, is refused and left untouched', () => {
-  for (const [label, text] of [['badjson', '{ "model": \n'], ['badperms', '{ "permissions": { "deny": "Bash(rm -rf:*)" } }']]) {
+  const rows = [['badjson', '{ "model": \n'], ['badperms', '{ "permissions": { "deny": "Bash(rm -rf:*)" } }'],
+    // A permissions section that is not an object (PR #547 QA B1): a list, a string, a number, null.
+    ['perms-list', '{ "permissions": [] }'], ['perms-string', '{ "permissions": "x" }'], ['perms-number', '{ "permissions": 1 }'],
+    ['perms-null', '{ "permissions": null }'], ['top-list', '[]'], ['deny-object', '{ "permissions": { "deny": {} } }']];
+  for (const [label, text] of rows) {
     const h = profile(label);
     fs.mkdirSync(path.join(h, '.claude'));
     const sf = path.join(h, '.claude', 'settings.json');
@@ -302,6 +306,33 @@ test('8 and 10. a settings file that is not a JSON object, or whose deny is not 
     assert.match(r.err, /^REFUSE {2}.*settings\.json: /m);
     assert.equal(sha(sf), before, label);
   }
+});
+
+test('8b. a backup that cannot be made is a REFUSE that says what to do; the file is untouched and the later steps run', () => {
+  const h = profile('backup-refused');
+  fs.mkdirSync(path.join(h, '.claude'));
+  const sf = path.join(h, '.claude', 'settings.json');
+  fs.writeFileSync(sf, '{ "model": "mine" }');
+  // A directory where the backup goes: privateCopy cannot unlink it, so no backup can be written.
+  fs.mkdirSync(sf + '.pmhwc-backup');
+  const before = sha(sf);
+  const r = run(h, ['--overlay=none']);
+  assert.equal(r.code, 3, r.out.join('\n') + r.err);
+  assert.match(r.err, /^REFUSE {2}.*settings\.json: left untouched, because its backup could not be made readable by you alone \(.*\)\. Check who can read .*, then run mhw install again$/m);
+  assert.equal(sha(sf), before);
+  assert.ok(r.out.some((l) => /^MERGED {2}.*permissions\.yaml/.test(l)), 'the Kiro floor still ran');
+  assert.ok(r.out.some((l) => l.startsWith('NOTE ')), 'the later steps ran');
+});
+
+test('14b. when every allow entry is retired, the allow key goes, and the rest of permissions stays', () => {
+  const h = profile('allow-all-retired');
+  fs.mkdirSync(path.join(h, '.claude'));
+  const sf = path.join(h, '.claude', 'settings.json');
+  fs.writeFileSync(sf, '{ "permissions": { "allow": [ "Bash(find:*)", "Bash(awk *)" ] } }');
+  assert.equal(run(h, ['--overlay=none']).code, 0);
+  const s = settings(h);
+  assert.ok(!('allow' in s.permissions), JSON.stringify(Object.keys(s.permissions)));
+  assert.ok(s.permissions.deny.length > 0);
 });
 
 test('9. --overlay=none renders the generic policy only', () => {

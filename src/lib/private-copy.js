@@ -32,38 +32,65 @@ function ownerOnlyAcl(file, env) {
   const icacls = path.join(sys32, 'icacls.exe');
   const who = runAbsolute(path.join(sys32, 'whoami.exe'), ['/user', '/fo', 'csv', '/nh']);
   const fields = who.stdout.trim().split('","').map((f) => f.replaceAll('"', '').trim());
-  const sid = fields[fields.length - 1] || '';
-  const me = (fields.length > 1 ? fields[0] : '').toLowerCase();
-  if (who.code !== 0 || !sid.startsWith('S-1-') || !me) throw new Error("cannot read the current user's SID");
+  const sid = fields.length > 1 ? fields[fields.length - 1] : '';
+  const me = fields.length > 1 ? fields[0].toLowerCase() : '';
+  if (who.code !== 0 || !/^S-1-[0-9-]+$/.test(sid)) throw new Error("cannot read the current user's SID");
   const acl = runAbsolute(icacls, [file, '/inheritance:r', '/grant:r', '*' + sid + ':F']);
   if (acl.code !== 0) throw new Error('icacls exited ' + acl.code);
   // #497: removing inheritance leaves any entry that is not inherited. A file created where the directory
   // passes nothing down gets the process's default access list (SYSTEM, Administrators, the user) as entries
-  // of its own (measured on the Windows runner, in the user's temporary directory), so every entry but the
-  // user's is removed by the name icacls itself prints, and the result is read back: one entry, the user's.
-  const others = aces(icacls, file).filter((a) => a.name.toLowerCase() !== me);
+  // of its own (measured on the Windows runner, in the user's temporary directory). Every entry whose printed
+  // name is not the user's is removed, grant and deny alike, by that name (a best effort: icacls prints names
+  // only); the decision is then made by SID, on the access list icacls /save writes as SDDL.
+  const others = names(icacls, file).filter((n) => n.toLowerCase() !== me);
   if (others.length) {
-    const rm = runAbsolute(icacls, [file, '/remove:g', ...others.map((a) => a.name)]);
+    const rm = runAbsolute(icacls, [file, '/remove', ...others]);
     if (rm.code !== 0) throw new Error('icacls /remove exited ' + rm.code);
   }
-  const left = aces(icacls, file);
-  if (left.length !== 1 || left[0].name.toLowerCase() !== me || left[0].inherited) {
-    throw new Error('the access list is not the current user alone (' + left.length + ' entries)');
-  }
+  const left = dacl(icacls, file);
+  const own = left.length === 1 && left[0].type === 'A' && !left[0].flags.includes('ID') && left[0].sid.toUpperCase() === sid.toUpperCase();
+  if (!own) throw new Error('the access list is not the current user alone (' + left.length + ' entries)');
 }
 
 /**
- * The access entries icacls prints for one file: the account name, and whether it is inherited.
+ * The account names icacls prints for one file's access entries.
  * @param {string} icacls @param {string} file
- * @returns {Array<{ name: string, inherited: boolean }>}
+ * @returns {string[]}
  */
-function aces(icacls, file) {
+function names(icacls, file) {
   const r = runAbsolute(icacls, [file]);
   if (r.code !== 0) throw new Error('icacls exited ' + r.code);
   return r.stdout.split(/\r?\n/)
     .map((l) => (l.startsWith(file) ? l.slice(file.length) : l).trim())
     .filter((l) => l.includes(':('))
-    .map((l) => ({ name: l.slice(0, l.indexOf(':(')), inherited: l.includes('(I)') }));
+    .map((l) => l.slice(0, l.indexOf(':(')));
+}
+
+/**
+ * One file's discretionary access list, read by SID: icacls /save writes the file's name and its
+ * security descriptor as SDDL (UTF-16LE) into a file of its own, in a directory made for it and removed.
+ * @param {string} icacls @param {string} file
+ * @returns {Array<{ type: string, flags: string, sid: string }>}
+ */
+export function dacl(icacls, file) {
+  const dir = fs.mkdtempSync(path.join(path.dirname(file), '.pmhwc-acl-'));
+  try {
+    const out = path.join(dir, 'acl');
+    const r = runAbsolute(icacls, [file, '/save', out]);
+    if (r.code !== 0) throw new Error('icacls /save exited ' + r.code);
+    const raw = fs.readFileSync(out);
+    const utf16 = (raw[0] === 0xff && raw[1] === 0xfe) || (raw.length > 1 && raw[1] === 0);
+    const text = raw.toString(utf16 ? 'utf16le' : 'utf8').replace(/^\uFEFF/, '');
+    const sddl = text.split(/\r?\n/).find((l) => l.startsWith('D:')) || '';
+    const d = sddl.slice(sddl.indexOf('D:') + 2);
+    const body = d.includes('S:') ? d.slice(0, d.indexOf('S:')) : d;
+    return [...body.matchAll(/\(([^()]*)\)/g)].map((m) => {
+      const f = m[1].split(';');
+      return { type: f[0] || '', flags: f[1] || '', sid: f[5] || '' };
+    });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 /**

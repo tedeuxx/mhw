@@ -340,6 +340,25 @@ function readObject(p) {
 /** The JSON a settings file is written as: two-space indent, LF, a final newline. @param {unknown} v */
 const serialize = (v) => JSON.stringify(v, null, 2) + '\n';
 
+/**
+ * An owner-only backup beside a file before it is rewritten. When the backup cannot be made owner-only the
+ * file is REFUSED and left as it was (exit 3) and the later steps still run (#497; install.ps1's
+ * Copy-Private stopped the whole run with exit 1). The line says what to do.
+ * @param {Ctx} ctx @param {string} src @param {string} dst
+ */
+function backup(ctx, src, dst) {
+  try {
+    privateCopy(src, dst, { env: ctx.env });
+    return true;
+  } catch (e) {
+    warn(ctx, 'REFUSE  ' + src + ': left untouched, because its backup could not be made readable by you alone ('
+      + (e instanceof Error ? e.message : String(e)) + '). Check who can read ' + path.dirname(src)
+      + ' (icacls "' + path.dirname(src) + '"), then run mhw install again');
+    raise(ctx, 3);
+    return false;
+  }
+}
+
 /** Set a key as the last of its object (Add-Member -Force). @param {Record<string, unknown>} o @param {string} k @param {unknown} v */
 function setLast(o, k, v) {
   delete o[k];
@@ -406,7 +425,7 @@ export function mergeDenyFloor(ctx, settings) {
     setLast(/** @type {Record<string, unknown>} */ (obj.permissions), 'deny', [...existing, ...missing]);
     setLast(obj, STAMP_KEY, want);
     fs.mkdirSync(path.dirname(settings), { recursive: true });
-    if (there) privateCopy(settings, settings + '.pmhwc-backup', { env: ctx.env });
+    if (there && !backup(ctx, settings, settings + '.pmhwc-backup')) return;
     replace(settings, serialize(obj));
     say(ctx, 'MERGED  ' + settings);
   }
@@ -438,20 +457,20 @@ export function removeRetiredAllow(ctx, settings) {
     return;
   }
   const what = hits.map((h) => h + ' present -> absent').join('; ');
-  const backup = settings + '.pmhwc-allow-backup';
+  const backupFile = settings + '.pmhwc-allow-backup';
   if (ctx.mode === 'check') {
     say(ctx, 'DRIFT   ' + settings + ': install would change permissions.allow ' + what + ' (retired, ADR-0035 decision 4)');
     raise(ctx, 1);
   } else if (ctx.mode === 'dry-run') {
-    say(ctx, 'WOULD CHANGE ' + settings + ': permissions.allow ' + what + ' (backup ' + backup + ')');
+    say(ctx, 'WOULD CHANGE ' + settings + ': permissions.allow ' + what + ' (backup ' + backupFile + ')');
   } else {
     const keep = allow.filter((x) => !isRetired(x));
     if (keep.length === 0) delete perms.allow;
     else setLast(perms, 'allow', keep);
     if (Object.keys(perms).length === 0) delete obj.permissions;
-    privateCopy(settings, backup, { env: ctx.env });
+    if (!backup(ctx, settings, backupFile)) return;
     replace(settings, serialize(obj));
-    say(ctx, 'CHANGED ' + settings + ': permissions.allow ' + what + ' (retired, ADR-0035 decision 4; previous file kept as ' + backup + ')');
+    say(ctx, 'CHANGED ' + settings + ': permissions.allow ' + what + ' (retired, ADR-0035 decision 4; previous file kept as ' + backupFile + ')');
   }
 }
 

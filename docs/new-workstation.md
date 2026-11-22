@@ -43,7 +43,7 @@ node /path/to/repository/bin/mhw.js profile render --source profile.json --outpu
 
 Paths above are placeholders (after an npm install, `mhw profile` is the same command). On Windows, use
 your chosen Windows paths.
-Pass the generated directory with `--overlay=PATH` or `-Overlay PATH` for preview, apply and check.
+Pass the generated directory with `--overlay=PATH` (on Windows too since #497; ~~`-Overlay PATH`~~ was install.ps1's) for preview, apply and check.
 The repository's `overlay/` is the reference owner's profile, not a universal default for every adopter.
 Hand-authored overlays remain supported; the compiler refuses to overwrite their unmarked files.
 Both installers verify structured profiles before writing. If you edit `profile.json`, regenerate
