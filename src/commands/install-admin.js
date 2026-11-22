@@ -583,7 +583,7 @@ function applyMode(ctx, stage, sha) {
       warn(ctx, 'REFUSE  ' + t.kiro + ' exists and is NOT managed by this project');
       return 3;
     }
-    const old = process.umask(0o022);
+    const old = process.umask(0o022); // NOSONAR javascript:S2612 - the admin layer is root-owned and must be readable by every harness the owner runs; only root writes it (ADR-0025)
     try {
       install(ctx, work);
     } finally {
@@ -604,8 +604,8 @@ function install(ctx, work) {
     if (!ctx.root) fs.chownSync(p, 0, 0);
   };
   for (const d of [t.bin, t.claudeDir, path.dirname(t.codex), path.dirname(t.kiro)]) fs.mkdirSync(d, { recursive: true });
-  fs.chmodSync(t.base, 0o755);
-  fs.chmodSync(t.bin, 0o755);
+  fs.chmodSync(t.base, 0o755); // NOSONAR javascript:S2612 - the admin layer is root-owned and must be readable by every harness the owner runs; only root writes it (ADR-0025)
+  fs.chmodSync(t.bin, 0o755); // NOSONAR javascript:S2612 - the admin layer is root-owned and must be readable by every harness the owner runs; only root writes it (ADR-0025)
   /** put(): atomic replace, root-owned on a real run. @param {string} from @param {string} to @param {number} mode */
   const put = (from, to, mode) => {
     const tmp = to + '.new.' + process.pid;
@@ -619,7 +619,7 @@ function install(ctx, work) {
   for (const f of FILES) {
     const d = path.dirname(t.bin + '/' + f);
     fs.mkdirSync(d, { recursive: true });
-    fs.chmodSync(d, 0o755);
+    fs.chmodSync(d, 0o755); // NOSONAR javascript:S2612 - the admin layer is root-owned and must be readable by every harness the owner runs; only root writes it (ADR-0025)
     own(d);
     put(path.join(work, 'bin', f), t.bin + '/' + f, 0o644);
   }
