@@ -30,8 +30,10 @@ Windows installs no hook and no admin file.
 
 ## Turn every hook off
 
-1. In the repository checkout, as yourself: `sh global/install-managed.sh --uninstall`. It prints one
-   line, `sudo /bin/sh "<checkout>/global/install-managed.sh" --remove`. Run it in your own terminal.
+1. In the repository checkout, as yourself: `./mhw install-admin --uninstall` (`mhw install-admin` from an
+   npm install; it was `global/install-managed.sh` until #496). It prints one line,
+   `sudo "<node>" "<checkout>/bin/mhw.js" install-admin --remove`. Run it in your own terminal. It needs the
+   node that runs mhw; when no node runs, delete the documents listed above as root instead.
 2. This also removes the **admin copy of the deny floor**, which lives in the same documents, plus
    Kiro's `managed-settings.json`, which carries only the floor. The
    user-level copy stays when the user-layer installer installed it; check with `./mhw install-user --check
@@ -55,7 +57,7 @@ Then, as yourself:
 
 - Check the JSON still parses: `/usr/bin/python3 -m json.tool "<drop-in path>"`. A malformed managed
   document can stop the agent harness from loading managed settings.
-- `sh global/install-managed.sh --check` now reports `DRIFT` for the edited document. That is the
+- `./mhw install-admin --check` now reports `DRIFT` for the edited document. That is the
   visible record that a layer is off.
 - Open fresh sessions. The Claude Code drop-in is documented to reload when the file changes; that is
   not measured here, so do not rely on it.
@@ -63,7 +65,7 @@ Then, as yourself:
 ## Turn hooks back on
 
 `./mhw install --admin` renders a fresh stage and prints one line:
-`sudo /bin/sh "<checkout>/global/install-managed.sh" --apply="<stage>" --sha256=<hash>`. Run it in your
+`sudo "<node>" "<checkout>/bin/mhw.js" install-admin --apply="<stage>" --sha256=<hash>`. Run it in your
 own terminal, then `./mhw install` as yourself (it detects the admin layer and keeps the hooks
 there), then open fresh sessions. Use a merged, released commit: the line runs the checked-out
 installer as root. `./mhw status` then shows `managed: installed`.
@@ -74,13 +76,13 @@ In a fresh session, from the merged, released commit, running steps 1 to 3 in yo
 Until step 1 lands, the old restart guard is still loaded: any agent session open during the
 install may deny acting tools once the admin files change. That is expected; end it and use step 4.
 
-1. `sh global/install-managed.sh`, then run the printed `sudo … --apply=… --sha256=…` line yourself.
+1. `./mhw install-admin`, then run the printed `sudo … --apply=… --sha256=…` line yourself.
    It rewrites the admin documents without the restart guard and deletes `restart_guard.py`,
    `breaking_glass.py` and the `breaking-glass/` switch directory from the admin layer.
 2. `./mhw install-user --hooks=managed` as yourself. It deletes the user-level `restart_guard.py`,
    `breaking_glass.py`, `~/.claude/commands/breaking-glass.md` and the guard's `restart-state/`
    baselines, and drops any restart-guard hook entry left in the user settings.
-3. `sh global/install-managed.sh --check` and `./mhw install-user --check --hooks=managed` both
+3. `./mhw install-admin --check` and `./mhw install-user --check --hooks=managed` both
    exit 0.
 4. Open fresh Claude Code and Codex sessions. Codex may ask you to trust the paste hook again in
    `/hooks` if it ran from the user level before; whether a rewritten `hooks.json` triggers that is not
@@ -106,10 +108,10 @@ The marker logic lives in the core both layers run. Until the admin copy is repl
 keeps blocking wrapped sessions too (the stricter behaviour, measured). In a fresh session, from the
 merged, released commit, in your own terminal:
 
-1. `sh global/install-managed.sh`, then run the printed `sudo … --apply=… --sha256=…` line yourself.
+1. `./mhw install-admin`, then run the printed `sudo … --apply=… --sha256=…` line yourself.
 2. `./mhw install-user --hooks=managed` as yourself. Optionally add `--shell-rc="$HOME/.zshrc"` to
    append the wrapper's start-up line, or add the printed line yourself.
-3. `sh global/install-managed.sh --check` and `./mhw install-user --check --hooks=managed` both exit 0.
+3. `./mhw install-admin --check` and `./mhw install-user --check --hooks=managed` both exit 0.
 4. Open fresh Claude Code and Codex sessions, then two canaries with a synthetic credential:
    outside the wrapper (`command claude`) the prompt is **blocked**; inside the wrapper a **pasted**
    credential arrives as `[REDACTED:credential]` and nothing blocks.

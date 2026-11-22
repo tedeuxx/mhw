@@ -3,9 +3,9 @@
 // three guards is run here, out of process, in throwaway HOMEs and a throwaway --root, never the real ones:
 //   mhw install-user             the data directory, node and package paths (its paste_ok check;
 //                                global/install.sh until #503)
-//   global/install-managed.sh    the admin bin directory ($bin), and the node read back from the user-layer
-//                                render (reached through a stand-in bin/mhw.js, since the real installer
-//                                refuses such a node first)
+//   mhw install-admin            the admin bin directory, and the node read back from the user-layer render
+//                                (global/install-managed.sh until #496; reached through a stand-in
+//                                bin/mhw.js, since the real installer refuses such a node first)
 // Each asserts REFUSE, exit 2 and that no prompt hook is registered.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -14,11 +14,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { ROOT } from '../helpers/s15.js';
-import { which } from '../helpers/home.js';
 
 const POSIX = process.platform !== 'win32';
 const NAME = 'personal-multi-harness-workstation-configuration';
-const SKIP = (!POSIX || !which('jq')) && 'POSIX, jq';
+const SKIP = !POSIX && 'POSIX';
 /** @type {Array<() => void>} */
 const cleanups = [];
 after(() => cleanups.forEach((f) => f()));
@@ -56,11 +55,11 @@ test('mhw install-user refuses a data directory holding a single quote: REFUSE, 
   noHook(home);
 });
 
-test('install-managed.sh refuses an admin directory holding a single quote: REFUSE, exit 2, nothing staged', { skip: SKIP }, () => {
+test('mhw install-admin refuses an admin directory holding a single quote: REFUSE, exit 2, nothing staged', { skip: SKIP }, () => {
   const d = fresh();
   const root = path.join(d, "ro'ot");
   fs.mkdirSync(root);
-  const r = spawnSync('/bin/sh', [path.join(ROOT, 'global', 'install-managed.sh'), '--root=' + root],
+  const r = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'install-admin', '--root=' + root],
     { env: envFor(path.join(d, 'home'), { MHW_NODE: process.execPath }), encoding: 'utf8', timeout: 300000 });
   assert.equal(r.status, 2, r.stdout + r.stderr);
   assert.match(r.stderr, /^REFUSE {2}.*ro'ot.* holds a quote, backslash, dollar sign or backtick$/m);
@@ -68,15 +67,15 @@ test('install-managed.sh refuses an admin directory holding a single quote: REFU
   assert.deepEqual(fs.readdirSync(root), [], 'something was written under the admin root');
 });
 
-test('install-managed.sh refuses a rendered node path holding a single quote: REFUSE, exit 2, nothing staged', { skip: SKIP }, () => {
-  // A copy of install-managed.sh beside a stand-in bin/mhw.js whose `install-user` renders what the real one
-  // would, with a node whose path holds a single quote (the real one refuses that node before
-  // install-managed.sh sees it).
+test('mhw install-admin refuses a rendered node path holding a single quote: REFUSE, exit 2, nothing staged', { skip: SKIP }, () => {
+  // A copy of src/ beside a stand-in bin/mhw.js whose `install-user` renders what the real one would, with a
+  // node whose path holds a single quote (the real one refuses that node before install-admin sees it). The
+  // copied src/commands/install-admin.js is run as the program, so it runs the stand-in as its install-user.
   const d = fresh();
   const tree = path.join(d, 'tree');
-  fs.mkdirSync(path.join(tree, 'global'), { recursive: true });
-  fs.copyFileSync(path.join(ROOT, 'global', 'install-managed.sh'), path.join(tree, 'global', 'install-managed.sh'));
-  fs.symlinkSync(path.join(ROOT, 'src'), path.join(tree, 'src'));
+  fs.mkdirSync(tree);
+  fs.cpSync(path.join(ROOT, 'src'), path.join(tree, 'src'), { recursive: true });
+  fs.copyFileSync(path.join(ROOT, 'package.json'), path.join(tree, 'package.json'));
   const node = path.join(d, "no'de");
   const cmd = "/bin/sh -c '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \"" + node
     + "\" \"/x/bin/mhw.js\" hook prompt --harness claude --config \"/x/clipboard.conf\" || exit 0'";
@@ -95,7 +94,7 @@ test('install-managed.sh refuses a rendered node path holding a single quote: RE
   ].join('\n'));
   const root = path.join(d, 'root');
   fs.mkdirSync(root);
-  const r = spawnSync('/bin/sh', [path.join(tree, 'global', 'install-managed.sh'), '--root=' + root],
+  const r = spawnSync(process.execPath, [path.join(tree, 'src', 'commands', 'install-admin.js'), '--root=' + root],
     { env: envFor(path.join(d, 'home'), { MHW_NODE: process.execPath }), encoding: 'utf8', timeout: 300000 });
   assert.equal(r.status, 2, r.stdout + r.stderr);
   assert.match(r.stderr, /^REFUSE {2}the node path holds a quote, backslash, dollar sign or backtick$/m);

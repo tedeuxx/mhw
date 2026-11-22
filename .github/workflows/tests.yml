@@ -31,10 +31,15 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
-      - name: shellcheck (preinstalled on the runner image)
+      # #496 (S26 of #470) deleted global/install-managed.sh, the last tracked shell script: the step checks
+      # every tracked *.sh, so a new one is linted, and says so when there is none.
+      - name: shellcheck every tracked shell script (preinstalled on the runner image)
         run: |
           shellcheck --version
-          shellcheck -s sh global/install-managed.sh
+          files=$(git ls-files '*.sh')
+          if [ -z "$files" ]; then echo "no tracked shell script (#496 deleted the last one)"; exit 0; fi
+          # shellcheck disable=SC2086
+          shellcheck -s sh $files
       # A workflow that is not valid YAML never loads: GitHub reports a "workflow file issue" on push
       # and no job runs, so nothing else in this file would notice (PR #141). Ruby and its bundled
       # YAML parser (Psych) are preinstalled on the runner image; nothing is fetched.
@@ -508,6 +513,31 @@ jobs:
           fi
           echo "$out" | grep -E "^ *ok [0-9]+ - live: install.sh at the base revision" | grep -vq SKIP
 
+      # #496 (S26 of #470): the live arm of test/install/admin-golden.test.js runs the base revision's
+      # global/install-managed.sh beside this tree's `mhw install-admin` on every scenario (render, check,
+      # apply, uninstall, remove), in throwaway HOMEs and admin roots (--root, never a system path, never root),
+      # on frozen inputs. MHW_S26_LIVE_REQUIRED=1 is the requirement: while the base still holds
+      # global/install-managed.sh the live line must be reported and not as SKIP; once it does not (this slice
+      # has merged), the step says the arm retired and passes, as the S14 step does (#534). A missing base
+      # fails. The original is shell, with /usr/bin/python3 and jq, both on the runner image, so no CPython is
+      # pinned for it. The golden arm runs in npm test on macOS and Linux.
+      - name: S26 live parity against install-managed.sh
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S26_LIVE_REQUIRED: "1"
+        run: |
+          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
+          [ -n "$base" ] || { echo "no base revision"; exit 1; }
+          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/install/admin-golden.test.js) || { echo "$out"; exit 1; }
+          echo "$out"
+          if ! git cat-file -e "$base:global/install-managed.sh" 2>/dev/null; then
+            echo "S26 live arm retired: base $base no longer holds global/install-managed.sh"
+            exit 0
+          fi
+          echo "$out" | grep -E "^ *ok [0-9]+ - live: install-managed.sh at the base revision" | grep -vq SKIP
+
   # Issue #472: the git install route of ADR-0034 (`npm install -g github:...` is a git dependency to
   # npm), through git+file:// of a commit made from this checkout, into a throwaway prefix, cache and
   # HOME. Fails on any `npm ls -g --all` problem (an UNMET DEPENDENCY among them), on an installed
@@ -614,8 +644,12 @@ jobs:
       # arms on macOS and Linux. The settings merge and the FLOOR report are Node since #491 (S20 of #470):
       # test/render/settings-merge*.test.js carries the installer suite's merge cases as node:test, in the
       # node job.
+      # #496 (S26 of #470): the admin-layer installer is `mhw install-admin` (src/commands/install-admin.js), and
+      # global/install-managed.test.sh's cases are node:test, test/install/admin.test.js, named explicitly here
+      # (every run passes a throwaway --root; never a system path, never root, ADR-0025). npm test runs it in
+      # the node job too, with the golden arm of test/install/admin-golden.test.js.
       - name: admin-layer installer suite (throwaway --root; never a system path, never root, ADR-0025)
-        run: sh global/install-managed.test.sh "$RUNNER_TEMP/managed"
+        run: node --test test/install/admin.test.js
       # Issues #57 and #67: ./mhw install, update and uninstall are Node since #495 (S24 of #470): their suites,
       # test/lifecycle/lifecycle.test.js and lifecycle-golden.test.js (throwaway HOMEs and admin roots, a pty
       # arm for the RETURN prompt), run in the node job (npm test) and its S24 live step. The status view and
@@ -723,9 +757,9 @@ jobs:
   # reference-delivery-gate.yml, nothing else of that gate). macOS: the same script, throwaway HOME.
   # #501 (S31 of #470): the canary is .github/scripts/prod-canary.js (Node; prod_canary.py and
   # prod-canary-container.sh are deleted), and it also checks that the installed package carries no .py,
-  # .sh or .ps1 file but CANARY_LEGACY, the ones a later slice still retires (S26 install-managed.sh,
-  # S27 install.ps1; S25 retired install.sh, #503). A listed file the package no longer carries is red, so each of
-  # those slices removes its name here.
+  # .sh or .ps1 file but CANARY_LEGACY, the ones a later slice still retires (S27 install.ps1; S25 retired
+  # install.sh, #503, and S26 install-managed.sh, #496). A listed file the package no longer carries is red, so
+  # each of those slices removes its name here.
   # EVIDENCE LEVEL: installed, never enforced. No agent harness session runs, so nothing here shows a
   # rule is loaded or enforced; the real /Library or /etc managed layer and the Keychain are not reached.
   prod-canary-installed-not-enforced:
@@ -745,7 +779,7 @@ jobs:
       # from registry-1.docker.io on 2026-11-18 (linux/amd64 and linux/arm64 in the index). It replaced
       # node:22-bookworm @ sha256:7702d8aa4d5910871692af4480eb3ba86f23047a6417a44d857d06c95d060d3f.
       CANARY_IMAGE: docker.io/library/node@sha256:b7087bc4d973034b30854b378ba107f9fab622b47514cb7e2592e41b8bab8d49
-      CANARY_LEGACY: global/install-managed.sh global/install.ps1
+      CANARY_LEGACY: global/install.ps1
     steps:
       # actions/checkout v6.1.0 (same pin as version-main.yml, verified with git ls-remote 2026-10-01).
       # The exact head (not the merge ref), and every tag, to find the latest published one.

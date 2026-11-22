@@ -4,11 +4,11 @@
 // with the result and numbered next steps. The installers' own lines are shown with --verbose; a problem
 // line (REFUSE, STALE, DRIFT, MISSING) and every CHANGED line are always shown.
 //
-// `mhw install-user` (src/commands/install-user.js; global/install.sh until #503) and
-// global/install-managed.sh stay the internals: this module decides their flags and summarises their
-// output, it renders nothing itself. The user layer runs on this process's own node (process.execPath)
-// and bin/mhw.js, the admin layer under /bin/sh, both by absolute path, never a program looked up on PATH. sudo (/usr/bin/sudo, by absolute path) runs only for install-managed.sh --apply or
-// --remove, after the owner confirmed in a terminal (or passed --yes), and sudo itself asks for the
+// `mhw install-user` (src/commands/install-user.js; global/install.sh until #503) and `mhw install-admin`
+// (src/commands/install-admin.js; global/install-managed.sh until #496) stay the internals: this module
+// decides their flags and summarises their output, it renders nothing itself. Both run on this process's
+// own node (process.execPath) and bin/mhw.js, by absolute path, never a program looked up on PATH. sudo
+// (/usr/bin/sudo, by absolute path) runs only for install-admin --apply or --remove, after the owner confirmed in a terminal (or passed --yes), and sudo itself asks for the
 // password: `-k` makes it ignore any cached credential. Without a terminal it is never run. Under
 // WORKSTATION_MANAGED_ROOT (tests and probes) the admin root is a directory of theirs and no sudo runs.
 // node: modules only.
@@ -33,7 +33,8 @@ export const STTY = '/bin/stty';
 export const NODE = process.execPath;
 /** This package's entry; `node MHW_JS install-user` is the user-layer installer (#503). */
 export const MHW_JS = path.join(ROOT, 'bin', 'mhw.js');
-export const INSTALL_MANAGED = path.join(ROOT, 'global', 'install-managed.sh');
+/** `node MHW_JS install-admin` is the admin-layer installer (#496); global/install-managed.sh until then. */
+export const ADMIN = [MHW_JS, 'install-admin'];
 export const FRESH = 'Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.';
 const PROBLEM = ['REFUSE', 'STALE', 'DRIFT', 'MISSING'];
 
@@ -118,9 +119,9 @@ export function installArgs(extra, env) {
   return args;
 }
 
-/** install-managed.sh's argv. @param {string[]} extra @param {Env} env */
+/** The admin-layer installer's argv (run on NODE). @param {string[]} extra @param {Env} env */
 export function managedArgs(extra, env) {
-  const args = [INSTALL_MANAGED, ...extra];
+  const args = [...ADMIN, ...extra];
   if (managedRoot(env)) args.push('--root=' + managedRoot(env));
   return args;
 }
@@ -147,13 +148,13 @@ const RENDERED = /--apply="([^"]+)" --sha256=([0-9a-f]+)/;
  * @returns {[number, string[]]}
  */
 export function adminApply(verbose, env, io, run = capture) {
-  const [code, lines] = run(SH, managedArgs([], env), env);
+  const [code, lines] = run(NODE, managedArgs([], env), env);
   show(lines.filter((l) => !l.startsWith('RUN ') && !l.startsWith('THEN')), verbose, io);
   if (code !== 0) return [code, lines];
   const runLine = lines.find((l) => l.startsWith('RUN ')) || '';
   const m = RENDERED.exec(runLine);
   if (!m) return [3, ['REFUSE  the admin stage did not render']];
-  const [exe, args] = asRoot([SH, INSTALL_MANAGED, '--apply=' + m[1], '--sha256=' + m[2]], env);
+  const [exe, args] = asRoot([NODE, ...ADMIN, '--apply=' + m[1], '--sha256=' + m[2]], env);
   const [acode, alines] = run(exe, args, env);
   show(alines.filter((l) => !l.startsWith('THEN')), verbose, io);
   return [acode, alines];

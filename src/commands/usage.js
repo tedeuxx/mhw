@@ -62,7 +62,7 @@ export const DOC = [
     'the project-brief section runs only when it is given).',
   ].join('\n'),
   [
-    'mhw install-user and global/install-managed.sh stay the internals: mhw decides their flags and',
+    'mhw install-user and mhw install-admin stay the internals: mhw decides their flags and',
     'summarises their output, it renders nothing itself. Version key (Issue #57): a project declares the',
     "workstation release range it needs in a .workstation-version file, for example \">=3.1 <4\"; status",
     'compares it with the installed provenance stamp (ADR-0029) and never fails on a mismatch.',
@@ -70,7 +70,7 @@ export const DOC = [
   [
     'Environment, tests and probes only: WORKSTATION_MANAGED_ROOT prefixes every admin-layer path.',
     'node: modules only, Node 26 or later (engines.node). Never writes outside what the installers write. sudo runs only for',
-    'install-managed.sh --apply or --remove, after the owner confirmed in a terminal (or passed --yes) and',
+    'install-admin --apply or --remove, after the owner confirmed in a terminal (or passed --yes) and',
     'sudo itself asked for the password (Issue #113).',
     '',
   ].join('\n'),

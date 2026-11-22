@@ -120,9 +120,9 @@
       "stdout"
     ],
     "base": "global/install\\.sh and global/install-managed\\.sh stay the internals|Never writes outside what install\\.sh writes\\.",
-    "head": "mhw install-user and global/install-managed\\.sh stay the internals|Never writes outside what the installers write\\.",
+    "head": "mhw install-user and mhw install-admin stay the internals|Never writes outside what the installers write\\.",
     "replace": "<the installers named in the usage text>",
-    "why": "#503 (S25 of #470) deleted global/install.sh: the usage text `mhw` prints with no argument named it as one of the two internals and as the bound on what mhw writes. The Node text names its replacement, `mhw install-user`, beside global/install-managed.sh, and says the installers. Every other word of the usage text is compared unchanged."
+    "why": "#503 (S25 of #470) deleted global/install.sh: the usage text `mhw` prints with no argument named it as one of the two internals and as the bound on what mhw writes. The Node text names its replacement, `mhw install-user`, beside global/install-managed.sh, and says the installers. Every other word of the usage text is compared unchanged. #496 (S26 of #470) then deleted global/install-managed.sh: the same sentence names `mhw install-admin`, the admin-layer installer that replaced it, as the second internal."
   },
   {
     "case": [
@@ -134,5 +134,54 @@
     "base": ", or install\\.sh --method;",
     "replace": ";",
     "why": "#503 (S25 of #470) deleted global/install.sh: the METHOD line the working-method step prints when the method is not installed named it as the second way to opt in ('./mhw install --method, or install.sh --method'), a pointer to a file that no longer exists. It now names `install --method` only. The rest of the line, and every other line, is compared unchanged."
+  },
+  {
+    "case": [
+      "installer-argv-checkout",
+      "installer-argv-package"
+    ],
+    "stream": [
+      "recorded"
+    ],
+    "base": "(?<=^|\\n)install-managed\\.sh \\[",
+    "head": "(?<=^|\\n)install-admin \\[",
+    "replace": "<the admin-layer installer> [",
+    "why": "#496 (S26 of #470) moved global/install-managed.sh to `mhw install-admin` (src/commands/install-admin.js): mhw install, update and uninstall now run the admin layer on this process's own node and bin/mhw.js, by absolute path, where they ran /bin/sh on the script. Its stand-in (test/lifecycle/stub-installers.js) logs the same line under the new name: the same arguments (--root, --apply, --sha256, --check, --remove), in the same order, and the same environment. Only the installer's name differs."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "run install\\.sh as yourself to restore the user-level ones",
+    "head": "run mhw install-user as yourself to restore the user-level ones",
+    "replace": "run <the user-layer installer> as yourself to restore the user-level ones",
+    "why": "#496 (S26 of #470): the admin layer's --remove ended with 'run install.sh as yourself to restore the user-level ones', a pointer to a file #503 had already deleted. `mhw install-admin --remove` names `mhw install-user`, the user-layer installer since #503. The rest of the line, and of every transcript, is compared unchanged."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "admin-line render"
+    ],
+    "base": "\"(?:<the sh that renders the admin stage>|/bin/sh)\",\\n +\"<INSTALL_MANAGED>\"",
+    "head": "\"<NODE>\",\\n +\"<MHW_JS>\",\\n +\"install-admin\"",
+    "replace": "\"<the admin-layer installer>\"",
+    "why": "#496 (S26 of #470) moved global/install-managed.sh to `mhw install-admin`: the owner-side render and the one root command now run this process's own node on this package's bin/mhw.js with the subcommand install-admin, by absolute path, where they ran /bin/sh on the script. The sudo call around it is unchanged: /usr/bin/sudo -k -p 'Password for %u: ', then the program, then --apply=STAGE --sha256=HEX (or --remove), then --root under WORKSTATION_MANAGED_ROOT, and no sudo at all there. The quoting of a stage path with a space is unchanged; the new form is spelled out in the golden test."
+  },
+  {
+    "case": [
+      "usage-and-refusals"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "install-managed\\.sh --apply or --remove, after the owner confirmed",
+    "head": "install-admin --apply or --remove, after the owner confirmed",
+    "replace": "<the admin-layer installer> --apply or --remove, after the owner confirmed",
+    "why": "#496 (S26 of #470): the usage text's last paragraph says sudo runs only for the admin-layer installer's --apply or --remove. It named install-managed.sh, which this slice deletes; it now names install-admin (`mhw install-admin`), which is what sudo runs. The rest of the paragraph is compared unchanged."
   }
 ]

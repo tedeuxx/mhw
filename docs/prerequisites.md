@@ -114,8 +114,12 @@ original's transcripts of these cases and more, and the Node check reproduces th
 difference, an `AGENTS.md` that is not UTF-8). Since then `node` is a required item at the `engines.node`
 floor (26). ~~`python3` stays required, because `mhw install`, `update` and `uninstall` still run
 `global/workstation.py`.~~ *Amended 2026-11-21 (#495, S24 of #470):* `mhw install`, `update` and
-`uninstall` are Node too, and `global/workstation.py` is gone. `python3` stays required, because
-`global/install-managed.sh` still runs `/usr/bin/python3` for the admin layer until S26 (#496).
+`uninstall` are Node too, and `global/workstation.py` is gone. ~~`python3` stays required, because
+`global/install-managed.sh` still runs `/usr/bin/python3` for the admin layer until S26 (#496).~~
+*Amended 2026-11-21 (#496, S26 of #470):* the admin layer is `mhw install-admin`, in Node, and runs no
+Python and no `jq`: that was the last installer to run `/usr/bin/python3`. `python3` and `jq` stay in
+`global/prerequisites.json` until S32 removes them (owner ruling «Adiar para a S32»), so their entries'
+own words, which still name `install-managed.sh`, are corrected there.
 
 ## Not covered
 

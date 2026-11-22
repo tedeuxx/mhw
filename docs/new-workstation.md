@@ -14,9 +14,10 @@ cd mhw
 
 Choose a reviewed release tag before applying configuration. Review the README's component and OS
 coverage. Git, the intended harnesses and their own subscriptions/authentication must be available;
-the policy installer does not purchase plans or sign in to accounts. The shell implementation also
-uses Python 3 for its components, and `jq` for the admin layer only (`install-managed.sh`, until #496;
-the user settings merge is Node since #491); prerequisite detection is not yet a unified guided flow.
+the policy installer does not purchase plans or sign in to accounts. Python 3 is still listed as a
+prerequisite until S32, though since #496 neither installer runs it, and none runs `jq` (the user
+settings merge is Node since #491, the admin layer since #496); prerequisite detection is not yet a
+unified guided flow.
 
 ## Preview without inheriting the reference owner's profile
 

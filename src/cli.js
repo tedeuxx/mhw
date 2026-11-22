@@ -14,7 +14,8 @@
 // `mhw docs-baseline check` and `mhw onboard` (#523), `mhw policy check` (#498, S28; on Windows too), and
 // `mhw delivery-gate` (#499, S29; on Windows too), the reference CI/CD's evidence and recovery gates, and
 // `mhw install-user` (#503, S25; macOS and Linux), the user-layer installer install, update, uninstall,
-// check and status run (it was global/install.sh).
+// check and status run (it was global/install.sh), and `mhw install-admin` (#496, S26; macOS and Linux), the
+// admin-layer installer mhw install, update, uninstall, check and status run (it was global/install-managed.sh).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // this file runs go by absolute path, never looked up on PATH. A moved command may look a program up on
 // PATH through src/lib/onpath.js (absolute entries only) and then run it by that absolute path: mhw scan
@@ -150,6 +151,10 @@ const MOVED = {
   // #503, S25: the user-layer installer, moved from global/install.sh; mhw install, update, uninstall,
   // check and status run it.
   'install-user': installUserMain,
+  // #496, S26: the admin-layer installer, moved from global/install-managed.sh. A child process, not an
+  // import: it loads the vendored TOML parser, which must stay off the import graph of `mhw hook prompt`
+  // (convention 5 of #470, test/deps-graph.test.js).
+  'install-admin': (argv, env) => exitWith(runAbsolute(process.execPath, [path.join(ROOT, 'src', 'commands', 'install-admin.js'), ...argv], { stdio: 'inherit', env })),
   // #483, S12: `mhw mcp launch`, the MCP launcher the renderer installs a copy of; #484, S13: `mhw mcp render`.
   mcp: mcpMain,
   scan: scanMain, // #486, S15: the outbound scan, on the cleaning core (src/lib/clean.js)

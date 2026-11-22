@@ -44,7 +44,7 @@ The owner runs it through mhw install, update and uninstall; this is their inter
   mhw install-user --overlay=DIR    owner overlay directory (default: <repo>/overlay); --overlay=none for none.
                                     WORKSTATION_OVERLAY=DIR|none in the environment sets the same default;
                                     an --overlay argument wins over it
-  mhw install-user --hooks=managed  the hooks run from the admin layer (install-managed.sh, ADR-0025): remove
+  mhw install-user --hooks=managed  the hooks run from the admin layer (mhw install-admin, ADR-0025): remove
                                     this project's hook entries from the user settings and its Codex hooks.json
                                     instead of writing them (default --hooks=user)
   --managed-root=DIR                read the admin layer under DIR instead of / (tests only); this step never
@@ -308,7 +308,7 @@ export function parseFloor(text) {
       if (words.slice(0, -1).some((w) => w.includes('*'))) why = 'a glob holds * only at the end of its last word';
       const last = words[words.length - 1];
       if (!why && !/^[^*]+\*$/.test(last)) why = 'a glob holds * only at the end of its last word';
-      // "Bash(<words>:*)" is the shape of a prefix rule: install-managed.sh would render it for Codex.
+      // "Bash(<words>:*)" is the shape of a prefix rule: mhw install-admin would render it for Codex.
       if (!why && last.endsWith(':*')) why = 'a glob may not end in :* (that is a cmd entry)';
     }
     if (why) {
