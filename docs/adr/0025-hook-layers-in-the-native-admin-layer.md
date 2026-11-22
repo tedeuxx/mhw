@@ -136,3 +136,12 @@ proposed, or that a part awaits ratification, are dated readings that this amend
 Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
 
 Its restart-guard and switch parts stay superseded by [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md).
+
+## Amendment 2026-11-22: the admin hook's interpreter, and the lock-in criterion (#502, [ADR-0045](0045-one-node-runtime.md), proposed)
+
+*S32 of #470.* The admin-layer prompt hook runs Node, not `/usr/bin/python3` (since #488 and #496). Its
+JavaScript is a root-owned copy; the node and libraries it names are owner-writable on a Homebrew or nvm
+install, and so are the node and the script the sudo apply line runs. The owner accepted that residual
+until the end of the migration («Aceitar agora, travar no fim», PR #536). ADR-0045 carries the acceptance
+criterion that locks it, states what is locked now and how `mhw status` reports the rest, and lists the
+options, which are the owner's to choose and are open.

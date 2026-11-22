@@ -143,9 +143,11 @@ New machine: start with [Install on another workstation](docs/new-workstation.md
 controls without inheriting the reference owner's overlay.
 
 **With npm, from GitHub by tag** ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md),
-[runbook](docs/runbooks/npm-install.md)). Nothing is published to the npm registry. You need Node.js 18
-or later and git; on macOS and Linux also Python 3.9+ (still listed as a prerequisite until S32; since
-[#496](https://github.com/tedeuxx/mhw/issues/496) no installer runs it, and none runs `jq`). The package and its command are `mhw`
+[runbook](docs/runbooks/npm-install.md)). Nothing is published to the npm registry. You need ~~Node.js 18~~
+Node.js 26 or later (the `engines.node` floor) and git, and nothing else: ~~on macOS and Linux also
+Python 3.9+~~ since [#502](https://github.com/tedeuxx/mhw/issues/502) (S32 of #470) mhw runs one runtime,
+Node, and needs no Python, PowerShell or `jq`
+([ADR-0045](docs/adr/0045-one-node-runtime.md), proposed). The package and its command are `mhw`
 (multi-harness managed workstation):
 
 ```sh
@@ -183,8 +185,8 @@ The first installable tag is the first release that carries `package.json`; olde
 `mhw` takes the same subcommands as `./mhw` below. On Windows `install`, `check` and `status` run `mhw install-windows`, in Node (~~`install.ps1`~~ until [#497](https://github.com/tedeuxx/mhw/issues/497)).
 
 **Or from a git clone**, the alternative. macOS and Linux, from the repository root (Node.js 26 or
-later and Python 3.9+ listed as a prerequisite until S32; `./mhw` is a Node file since #495, the same
-command as the npm `mhw`, and since #496 neither installer runs Python or `jq`). The
+later and git; ~~Python 3.9+ listed as a prerequisite until S32;~~ no Python since #502; `./mhw` is a Node
+file since #495, the same command as the npm `mhw`, and since #496 neither installer runs Python or `jq`). The
 same conversation as above, from the checkout
 ([runbook](docs/runbooks/deny-floor-admin-layer.md)):
 
@@ -214,7 +216,8 @@ user layer, `src/commands/install-user.js`; it was `global/install.sh` until
 [#496](https://github.com/tedeuxx/mhw/issues/496)) stay as the internals
 ([#67](https://github.com/tedeuxx/mhw/issues/67)). Each takes its script's flags and exit codes, and runs on
 the node that runs mhw. The admin layer's prompt hook names that node by absolute path; on Homebrew or nvm it
-is owner-writable, which the owner accepted until S32 (#536): `mhw install-admin` names its ownership, and
+is owner-writable, which the owner accepted (#536); its lock is open, with three options, in
+[ADR-0045](docs/adr/0045-one-node-runtime.md): `mhw install-admin` names its ownership, and
 `mhw status` flags an owner-writable one.
 The `sudo` route to turn a hook off is in the [breaking-glass runbook](docs/runbooks/breaking-glass.md).
 

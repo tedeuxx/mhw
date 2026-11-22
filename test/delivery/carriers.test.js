@@ -19,7 +19,7 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const flat = (rel) => read(rel).split(/\s+/).filter(Boolean).join(' ');
 
 test('the delivery-ci job list is read from the real tests workflow', () => {
-  assert.deepEqual(testsJobs(ROOT), ['shellcheck', 'profiles', 'suites', 'node', 'git-route', 'windows',
+  assert.deepEqual(testsJobs(ROOT), ['shellcheck', 'runtime-guard', 'profiles', 'suites', 'node', 'git-route', 'windows',
     'isolation-smoke', 'prod-canary-installed-not-enforced']);
 });
 

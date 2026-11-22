@@ -15,7 +15,7 @@ import { throwawayHome, which } from '../helpers/home.js';
 import { mcpHomes } from '../helpers/mcp-home.js';
 import * as M from '../../src/render/mcp.js';
 import { loads } from '../../src/lib/py.js';
-import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
+import { readGolden } from '../helpers/golden.js';
 import { CASES, PROJECT, put, putJson, activeHome, policyCopy, sourceDoc as baseSourceDoc } from './mcp-cases.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -26,7 +26,6 @@ const PATH_NODE = which('node');
 const RENDERED = PATH_NODE && fs.realpathSync(PATH_NODE) === fs.realpathSync(NODE) ? PATH_NODE : NODE;
 const POSIX = process.platform !== 'win32';
 const DARWIN = process.platform === 'darwin';
-const PY = POSIX ? which('python3') : null;
 const GIT = which('git');
 const STUB = path.join(ROOT, 'test', 'helpers', 'security-stub.js');
 const DRIVER = path.join(ROOT, 'test', 'helpers', 'mcp-launch-driver.js');
@@ -209,7 +208,7 @@ group('the definition', () => {
     const g = readGolden('S13', 'credential-oracle.json');
     const inputs = oracleInputs();
     // The inputs are generated here, never stored: several are token-shaped on purpose. The golden pins their digest.
-    assert.equal(g.inputs_sha256, inputsDigest(inputs), 'the oracle inputs changed: re-record with MHW_UPDATE_GOLDEN=1 on CPython 3.14.6');
+    assert.equal(g.inputs_sha256, inputsDigest(inputs), 'the oracle inputs changed: the golden is frozen (its CPython oracle was deleted by #502)');
     /** @type {Record<string, (s: string) => boolean>} */
     const fns = { url: M.urlCredential, value: M.looksLikeCredentialValue, name: M.credentialName };
     /** @type {string[]} */
@@ -222,18 +221,6 @@ group('the definition', () => {
     }
     assert.deepEqual(wrong, []);
   });
-
-  test('live: the recorded oracle is what CPython 3.14.6 answers now', (t) => {
-    const version = PY ? spawnSync(PY, ['-c', 'import platform; print(platform.python_version())'], { encoding: 'utf8' }).stdout.trim() : '';
-    if (version !== '3.14.6') {
-      t.skip('the oracle was recorded from CPython 3.14.6; python3 here is ' + (version || 'absent'));
-      return;
-    }
-    const answers = cpythonAnswers(oracleInputs());
-    if (UPDATE) writeGolden('S13', 'credential-oracle.json', { cpython: version, why: 'The answers of the patterns of the deleted global/mcp/mcp_render.py (URL_CRED_RE, VALUE_CRED_RES, CRED_RE), copied verbatim into the oracle script of test/render/mcp.test.js, on the inputs oracleInputs() generates (their digest is inputs_sha256).', inputs_sha256: inputsDigest(oracleInputs()), answers });
-    assert.deepEqual(answers, readGolden('S13', 'credential-oracle.json').answers);
-  });
-
   test('not_secret is the reviewed escape', () => {
     assert.deepEqual(M.validate({ version: 1, servers: { s: { command: 'x', env: { AUTH_MODE: 'device' }, args: ['--token-file', '/p'], not_secret: ['AUTH_MODE', '--token-file'] } } }, 'darwin'), []);
   });
@@ -1382,35 +1369,4 @@ function oracleInputs() {
     'ap\u0130_key', 'ap\u0131_key', 'to\u212aen', '\u017fecret', 'pa\u017f\u017fword', 'cooK\u0131e',
     ...gen('ACEIKNOPSTY_.-\u0130\u0131\u212a\u017f', 'name', 150, 8)];
   return { url, value, name };
-}
-
-/**
- * What the deleted mcp_render.py's own patterns answer, in the python3 on PATH. The patterns are copied
- * verbatim from global/mcp/mcp_render.py at the base revision of #484.
- * @param {{ url: string[], value: string[], name: string[] }} inputs
- */
-function cpythonAnswers(inputs) {
-  const script = String.raw`import json, re, sys
-CRED_RE = re.compile(r"(TOKEN|SECRET|PASSW(OR)?D|PASSPHRASE|PWD|API[_-]?KEY|ACCESS[_-]?KEY|PRIVATE[_-]?KEY|"
-                     r"CLIENT[_-]?KEY|CREDENTIAL|AUTH|BEARER|COOKIE|SESSION|DSN|SIGNATURE|"
-                     r"(^|[_.-])(PAT|KEY|KEYS|APIKEY|CERT)([_.-]|$))", re.I)
-URL_CRED_RE = re.compile(r"(://[^/@\s]+:[^/@\s]+@)|([?&][A-Za-z0-9_.-]*(token|key|secret|passw|auth)[A-Za-z0-9_.-]*=)", re.I)
-VALUE_CRED_RES = (
-    URL_CRED_RE,
-    re.compile(r"(authorization|proxy-authorization|x-api-key|api[-_]?key|[a-z-]*token|secret|password|cookie)"
-               r"\s*:\s*\S", re.I),
-    re.compile(r"\b(bearer|basic|token)\s+[A-Za-z0-9._~+/=-]{8,}", re.I),
-    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
-    re.compile(r"\b(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|glpat-[A-Za-z0-9_-]{16,}|"
-               r"sk-[A-Za-z0-9_-]{16,}|(sk|rk|pk)_(live|test)_[A-Za-z0-9]{10,}|xox[abposr]-[A-Za-z0-9-]{10,}|"
-               r"AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|npm_[A-Za-z0-9]{30,})"),
-)
-d = json.load(sys.stdin)
-print(json.dumps({"url": [bool(URL_CRED_RE.search(s)) for s in d["url"]],
-                  "value": [any(rx.search(s) for rx in VALUE_CRED_RES) for s in d["value"]],
-                  "name": [bool(CRED_RE.search(s)) for s in d["name"]]}))
-`;
-  const p = spawnSync(/** @type {string} */ (PY), ['-I', '-c', script], { input: JSON.stringify(inputs), encoding: 'utf8' });
-  assert.equal(p.status, 0, p.stderr);
-  return JSON.parse(p.stdout);
 }

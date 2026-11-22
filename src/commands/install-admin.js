@@ -348,7 +348,7 @@ export function render(ctx, st) {
     warn(ctx, 'REFUSE  the node path holds a quote, backslash, dollar sign or backtick');
     throw new Exit(2);
   }
-  ctx.nodeLine = 'NODE    the admin hook runs ' + nodeOwnership(hookNode) + '; the owner accepted an owner-writable node until S32 (#536)';
+  ctx.nodeLine = 'NODE    the admin hook runs ' + nodeOwnership(hookNode) + '; the owner accepted an owner-writable node (#536); its lock is open (ADR-0045, #502)';
   const nodecmd = PASTE_ENV + ' "' + hookNode + '" "' + t.bin + '/hook/src/commands/hook-entry.js"';
   const pasteClaude = pasteWrap('claude', nodecmd + ' --harness claude --config "' + t.bin + '/clipboard.conf"');
   const pasteCodex = pasteWrap('codex', nodecmd + ' --harness codex --config "' + t.bin + '/clipboard.conf"');

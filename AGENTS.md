@@ -210,7 +210,8 @@ The source of truth for every layer lives here, versioned; what is installed on 
   and the carry-forward conditions are in `workspace/README.md`; the lens's line 3, `the lens is CLOSED`,
   is this repository's contract, not the plugin's); it
   merges with a real merge commit pinned to the head; a PR into `main` from any branch other than `rc/next` is refused. This
-  route is *written* and tested against a synthetic `gh`; no real PR has exercised it yet. Never announce a release complete
+  route is *written* and tested against a synthetic `gh`; ~~no real PR has exercised it yet~~ it has merged real
+  slice PRs into `rc/next` (#513 to #529 among them), and no release candidate into `main` yet. Never announce a release complete
   until it confirms the exact head is in a merged PR covered by a successful version workflow and a
   published newer numeric SemVer release. Report a blocker instead of calling local commits a
   delivery.

@@ -1,0 +1,29 @@
+{
+  "description": "The declared exceptions of the runtime-guard check (#502, S32 of #470, ADR-0045): mhw runs one runtime, Node, and .github/scripts/runtime-guard.js fails on any other runtime's program in the tracked tree or in a workflow. Each entry names one tracked file, or one exact workflow line, and why it is not mhw's own code. An entry the check would not flag, or that names nothing, is stale and fails the check (test/ci/runtime-guard.test.js).",
+  "files": [
+    {
+      "path": "global/project-policy/reference/fixture/container_tests.py",
+      "reason": "The reference delivery template's sample tests (ADR-0015 lock 4, #246): data the reference demonstrates for a consumer project, run only inside that project's own digest-pinned python container by reference-delivery-dry-run.yml. mhw never runs it."
+    },
+    {
+      "path": "global/project-policy/reference/fixture/fixture_app.py",
+      "reason": "The reference delivery template's sample application (ADR-0015 lock 4, #246), imported by the two fixture test files above and below inside the consumer's container. mhw never runs it."
+    },
+    {
+      "path": "global/project-policy/reference/fixture/stg_stand_in_tests.py",
+      "reason": "The reference delivery template's sample STG stand-in tests (ADR-0015 lock 4, #246), run only inside the consumer's digest-pinned python container by reference-delivery-dry-run.yml. mhw never runs it."
+    }
+  ],
+  "workflow_lines": [
+    {
+      "path": ".github/workflows/reference-delivery-dry-run.yml",
+      "line": "test-command: python3 -B container_tests.py",
+      "reason": "An input of the reusable reference delivery gate: the sample consumer project's own test command, which the gate runs inside that project's digest-pinned python image, never on the runner and never against mhw (the dry run proves the template, not mhw's runtime)."
+    },
+    {
+      "path": ".github/workflows/reference-delivery-dry-run.yml",
+      "line": "stg-test-command: python3 -B stg_stand_in_tests.py",
+      "reason": "The same reusable gate's STG test command for the sample consumer project, run inside the same digest-pinned python image."
+    }
+  ]
+}

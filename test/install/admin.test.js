@@ -77,9 +77,9 @@ test('render validates a stage, prints ONE sudo line on this node and bin/mhw.js
   assert.equal(stageDigest(stage), sha, 'the printed hash is the digest of the stage');
 });
 
-test('the NODE line records the node the admin hook runs and its ownership (#536: accepted until S32)', { skip: SKIP }, () => {
+test('the NODE line records the node the admin hook runs and its ownership (#536: accepted; ADR-0045 holds the open lock)', { skip: SKIP }, () => {
   const line = render.out.split('\n').find((l) => l.startsWith('NODE    ')) || '';
-  assert.equal(line, 'NODE    the admin hook runs ' + nodeOwnership(process.execPath) + '; the owner accepted an owner-writable node until S32 (#536)');
+  assert.equal(line, 'NODE    the admin hook runs ' + nodeOwnership(process.execPath) + '; the owner accepted an owner-writable node (#536); its lock is open (ADR-0045, #502)');
   // The node of this test run lives under a directory the test user owns or can write (a toolcache, nvm,
   // Homebrew or the scratch copy): the line says owner-writable, as status does.
   assert.match(line, /\(owner-writable: a process running as you can replace it, or the libraries it loads\)/);

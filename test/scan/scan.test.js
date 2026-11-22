@@ -4,10 +4,8 @@
 //   golden: each case builds a throwaway repository and runs the Node command in this process and
 //           through bin/mhw.js; every run is compared with the transcript recorded from the Python
 //           original (stdout, stderr, exit code). Every OS (a case marked posix is skipped on Windows).
-//   live:   where the base revision still holds scan.py (until this slice merges) and the recorded
-//           CPython is on PATH, the original runs on the same repository beside the Node command. POSIX
-//           only. MHW_S15_LIVE_REQUIRED=1 (CI) turns a missing base or python3 into a failure.
-//           MHW_UPDATE_GOLDEN=1 rewrites the goldens from the Python side, never from the Node side.
+//   The live arm against the base revision's scan.py retired when #486 merged and was deleted by #502
+//           (S32 of #470, one Node runtime); the transcripts are frozen.
 // Every run, on every side, is also checked for a leak: no five characters in a row of any fixture
 // value that is a finding reach stdout or stderr.
 import { test, after } from 'node:test';
@@ -18,16 +16,14 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { run } from '../../src/commands/scan.js';
 import * as core from '../../src/lib/clean.js';
-import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
+import { readGolden, UPDATE } from '../helpers/golden.js';
 import { which } from '../helpers/home.js';
-import { extractRevision } from '../helpers/parity.js';
-import { ROOT, recordedPython } from '../helpers/s15.js';
+import { ROOT } from '../helpers/s15.js';
 import { CASES, SECRETS, SALT, NEW_SPANS, TERM, HEALTH_TERM, COLLEAGUE_TERM, VENDOR, CODEX } from './cases.js';
 
 const SLICE = 'S15';
 const POSIX = process.platform !== 'win32';
 const GIT = which('git');
-const LIVE_REQUIRED = process.env.MHW_S15_LIVE_REQUIRED === '1';
 const ROOT_USER = POSIX && typeof process.getuid === 'function' && process.getuid() === 0;
 const LEAKS = [...SECRETS, ...NEW_SPANS, TERM, HEALTH_TERM, COLLEAGUE_TERM, VENDOR, CODEX];
 const cleanups = /** @type {Array<() => void>} */ ([]);
@@ -192,53 +188,6 @@ test('golden: the Node command, in process and through bin/mhw.js, matches the o
     for (const [i, side] of runs.entries()) {
       if (JSON.stringify(side) !== JSON.stringify(golden)) diffs.push(c.name + ' (' + [inProcess, cli][i].name + ')\n' + JSON.stringify(golden, null, 1) + '\n--- node\n' + JSON.stringify(side, null, 1));
     }
-  }
-  assert.deepEqual(diffs, []);
-});
-
-/** The base revision's scan.py and the recorded CPython, or why not. @returns {{ py?: string, script?: string, why?: string, fail?: boolean }} */
-function pythonBase() {
-  if (!POSIX) return { why: 'POSIX only' };
-  if (!GIT) return { why: 'needs git on PATH', fail: LIVE_REQUIRED };
-  const own = path.join(ROOT, 'global', 'scan.py');
-  let script = own;
-  if (!fs.existsSync(own)) {
-    const base = process.env.MHW_PARITY_BASE || (() => {
-      const p = spawnSync(GIT, ['-C', ROOT, 'merge-base', 'HEAD', 'origin/' + (process.env.GITHUB_BASE_REF || 'rc/next')], { encoding: 'utf8' });
-      return p.status === 0 ? p.stdout.trim() : '';
-    })();
-    if (!base) return { why: 'no base revision (MHW_PARITY_BASE unset, no merge-base with origin/rc/next)', fail: LIVE_REQUIRED };
-    const dest = path.join(freshBase(), 'tree');
-    if (!extractRevision(ROOT, base, dest)) return { why: 'base revision ' + base + ' is not readable here', fail: LIVE_REQUIRED };
-    script = path.join(dest, 'global', 'scan.py');
-    if (!fs.existsSync(script)) return { why: 'the base revision no longer holds scan.py (this slice has merged)' };
-  }
-  const p = recordedPython();
-  if (!p.py) return { why: /** @type {string} */ (p.why), fail: LIVE_REQUIRED };
-  return { py: p.py, script };
-}
-
-test('live: the Python original and the Node command side by side on the same repositories', (t) => {
-  const b = pythonBase();
-  if (!b.py || !b.script) {
-    if (b.fail) assert.fail('MHW_S15_LIVE_REQUIRED=1: ' + b.why);
-    t.skip(b.why);
-    return;
-  }
-  const { py, script } = b;
-  /** @type {Runner} */
-  const python = {
-    name: 'python',
-    run: (args, cwd, env) => {
-      const p = spawnSync(py, ['-B', script, ...args], { cwd, env, encoding: 'utf8' });
-      return { code: p.status ?? 1, stdout: p.stdout, stderr: p.stderr };
-    },
-  };
-  const diffs = [];
-  for (const c of CASES) {
-    const [original, node] = play(c, [python, inProcess]);
-    if (UPDATE) writeGolden(SLICE, goldenName(c.name), { name: c.name, runs: original });
-    if (JSON.stringify(original) !== JSON.stringify(node)) diffs.push(c.name + '\n' + JSON.stringify(original, null, 1) + '\n--- node\n' + JSON.stringify(node, null, 1));
   }
   assert.deepEqual(diffs, []);
 });

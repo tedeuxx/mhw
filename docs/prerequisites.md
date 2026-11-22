@@ -117,9 +117,15 @@ floor (26). ~~`python3` stays required, because `mhw install`, `update` and `uni
 `uninstall` are Node too, and `global/workstation.py` is gone. ~~`python3` stays required, because
 `global/install-managed.sh` still runs `/usr/bin/python3` for the admin layer until S26 (#496).~~
 *Amended 2026-11-21 (#496, S26 of #470):* the admin layer is `mhw install-admin`, in Node, and runs no
-Python and no `jq`: that was the last installer to run `/usr/bin/python3`. `python3` and `jq` stay in
+Python and no `jq`: that was the last installer to run `/usr/bin/python3`. ~~`python3` and `jq` stay in
 `global/prerequisites.json` until S32 removes them (owner ruling «Adiar para a S32»), so their entries'
-own words, which still name `install-managed.sh`, are corrected there.
+own words, which still name `install-managed.sh`, are corrected there.~~
+*Amended 2026-11-22 (#502, S32 of #470, [ADR-0045](adr/0045-one-node-runtime.md)):* `python3` and `jq`
+are removed from `global/prerequisites.json` (the owner's ruling on #494, «Adiar para a S32»), and
+`python3` and the dead `pwsh` probe leave the closed probe set. mhw needs Node.js 26 or later and git;
+no Python, PowerShell or `jq`. `jq` stays in the probe set, so another declaration may still name it. A
+declaration (`WORKSTATION_PREREQUISITES`) that names `python3` or `pwsh` is now refused as naming a
+command outside the probe set; the overlay declares no items, so it is not affected.
 
 ## Not covered
 

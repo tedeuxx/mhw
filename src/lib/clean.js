@@ -6,7 +6,7 @@
 // Fail-open is the risk this file is built against: Python's re and JavaScript's RegExp disagree on
 // \w, \d, \s, \b, case-insensitive matching and $, and a pattern that silently matches less reports
 // nothing. So no pattern here uses a JavaScript class or flag for those. Each is rebuilt from the sets
-// CPython 3.14.6 itself answers (src/lib/clean-unicode.js, recorded by test/helpers/s15-record.py):
+// CPython 3.14.6 itself answers (src/lib/clean-unicode.js, recorded by test/helpers/s15-record.py, deleted by #502):
 //   \w \d \s     the recorded sets, as explicit code point ranges (the u flag, never \w or \p{})
 //   \b           a lookaround pair over the recorded \w
 //   (?i:...)     every letter expanded to the code points Python's re accepts for it (I to I i U+0130

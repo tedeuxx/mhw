@@ -25,7 +25,7 @@
     "stream": "stderr",
     "base": ".*",
     "head": "^worklog: internal error: UnicodeDecodeError: 'utf-8' codec can't decode the file '<D>/event.json'$",
-    "why": "An input that is not UTF-8: CPython's read_text raised UnicodeDecodeError, which the script did not catch (a traceback). The Node names it in one line and keeps the exit code 1."
+    "why": "An input that is not UTF-8: CPython's read_text raised UnicodeDecodeError, which the script did not catch (a traceback). The Node names it in one line and keeps the exit code 1. Since #502 (S32 of #470) the recorded traceback names the recording machine's interpreter directory as <PY> (carry-along of the S05 gate on PR #510); this side is matched by .* and its text is not compared, so the edit changes no comparison."
   },
   { "case": "usage-no-command", "stream": "stderr", "base": ".*", "head": ".*", "why": "Usage errors: argparse printed its own usage and error lines under the program name worklog.py; the command is mhw worklog now and prints its own usage. The exit code (2) is compared." },
   { "case": "usage-unknown-command", "stream": "stderr", "base": ".*", "head": ".*", "why": "Usage errors: argparse printed its own usage and error lines under the program name worklog.py; the command is mhw worklog now and prints its own usage. The exit code (2) is compared." },

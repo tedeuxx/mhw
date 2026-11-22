@@ -4,15 +4,13 @@
 // the services are test/check/fake-service.js on 127.0.0.1, and every token is fake.
 // Each case (test/check/cases.js) runs its steps on a fresh HOME through `node <tree>/bin/mhw.js`, on a copy
 // of the tree with a synthetic provenance stamp (.workstation-archive) so both sides print the same stamp.
-// A 'bare' case runs on a PATH holding only its stand-ins (and python3, dirname and cat, which the base's
-// ./mhw and the stand-in gh need); a 'full' case on the tools the installers need, the stand-ins, /usr/bin
-// and /bin.
+// A 'bare' case runs on a PATH holding only its stand-ins (and dirname and cat, which the stand-in gh
+// needs); a 'full' case on the tools the installers need, the stand-ins, /usr/bin and /bin. Since #502 (S32
+// of #470, one Node runtime) neither side puts python3 on the PATH: the base's ./mhw no longer runs.
 //   golden: each case runs on the head and is compared with the transcript recorded from the original
 //           (macOS, where the transcripts were recorded: the installers' target lists differ per OS).
-//   live:   where the base revision still holds merge_authority.py, the original runs beside the head on
-//           the same case (macOS and Linux). MHW_UPDATE_GOLDEN=1 rewrites the transcripts from the
-//           original side only. MHW_S23_LIVE_REQUIRED=1 turns a skip into a failure while the base still
-//           holds it.
+//           The transcripts are frozen: the live arm against the base's merge_authority.py retired when
+//           #494 merged and was deleted by #502.
 // Every check step is also held read-only: the HOME and admin root are the same before and after it.
 // The intended differences are in test/golden/S23/expected-differences.json, with reasons.
 import { test, after } from 'node:test';
@@ -21,10 +19,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
-import { readGolden, writeGolden, goldenPath, UPDATE } from '../helpers/golden.js';
+import { readGolden, goldenPath, UPDATE } from '../helpers/golden.js';
 import { throwawayHome, which } from '../helpers/home.js';
 import { copyWorkingTree, snapshotTree } from '../helpers/parity.js';
-import { goldenName, differences as diffsOf, baseTree } from '../helpers/mcp-golden.js';
+import { goldenName, differences as diffsOf } from '../helpers/mcp-golden.js';
 import { CASES, LOGIN, TOKEN } from './cases.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -34,10 +32,9 @@ const DARWIN = process.platform === 'darwin';
 const NODE = process.execPath;
 /** @type {Array<{ case: string[], stream: string[], base?: string, head: string, replace: string, why: string }>} */
 const expected = readGolden(SLICE, 'expected-differences.json');
-const RECORDED = readGolden(SLICE, 'recorded-from.json');
 const COMMIT = 'c'.repeat(40);
-const FULL_TOOLS = ['node', 'python3', 'jq', 'git'];
-const BARE_TOOLS = ['python3', 'dirname', 'cat'];
+const FULL_TOOLS = ['node', 'jq', 'git'];
+const BARE_TOOLS = ['dirname', 'cat'];
 const h = throwawayHome('check-golden');
 // Development only: MHW_S23_ONLY=<case,...> plays (and with MHW_UPDATE_GOLDEN=1 records) those cases.
 const ONLY = (process.env.MHW_S23_ONLY || '').split(',').filter(Boolean);
@@ -191,31 +188,5 @@ test('golden: the Node check matches the transcripts of workstation.py', { skip:
   /** @type {string[]} */
   const diffs = [];
   for (const c of PLAYED) diffs.push(...differences(c.name, readGolden(SLICE, goldenName(c.name)), play(c, tree, { readOnly: true })));
-  assert.deepEqual(diffs, []);
-});
-
-test('live: the check of the base revision\'s workstation.py, side by side with the head', (t) => {
-  const why = missing();
-  const py = which('python3');
-  const version = py ? spawnSync(py, ['-c', 'import platform; print(platform.python_version())'], { encoding: 'utf8' }).stdout.trim() : '';
-  const holds = why || (version !== RECORDED.cpython && 'needs CPython ' + RECORDED.cpython + ' (found ' + (version || 'none') + ')') || '';
-  const base = holds || baseTree({ root: ROOT, dir: h.dir, holds: path.join('global', 'merge_authority.py') });
-  if (!path.isAbsolute(base)) {
-    if (process.env.MHW_S23_LIVE_REQUIRED === '1' && !base.includes('has merged')) assert.fail('the live arm is required here: ' + base);
-    t.skip(base);
-    return;
-  }
-  const original = prepare(base, 'base');
-  const head = prepare(ROOT, 'head');
-  /** @type {string[]} */
-  const diffs = [];
-  for (const c of PLAYED) {
-    const was = play(c, original);
-    if (UPDATE) {
-      assert.ok(DARWIN, 'the transcripts are recorded on macOS');
-      writeGolden(SLICE, goldenName(c.name), was);
-    }
-    diffs.push(...differences(c.name, was, play(c, head, { readOnly: true })));
-  }
   assert.deepEqual(diffs, []);
 });

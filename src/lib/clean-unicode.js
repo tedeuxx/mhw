@@ -1,8 +1,9 @@
 // GENERATED, do not edit by hand (#486, S15 of #470). The character sets and mappings src/lib/clean.js
 // pins so that its patterns mean what global/clipboard/clipboard_guard.py's mean, recorded from CPython
-// 3.14.6 (unicodedata 16.0.0) by test/helpers/s15-record.py unicode. JavaScript's own classes
+// 3.14.6 (unicodedata 16.0.0) by test/helpers/s15-record.py unicode (deleted by #502: the tables are now
+// frozen). JavaScript's own classes
 // follow the ICU Node ships (Unicode 17 on Node 25 and 26, measured), so \p{L} and \w would drift from the
-// Python original; these tables do not. test/clean/unicode.test.js holds them against a fresh recording.
+// Python original; these tables do not. test/clean/unicode.test.js holds their shape and the NFKD digest.
 // A range table is inclusive pairs [start, end, start, end, ...] (surrogates are never members), written
 // as base-36 differences from the previous number. node: modules only (none needed).
 export const CPYTHON = "3.14.6";

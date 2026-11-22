@@ -359,6 +359,15 @@ declares every difference.
   - On Claude Code and Codex the other error notices are visible. On Kiro it goes to stderr at exit 0, as before, and Kiro drops stderr
   there. That Kiro gap is unchanged by this slice.
 
+## Amendment 2026-11-22: one runtime, and Windows still not measured (#502, [ADR-0045](0045-one-node-runtime.md), proposed)
+
+*S32 of #470.* The wrapper's and the hook's move to Node is recorded above (2026-11-20, #487; 2026-11-21,
+#488); this amendment adds only two facts. The recorders that held their goldens (`test/helpers/s16-record.py`,
+`s17-record.py`) are deleted, so `test/golden/S16/` and `S17/` are frozen and are the only oracle. On
+Windows the wrapper stays **not measured** (D7): the vendored pty has no Windows build and the wrapper
+refuses there. The dated residual on the admin hook's node moves to ADR-0045's lock-in criterion, which is
+open for the owner.
+
 ## Links
 
 - ADR-0011 (superseded; the history). ADR-0005 (no log). ADR-0008 (no persistence). ADR-0025 (admin

@@ -2,9 +2,8 @@
 // answers the Python original (global/clipboard/clipboard_guard.py, deleted in this slice) gave on the same
 // cases. test/golden/S17/answers.json is the binding oracle: every decision on every agent harness (stdout,
 // stderr, exit code), the command line as a process, check-config, add-term's pure half with the files it
-// wrote, and the constants and notices. The live arm plays the same cases on the base revision's
-// clipboard_guard.py with the recorded CPython while the base still holds it; MHW_S17_LIVE_REQUIRED=1 (CI)
-// turns a missing base or interpreter into a failure. MHW_UPDATE_GOLDEN=1 rewrites the golden from that run.
+// wrote, and the constants and notices. The golden is frozen: the live arm and its recorder
+// (test/helpers/s17-record.py) were deleted by #502 (S32 of #470, one Node runtime).
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,13 +16,11 @@ import * as hook from '../../src/commands/hook-prompt.js';
 import * as addTerm from '../../src/commands/add-term.js';
 import { addTermHashes } from '../../src/lib/salt.js';
 import { KIRO_HOOK_FILE } from '../../src/commands/paste-wrapper.js';
-import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
-import { ROOT, recordedPython, clipboardDir } from '../helpers/s15.js';
+import { readGolden, UPDATE } from '../helpers/golden.js';
+import { ROOT } from '../helpers/s15.js';
 import { SALT, decisionCases, cliCases, addTermCases } from '../helpers/s17.js';
 
-const LIVE_REQUIRED = process.env.MHW_S17_LIVE_REQUIRED === '1';
 const POSIX = process.platform !== 'win32';
-const RECORDER = path.join(ROOT, 'test', 'helpers', 's17-record.py');
 const MHW = path.join(ROOT, 'bin', 'mhw.js');
 const CASES = { salt: SALT, decision: decisionCases(), cli: cliCases(), add_term: addTermCases() };
 /** @type {Array<() => void>} */
@@ -146,17 +143,6 @@ function canon(v) {
 const EXPECTED = readGolden('S17', 'expected-differences.json').differences;
 
 /**
- * The original's answers with its one platform-dependent default made neutral: check-config printed
- * salt_store=keychain on macOS and salt_store=file elsewhere, for a settings file that names none. The golden is
- * recorded through this, so the live arm compares the same text on every runner.
- * @param {any} a
- */
-function platformNeutral(a) {
-  for (const c of a.check_config) c.stdout = c.stdout.replaceAll('salt_store=keychain\n', 'salt_store=file\n');
-  return a;
-}
-
-/**
  * The Python original's answer with every declared difference applied: what the head must answer.
  * @param {any} want all the original's answers
  * @param {string} section
@@ -250,31 +236,4 @@ test('the golden holds a block, a silent pass, a visible warning and an exit 2 f
     }
     assert.ok(mine.some((/** @type {any} */ a) => a.stdout === '' && a.stderr === '' && a.code === 0), h + ' silent pass');
   }
-});
-
-test('live: the base revision\'s clipboard_guard.py still gives the recorded answers', async (t) => {
-  const b = clipboardDir('clipboard_guard.py', LIVE_REQUIRED);
-  if (!b.dir) {
-    if (b.fail) assert.fail('MHW_S17_LIVE_REQUIRED=1: ' + b.why);
-    t.skip(b.why);
-    return;
-  }
-  const p = recordedPython();
-  if (!p.py) {
-    if (LIVE_REQUIRED) assert.fail('MHW_S17_LIVE_REQUIRED=1: ' + p.why);
-    t.skip(p.why);
-    return;
-  }
-  const work = fresh();
-  const casesFile = path.join(work, 'cases.json');
-  fs.writeFileSync(casesFile, JSON.stringify(CASES));
-  const run = path.join(work, 'run');
-  fs.mkdirSync(run);
-  const r = spawnSync(p.py, ['-I', '-B', RECORDER, b.dir, casesFile, run], { encoding: 'utf8', maxBuffer: 1 << 28 });
-  assert.equal(r.status, 0, r.stderr);
-  const original = platformNeutral(JSON.parse(r.stdout.replaceAll(run, '<T>')));
-  if (UPDATE) writeGolden('S17', 'answers.json', original);
-  const golden = readGolden('S17', 'answers.json');
-  assert.equal(canon(golden), canon(original), 'the golden no longer matches the original');
-  assert.deepEqual(diff(original, await nodeAnswers()), []);
 });

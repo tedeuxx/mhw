@@ -1,5 +1,5 @@
 // The S16 parity cases (#487): the paste filter's state machine, the cleaner, the notices and the
-// argument rule, as data. test/helpers/s16-record.py plays them on paste_wrapper.py (the Python original)
+// argument rule, as data. test/helpers/s16-record.py (deleted by #502) played them on paste_wrapper.py (the Python original)
 // and test/golden/S16/answers.json holds what it answered; test/clipboard/paste-wrapper-golden.test.js plays
 // them on src/commands/paste-wrapper.js and compares. Every payload is SYNTHETIC, assembled here, and is
 // stored as hex, so no credential-shaped or address-shaped text sits in a tracked file.

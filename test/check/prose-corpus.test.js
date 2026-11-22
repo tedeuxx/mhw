@@ -6,28 +6,18 @@
 // planted phrases, and synthetic edge cases for the Unicode word boundaries, case folding, whitespace and
 // fence forms. SYNTHETIC text only.
 //   golden: the Node answers against test/golden/S23/prose.json, recorded from the base's merge_authority.py.
-//   live:   the base's merge_authority.py answers the same corpus beside the head (macOS and Linux).
-//           MHW_UPDATE_GOLDEN=1 rewrites prose.json from the original. MHW_S23_LIVE_REQUIRED=1 turns a skip
-//           into a failure while the base still holds merge_authority.py.
-import { test, after } from 'node:test';
+//   The golden is frozen: the live arm and its recorder (test/helpers/s23-prose.py) were deleted by #502
+//           (S32 of #470, one Node runtime).
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 import crypto from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
-import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
-import { readGolden, writeGolden, goldenPath, UPDATE } from '../helpers/golden.js';
-import { throwawayHome, which } from '../helpers/home.js';
-import { baseTree } from '../helpers/mcp-golden.js';
+import { readGolden, goldenPath, UPDATE } from '../helpers/golden.js';
 import * as ma from '../../src/lib/merge-authority.js';
 import { BLOCK, CORRECTED_SECTION, HISTORY, LEGACY_SECTION, RC_BRIEF } from './briefs.js';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SLICE = 'S23';
-const RECORDED = readGolden(SLICE, 'recorded-from.json');
-const h = throwawayHome('prose-corpus');
-after(() => h.cleanup());
 
 const CONTRACT_TEXT = fs.readFileSync(goldenPath(SLICE, 'inputs/merge-authority-SKILL.md'), 'utf8');
 const CONSUMERS = fs.readdirSync(goldenPath(SLICE, 'inputs/consumers')).sort().map((f) => fs.readFileSync(goldenPath(SLICE, 'inputs/consumers/' + f), 'utf8'));
@@ -84,7 +74,7 @@ function corpus() {
 /** @param {string} s */
 const sha = (s) => crypto.createHash('sha256').update(s, 'utf8').digest('hex');
 
-/** The Node answers, shaped as test/helpers/s23-prose.py prints them. */
+/** The Node answers, shaped as test/helpers/s23-prose.py (deleted by #502) printed them. */
 function nodeAnswers() {
   const contract = ma.parseContract(CONTRACT_TEXT, 'corpus');
   return {
@@ -128,23 +118,4 @@ test('the corpus plants every phrase in every copy and reaches the Unicode edges
 
 test('golden: the Node live-prose reading answers the corpus as merge_authority.py did', { skip: UPDATE && 'MHW_UPDATE_GOLDEN=1' }, () => {
   assert.deepEqual(firstDiffs(readGolden(SLICE, 'prose.json'), nodeAnswers()), []);
-});
-
-test('live: the base revision\'s merge_authority.py answers the corpus beside the head', (t) => {
-  const py = process.platform === 'win32' ? null : which('python3');
-  const version = py ? spawnSync(py, ['-c', 'import platform; print(platform.python_version())'], { encoding: 'utf8' }).stdout.trim() : '';
-  const holds = (!py && 'needs python3 (POSIX)') || (version !== RECORDED.cpython && 'needs CPython ' + RECORDED.cpython + ' (found ' + (version || 'none') + ')') || '';
-  const base = holds || baseTree({ root: ROOT, dir: h.dir, holds: path.join('global', 'merge_authority.py') });
-  if (!path.isAbsolute(base)) {
-    if (process.env.MHW_S23_LIVE_REQUIRED === '1' && !base.includes('has merged')) assert.fail('the live arm is required here: ' + base);
-    t.skip(base);
-    return;
-  }
-  const inputs = path.join(h.dir, 'inputs.json');
-  fs.writeFileSync(inputs, JSON.stringify({ contract: CONTRACT_TEXT, texts: corpus() }));
-  const p = spawnSync(/** @type {string} */ (py), ['-I', '-B', path.join(ROOT, 'test', 'helpers', 's23-prose.py'), path.join(base, 'global'), inputs], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
-  assert.equal(p.status, 0, p.stderr);
-  const want = JSON.parse(p.stdout);
-  if (UPDATE) writeGolden(SLICE, 'prose.json', want);
-  assert.deepEqual(firstDiffs(want, nodeAnswers()), []);
 });

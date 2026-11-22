@@ -9,9 +9,9 @@
   {
     "name": "render names the node the admin hook runs, and whether it is owner-writable",
     "stream": "stdout",
-    "pattern": "^NODE {4}the admin hook runs <NODE> \\((?:owner-writable: a process running as you can replace it, or the libraries it loads|not writable by you)\\); the owner accepted an owner-writable node until S32 \\(#536\\)\\n",
+    "pattern": "^NODE {4}the admin hook runs <NODE> \\((?:owner-writable: a process running as you can replace it, or the libraries it loads|not writable by you)\\); the owner accepted an owner-writable node \\(#536\\); its lock is open \\(ADR-0045, #502\\)\\n",
     "replace": "",
-    "why": "New in #496 (S26 of #470), an acceptance criterion: the admin hook names an absolute node path, and the slice records its ownership. After STAGED, render prints one NODE line naming the node `mhw install-user` rendered into the hook and whether a process running as the owner can replace it, a directory above it, or the libraries it loads (src/lib/readers/hooks.js, nodeOwnership; the same reading `mhw status` flags on its hook-node line). The owner accepted an owner-writable node until S32 (#536, #502: «Aceitar agora, travar no fim»); the line says so rather than hide it. --check does not print it, so mhw check and status, which relay the --check lines, are unchanged. The line itself is pinned by test/install/admin.test.js."
+    "why": "New in #496 (S26 of #470), an acceptance criterion: the admin hook names an absolute node path, and the slice records its ownership. After STAGED, render prints one NODE line naming the node `mhw install-user` rendered into the hook and whether a process running as the owner can replace it, a directory above it, or the libraries it loads (src/lib/readers/hooks.js, nodeOwnership; the same reading `mhw status` flags on its hook-node line). The owner accepted an owner-writable node until S32 (#536, #502: «Aceitar agora, travar no fim»); the line says so rather than hide it. Since #502 (S32) the line names ADR-0045, whose lock-in criterion is open for the owner, instead of S32. --check does not print it, so mhw check and status, which relay the --check lines, are unchanged. The line itself is pinned by test/install/admin.test.js."
   },
   {
     "name": "remove names mhw install-user as the way back to the user-level hooks",
