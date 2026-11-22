@@ -1,0 +1,14 @@
+{
+  "name": "profile-stale",
+  "runs": [
+    {
+      "args": [
+        "<ov:profile>"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: cannot read or write profile artifacts; contents omitted\n",
+      "tree": []
+    }
+  ]
+}

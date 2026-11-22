@@ -190,6 +190,27 @@ test('2. a fresh install writes every target; the brief is the LF source, byte f
   assert.equal(run(h).code, 0);
 });
 
+test('2c. a CRLF checkout (core.autocrlf=true) renders the LF brief, on every OS', () => {
+  const tree = path.join(BASE, 'crlf-tree');
+  for (const p of ['src', 'bin', 'package.json', '.bumpversion.toml']) fs.cpSync(path.join(ROOT, p), path.join(tree, p), { recursive: true });
+  fs.cpSync(path.join(ROOT, 'test', 'golden', 'S27', 'inputs', 'method'), path.join(tree, 'method'), { recursive: true });
+  fs.mkdirSync(path.join(tree, 'global'));
+  for (const f of ['AGENTS.md', 'deny-floor.conf', 'allow-retired.conf']) {
+    fs.writeFileSync(path.join(tree, 'global', f), readLF(path.join(ROOT, 'global', f)).toString('latin1').replaceAll('\n', '\r\n'), 'latin1');
+  }
+  const h = profile('crlf');
+  const env = { ...process.env, USERPROFILE: h, HOME: h };
+  for (const k of ['CODEX_HOME', 'XDG_DATA_HOME', 'MHW_NODE']) delete env[k];
+  const p = spawnSync(process.execPath, [path.join(tree, 'bin', 'mhw.js'), 'install-windows', '--overlay=none'], { env, encoding: 'utf8' });
+  assert.equal(p.status, 0, p.stdout + p.stderr);
+  const raw = fs.readFileSync(path.join(h, '.claude', 'CLAUDE.md'));
+  assert.ok(!raw.includes(13), 'no CR byte in the rendered brief');
+  const lf = readLF(path.join(ROOT, 'global', 'AGENTS.md'));
+  assert.ok(raw.subarray(raw.length - lf.length).equals(lf), 'the brief ends with the LF source');
+  assert.ok(raw.toString('utf8').includes('sha256: ' + crypto.createHash('sha256').update(lf).digest('hex') + ';'), 'the marker hashes the LF source');
+  assert.equal(countRule(h, 'Bash(rm -rf:*)'), 1, 'a CRLF floor parses');
+});
+
 test('2b. the working method: off by default, rendered with --method, and a failed render exits non-zero', () => {
   const h = profile('method');
   fs.mkdirSync(path.join(h, '.claude'));

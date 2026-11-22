@@ -1,0 +1,14 @@
+{
+  "name": "invalid-floor-06",
+  "runs": [
+    {
+      "args": [
+        "<ov:floor>"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "invalid deny-floor entry (a glob entry takes a program and at least one word): glob terraform*\n",
+      "tree": []
+    }
+  ]
+}

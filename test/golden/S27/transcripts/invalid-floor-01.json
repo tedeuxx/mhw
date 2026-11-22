@@ -1,0 +1,14 @@
+{
+  "name": "invalid-floor-01",
+  "runs": [
+    {
+      "args": [
+        "<ov:floor>"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "invalid deny-floor entry (word outside the allowed set): cmd rm \"-rf\"\n",
+      "tree": []
+    }
+  ]
+}

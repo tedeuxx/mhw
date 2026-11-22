@@ -1,0 +1,25 @@
+{
+  "name": "mhw-node",
+  "runs": [
+    {
+      "args": [
+        "--check",
+        "<ov:models-only>"
+      ],
+      "code": 2,
+      "stdout": "MISSING <T>/home/.claude/CLAUDE.md\nMISSING <T>/home/.codex/AGENTS.md\nMISSING <T>/home/.kiro/steering/workstation-global-brief.md\nMISSING <T>/home/.codex/rules/workstation-deny-floor.rules\nMISSING <T>/home/.claude/settings.json\nREFUSE  the Kiro deny floor: MHW_NODE (<T>/no-such-node.exe) is not a file; nothing written\nREFUSE  the session-start model defaults: MHW_NODE (<T>/no-such-node.exe) is not a file; nothing written\nNOTE    the paste wrapper and the paste filter are not ported to Windows (ADR-0011); no shell start-up file is written, and no Kiro prompt hook (Issue #455)\nREFUSE  the working method (method/): MHW_NODE (<T>/no-such-node.exe) is not a file; nothing written\n",
+      "stderr": "",
+      "tree": []
+    },
+    {
+      "args": [
+        "--check",
+        "<ov:models-only>"
+      ],
+      "code": 1,
+      "stdout": "MISSING <T>/home/.claude/CLAUDE.md\nMISSING <T>/home/.codex/AGENTS.md\nMISSING <T>/home/.kiro/steering/workstation-global-brief.md\nMISSING <T>/home/.codex/rules/workstation-deny-floor.rules\nMISSING <T>/home/.claude/settings.json\nMISSING <T>/home/.kiro/settings/permissions.yaml\nMISSING <T>/home/.claude/settings.json: install would change model (absent) -> \"claude-opus-5-5[1m]\"; effortLevel (absent) -> \"medium\" (model defaults claude-code)\nMISSING <T>/home/.codex/config.toml: install would change model (absent) -> \"gpt-5.6-sol\"; model_reasoning_effort (absent) -> \"medium\" (model defaults codex)\nMISSING <T>/home/.kiro/settings/cli.json: install would change chat.defaultModel (absent) -> \"claude-sonnet-4.5\" (model defaults kiro-cli)\nNOTE    the paste wrapper and the paste filter are not ported to Windows (ADR-0011); no shell start-up file is written, and no Kiro prompt hook (Issue #455)\nMETHOD  not installed (opt-in: ./mhw install --method; off by default until the plugin cutover, #63 #64)\n",
+      "stderr": "",
+      "tree": []
+    }
+  ]
+}

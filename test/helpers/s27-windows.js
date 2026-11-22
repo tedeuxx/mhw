@@ -115,6 +115,8 @@ function tree(t, norm) {
         let text = fs.readFileSync(path.join(dir, name), 'utf8').replaceAll('\r\n', '\n');
         if (/\.json($|\.)/.test(name)) text = norm(canonical(text)).replaceAll('\\\\', '/');
         else text = norm(text).replaceAll('\\', '/');
+        // A file URL of a Windows path has a third slash (file:///C:/x) that a POSIX one gets from the path.
+        text = text.replaceAll('file:///<T>', 'file://<T>');
         out.push({ path: base + '/' + r, kind: 'file', data: text.length > 2048 ? 'sha256:' + crypto.createHash('sha256').update(text).digest('hex') : text });
       }
     }

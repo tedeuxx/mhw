@@ -26,10 +26,22 @@ import { MARKER_ID, isManaged as managedText, unstamp } from '../lib/marker.js';
 import { privateCopy } from '../lib/private-copy.js';
 import { onPath } from '../lib/onpath.js';
 import { runAbsolute } from '../lib/run.js';
-import { deriveStamp, parseFloor, STDIO } from './install-user.js';
+import { deriveStamp, parseFloor } from '../lib/user-layer.js';
 
 /** @typedef {Record<string, string | undefined>} Env */
 /** @typedef {{ out: (text: string | Buffer) => void, err: (text: string | Buffer) => void }} Io */
+
+/** Every byte of text, written synchronously. @param {number} fd @param {string | Buffer} text */
+function write(fd, text) {
+  const b = typeof text === 'string' ? Buffer.from(text, 'utf8') : text;
+  for (let off = 0; off < b.length;) off += fs.writeSync(fd, b, off, b.length - off);
+}
+
+/** This process's output, written synchronously so it interleaves with the renderers' inherited output. */
+const STDIO = /** @type {Io} */ ({
+  out: (text) => { write(1, text); },
+  err: (text) => { write(2, text); },
+});
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const STAMP_KEY = 'personal-multi-harness-workstation-configuration';
@@ -328,6 +340,12 @@ function readObject(p) {
 /** The JSON a settings file is written as: two-space indent, LF, a final newline. @param {unknown} v */
 const serialize = (v) => JSON.stringify(v, null, 2) + '\n';
 
+/** Set a key as the last of its object (Add-Member -Force). @param {Record<string, unknown>} o @param {string} k @param {unknown} v */
+function setLast(o, k, v) {
+  delete o[k];
+  o[k] = v;
+}
+
 /** The first occurrence of each value, in order (Select-Object -Unique). @param {unknown[]} list */
 const unique = (list) => list.filter((x, i) => list.indexOf(x) === i);
 
@@ -383,8 +401,10 @@ export function mergeDenyFloor(ctx, settings) {
     for (const r of missing) say(ctx, '+ ' + r);
   } else {
     if (!hasPerms) obj.permissions = {};
-    /** @type {Record<string, unknown>} */ (obj.permissions).deny = [...existing, ...missing];
-    obj[STAMP_KEY] = want;
+    // Each key written is moved to the end of its object, as install.ps1's Add-Member -Force moved it
+    // (measured: the issue-145 golden, recorded from install.ps1 under PowerShell 5.1 and 7).
+    setLast(/** @type {Record<string, unknown>} */ (obj.permissions), 'deny', [...existing, ...missing]);
+    setLast(obj, STAMP_KEY, want);
     fs.mkdirSync(path.dirname(settings), { recursive: true });
     if (there) privateCopy(settings, settings + '.pmhwc-backup', { env: ctx.env });
     replace(settings, serialize(obj));
@@ -427,7 +447,7 @@ export function removeRetiredAllow(ctx, settings) {
   } else {
     const keep = allow.filter((x) => !isRetired(x));
     if (keep.length === 0) delete perms.allow;
-    else perms.allow = keep;
+    else setLast(perms, 'allow', keep);
     if (Object.keys(perms).length === 0) delete obj.permissions;
     privateCopy(settings, backup, { env: ctx.env });
     replace(settings, serialize(obj));

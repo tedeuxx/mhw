@@ -1,6 +1,6 @@
 // The provenance stamp (ADR-0029): `release: <r>; commit: <c>` inside the managed-by line, read and
 // written the way global/install.sh's stamp_of() and workstation.py's stamp_in() read it. Deriving a
-// stamp from git is src/commands/install-user.js's deriveStamp since #503 (it was install.sh's); this
+// stamp from git is src/lib/user-layer.js's deriveStamp (install-user.js's since #503, install.sh's before; moved by #497); this
 // module reads and writes one.
 // node: modules only.
 import { MARKER_ID, markerLine } from './marker.js';

@@ -1,0 +1,14 @@
+{
+  "name": "invalid-floor-11",
+  "runs": [
+    {
+      "args": [
+        "<ov:floor>"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "invalid deny-floor entry (a glob may not end in :* (that is a cmd entry)): glob terraform plan:*\n",
+      "tree": []
+    }
+  ]
+}

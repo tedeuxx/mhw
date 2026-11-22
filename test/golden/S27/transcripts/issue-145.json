@@ -1,0 +1,527 @@
+{
+  "name": "issue-145",
+  "runs": [
+    {
+      "args": [
+        "<ov:repo>"
+      ],
+      "code": 0,
+      "stdout": "WROTE   <T>/home/.claude/CLAUDE.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.codex/AGENTS.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.kiro/steering/workstation-global-brief.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nWROTE   <T>/home/.codex/rules/workstation-deny-floor.rules (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nMERGED  <T>/home/.claude/settings.json\nMERGED  <T>/home/.kiro/settings/permissions.yaml (260 deny-floor pattern(s) added, every rule of yours kept; previous version kept as <T>/home/.kiro/settings/permissions.yaml.pmhwc-backup)\nCHANGED <T>/home/.claude/settings.json: model \"owner-model\" -> \"claude-opus-5-5[1m]\"; effortLevel (absent) -> \"medium\" (model defaults claude-code; previous file kept as <T>/home/.claude/settings.json.pmhwc-models-backup)\nCHANGED <T>/home/.codex/config.toml: model (absent) -> \"gpt-5.6-sol\"; model_reasoning_effort \"high\" -> \"medium\" (model defaults codex; previous file kept as <T>/home/.codex/config.toml.pmhwc-models-backup)\nCHANGED <T>/home/.kiro/settings/cli.json: chat.defaultModel (absent) -> \"claude-sonnet-4.5\" (model defaults kiro-cli; new file)\nWROTE   <T>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nCHANGED <T>/home/.claude/settings.json: permissions.allow Bash(find:*) present -> absent; Bash(awk *) present -> absent (retired, ADR-0035 decision 4; previous file kept as <T>/home/.claude/settings.json.pmhwc-allow-backup)\nNOTE    the paste wrapper and the paste filter are not ported to Windows (ADR-0011); no shell start-up file is written, and no Kiro prompt hook (Issue #455)\nMETHOD  not installed (opt-in: ./mhw install --method; off by default until the plugin cutover, #63 #64)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home/.claude",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.claude/CLAUDE.md",
+          "kind": "file",
+          "data": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.claude/settings.json",
+          "kind": "file",
+          "data": "sha256:1f74eb8df4f04cf95a56e3ff4b9b79ac5f828ffe2d2149ce65e42bf9bbc1d6fb"
+        },
+        {
+          "path": "home/.claude/settings.json.pmhwc-allow-backup",
+          "kind": "file",
+          "data": "sha256:dab86b37813ba0a20d852ede98ad69f938fa48b0c0f2494a97f5c6331afab1f2"
+        },
+        {
+          "path": "home/.claude/settings.json.pmhwc-backup",
+          "kind": "file",
+          "data": "{\n  \"model\": \"owner-model\",\n  \"permissions\": {\n    \"allow\": [\n      \"Bash(find:*)\",\n      \"Bash(awk *)\",\n      \"Bash(ls:*)\"\n    ]\n  }\n}"
+        },
+        {
+          "path": "home/.claude/settings.json.pmhwc-models-backup",
+          "kind": "file",
+          "data": "sha256:485c4a6be25a19f1d43221f8f4bd03272c703b280e6707d97081801a8d6c229d"
+        },
+        {
+          "path": "home/.codex",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.codex/AGENTS.md",
+          "kind": "file",
+          "data": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.codex/config.toml",
+          "kind": "file",
+          "data": "model = \"gpt-5.6-sol\"\nmodel_reasoning_effort = \"medium\"\n\n[mcp_servers.aws-api]\ncommand = \"uvx\"\n\n[mcp_servers.aws-api.env]\nAWS_PROFILE = \"canary-value-5150\"\n\n[mcp_servers.keep-me]\ncommand = \"x\"\n"
+        },
+        {
+          "path": "home/.codex/config.toml.pmhwc-models-backup",
+          "kind": "file",
+          "data": "model_reasoning_effort = \"high\"\n\n[mcp_servers.aws-api]\ncommand = \"uvx\"\n\n[mcp_servers.aws-api.env]\nAWS_PROFILE = \"canary-value-5150\"\n\n[mcp_servers.keep-me]\ncommand = \"x\"\n"
+        },
+        {
+          "path": "home/.codex/rules",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.codex/rules/workstation-deny-floor.rules",
+          "kind": "file",
+          "data": "sha256:d69463a18346cff9923c02465e89baec7cda59406234d66acf334c3eb1656c34"
+        },
+        {
+          "path": "home/.kiro",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/settings",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/settings/cli.json",
+          "kind": "file",
+          "data": "{\n  \"chat.defaultModel\": \"claude-sonnet-4.5\"\n}"
+        },
+        {
+          "path": "home/.kiro/settings/permissions.yaml",
+          "kind": "file",
+          "data": "sha256:ef201006aafa2602c51297e7d57afb2d38efd3d37d9d4e1135a4a4a11f8a77dd"
+        },
+        {
+          "path": "home/.kiro/settings/permissions.yaml.pmhwc-backup",
+          "kind": "file",
+          "data": "rules:\n  - capability: shell\n    match:\n      - git *\n    effect: allow\n"
+        },
+        {
+          "path": "home/.kiro/steering",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/steering/workstation-global-brief.md",
+          "kind": "file",
+          "data": "---\ninclusion: always\n---\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json",
+          "kind": "file",
+          "data": "sha256:0920071a178e378c41c9f06b99914e57def7edbe6ae3168c4fa97660dd0112bb"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+          "kind": "file",
+          "data": "{\n  \"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: overlay/model-defaults.json; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; do not edit, re-run the installer\",\n  \"note\": \"The session-start model and effort keys this project set, per file, and under \\\"replaced\\\" the value each one replaced; uninstall restores those and removes the rest.\",\n  \"set\": {\n    \"<T>/home/.claude/settings.json\": {\n      \"harness\": \"claude-code\",\n      \"keys\": {\n        \"model\": \"claude-opus-5-5[1m]\",\n        \"effortLevel\": \"medium\"\n      },\n      \"replaced\": {\n        \"model\": \"owner-model\"\n      }\n    },\n    \"<T>/home/.codex/config.toml\": {\n      \"harness\": \"codex\",\n      \"keys\": {\n        \"model\": \"gpt-5.6-sol\",\n        \"model_reasoning_effort\": \"medium\"\n      },\n      \"replaced\": {\n        \"model_reasoning_effort\": \"high\"\n      }\n    },\n    \"<T>/home/.kiro/settings/cli.json\": {\n      \"harness\": \"kiro-cli\",\n      \"keys\": {\n        \"chat.defaultModel\": \"claude-sonnet-4.5\"\n      }\n    }\n  }\n}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--check",
+        "<ov:repo>"
+      ],
+      "code": 0,
+      "stdout": "OK      <T>/home/.claude/CLAUDE.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.codex/AGENTS.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.kiro/steering/workstation-global-brief.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.codex/rules/workstation-deny-floor.rules (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.claude/settings.json (all 260 deny-floor rules present; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.kiro/settings/permissions.yaml (all 260 deny-floor patterns present; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.claude/settings.json: model = \"claude-opus-5-5[1m]\", effortLevel = \"medium\" (model defaults claude-code)\nOK      <T>/home/.codex/config.toml: model = \"gpt-5.6-sol\", model_reasoning_effort = \"medium\" (model defaults codex)\nOK      <T>/home/.kiro/settings/cli.json: chat.defaultModel = \"claude-sonnet-4.5\" (model defaults kiro-cli)\nOK      <T>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.claude/settings.json: no allow entry the policy retired\nNOTE    the paste wrapper and the paste filter are not ported to Windows (ADR-0011); no shell start-up file is written, and no Kiro prompt hook (Issue #455)\nMETHOD  not installed (opt-in: ./mhw install --method; off by default until the plugin cutover, #63 #64)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home/.claude",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.claude/CLAUDE.md",
+          "kind": "file",
+          "data": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.claude/settings.json",
+          "kind": "file",
+          "data": "sha256:1f74eb8df4f04cf95a56e3ff4b9b79ac5f828ffe2d2149ce65e42bf9bbc1d6fb"
+        },
+        {
+          "path": "home/.claude/settings.json.pmhwc-allow-backup",
+          "kind": "file",
+          "data": "sha256:dab86b37813ba0a20d852ede98ad69f938fa48b0c0f2494a97f5c6331afab1f2"
+        },
+        {
+          "path": "home/.claude/settings.json.pmhwc-backup",
+          "kind": "file",
+          "data": "{\n  \"model\": \"owner-model\",\n  \"permissions\": {\n    \"allow\": [\n      \"Bash(find:*)\",\n      \"Bash(awk *)\",\n      \"Bash(ls:*)\"\n    ]\n  }\n}"
+        },
+        {
+          "path": "home/.claude/settings.json.pmhwc-models-backup",
+          "kind": "file",
+          "data": "sha256:485c4a6be25a19f1d43221f8f4bd03272c703b280e6707d97081801a8d6c229d"
+        },
+        {
+          "path": "home/.codex",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.codex/AGENTS.md",
+          "kind": "file",
+          "data": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.codex/config.toml",
+          "kind": "file",
+          "data": "model = \"gpt-5.6-sol\"\nmodel_reasoning_effort = \"medium\"\n\n[mcp_servers.aws-api]\ncommand = \"uvx\"\n\n[mcp_servers.aws-api.env]\nAWS_PROFILE = \"canary-value-5150\"\n\n[mcp_servers.keep-me]\ncommand = \"x\"\n"
+        },
+        {
+          "path": "home/.codex/config.toml.pmhwc-models-backup",
+          "kind": "file",
+          "data": "model_reasoning_effort = \"high\"\n\n[mcp_servers.aws-api]\ncommand = \"uvx\"\n\n[mcp_servers.aws-api.env]\nAWS_PROFILE = \"canary-value-5150\"\n\n[mcp_servers.keep-me]\ncommand = \"x\"\n"
+        },
+        {
+          "path": "home/.codex/rules",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.codex/rules/workstation-deny-floor.rules",
+          "kind": "file",
+          "data": "sha256:d69463a18346cff9923c02465e89baec7cda59406234d66acf334c3eb1656c34"
+        },
+        {
+          "path": "home/.kiro",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/settings",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/settings/cli.json",
+          "kind": "file",
+          "data": "{\n  \"chat.defaultModel\": \"claude-sonnet-4.5\"\n}"
+        },
+        {
+          "path": "home/.kiro/settings/permissions.yaml",
+          "kind": "file",
+          "data": "sha256:ef201006aafa2602c51297e7d57afb2d38efd3d37d9d4e1135a4a4a11f8a77dd"
+        },
+        {
+          "path": "home/.kiro/settings/permissions.yaml.pmhwc-backup",
+          "kind": "file",
+          "data": "rules:\n  - capability: shell\n    match:\n      - git *\n    effect: allow\n"
+        },
+        {
+          "path": "home/.kiro/steering",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/steering/workstation-global-brief.md",
+          "kind": "file",
+          "data": "---\ninclusion: always\n---\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json",
+          "kind": "file",
+          "data": "sha256:0920071a178e378c41c9f06b99914e57def7edbe6ae3168c4fa97660dd0112bb"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+          "kind": "file",
+          "data": "{\n  \"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: overlay/model-defaults.json; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; do not edit, re-run the installer\",\n  \"note\": \"The session-start model and effort keys this project set, per file, and under \\\"replaced\\\" the value each one replaced; uninstall restores those and removes the rest.\",\n  \"set\": {\n    \"<T>/home/.claude/settings.json\": {\n      \"harness\": \"claude-code\",\n      \"keys\": {\n        \"model\": \"claude-opus-5-5[1m]\",\n        \"effortLevel\": \"medium\"\n      },\n      \"replaced\": {\n        \"model\": \"owner-model\"\n      }\n    },\n    \"<T>/home/.codex/config.toml\": {\n      \"harness\": \"codex\",\n      \"keys\": {\n        \"model\": \"gpt-5.6-sol\",\n        \"model_reasoning_effort\": \"medium\"\n      },\n      \"replaced\": {\n        \"model_reasoning_effort\": \"high\"\n      }\n    },\n    \"<T>/home/.kiro/settings/cli.json\": {\n      \"harness\": \"kiro-cli\",\n      \"keys\": {\n        \"chat.defaultModel\": \"claude-sonnet-4.5\"\n      }\n    }\n  }\n}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "<ov:repo>"
+      ],
+      "code": 0,
+      "stdout": "OK      <T>/home/.claude/CLAUDE.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.codex/AGENTS.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.kiro/steering/workstation-global-brief.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.codex/rules/workstation-deny-floor.rules (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.claude/settings.json (all 260 deny-floor rules present; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.kiro/settings/permissions.yaml (all 260 deny-floor patterns present; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.claude/settings.json: model = \"claude-opus-5-5[1m]\", effortLevel = \"medium\" (model defaults claude-code)\nOK      <T>/home/.codex/config.toml: model = \"gpt-5.6-sol\", model_reasoning_effort = \"medium\" (model defaults codex)\nOK      <T>/home/.kiro/settings/cli.json: chat.defaultModel = \"claude-sonnet-4.5\" (model defaults kiro-cli)\nOK      <T>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.claude/settings.json: no allow entry the policy retired\nNOTE    the paste wrapper and the paste filter are not ported to Windows (ADR-0011); no shell start-up file is written, and no Kiro prompt hook (Issue #455)\nMETHOD  not installed (opt-in: ./mhw install --method; off by default until the plugin cutover, #63 #64)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home/.claude",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.claude/CLAUDE.md",
+          "kind": "file",
+          "data": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.claude/settings.json",
+          "kind": "file",
+          "data": "sha256:1f74eb8df4f04cf95a56e3ff4b9b79ac5f828ffe2d2149ce65e42bf9bbc1d6fb"
+        },
+        {
+          "path": "home/.claude/settings.json.pmhwc-allow-backup",
+          "kind": "file",
+          "data": "sha256:dab86b37813ba0a20d852ede98ad69f938fa48b0c0f2494a97f5c6331afab1f2"
+        },
+        {
+          "path": "home/.claude/settings.json.pmhwc-backup",
+          "kind": "file",
+          "data": "{\n  \"model\": \"owner-model\",\n  \"permissions\": {\n    \"allow\": [\n      \"Bash(find:*)\",\n      \"Bash(awk *)\",\n      \"Bash(ls:*)\"\n    ]\n  }\n}"
+        },
+        {
+          "path": "home/.claude/settings.json.pmhwc-models-backup",
+          "kind": "file",
+          "data": "sha256:485c4a6be25a19f1d43221f8f4bd03272c703b280e6707d97081801a8d6c229d"
+        },
+        {
+          "path": "home/.codex",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.codex/AGENTS.md",
+          "kind": "file",
+          "data": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.codex/config.toml",
+          "kind": "file",
+          "data": "model = \"gpt-5.6-sol\"\nmodel_reasoning_effort = \"medium\"\n\n[mcp_servers.aws-api]\ncommand = \"uvx\"\n\n[mcp_servers.aws-api.env]\nAWS_PROFILE = \"canary-value-5150\"\n\n[mcp_servers.keep-me]\ncommand = \"x\"\n"
+        },
+        {
+          "path": "home/.codex/config.toml.pmhwc-models-backup",
+          "kind": "file",
+          "data": "model_reasoning_effort = \"high\"\n\n[mcp_servers.aws-api]\ncommand = \"uvx\"\n\n[mcp_servers.aws-api.env]\nAWS_PROFILE = \"canary-value-5150\"\n\n[mcp_servers.keep-me]\ncommand = \"x\"\n"
+        },
+        {
+          "path": "home/.codex/rules",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.codex/rules/workstation-deny-floor.rules",
+          "kind": "file",
+          "data": "sha256:d69463a18346cff9923c02465e89baec7cda59406234d66acf334c3eb1656c34"
+        },
+        {
+          "path": "home/.kiro",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/settings",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/settings/cli.json",
+          "kind": "file",
+          "data": "{\n  \"chat.defaultModel\": \"claude-sonnet-4.5\"\n}"
+        },
+        {
+          "path": "home/.kiro/settings/permissions.yaml",
+          "kind": "file",
+          "data": "sha256:ef201006aafa2602c51297e7d57afb2d38efd3d37d9d4e1135a4a4a11f8a77dd"
+        },
+        {
+          "path": "home/.kiro/settings/permissions.yaml.pmhwc-backup",
+          "kind": "file",
+          "data": "rules:\n  - capability: shell\n    match:\n      - git *\n    effect: allow\n"
+        },
+        {
+          "path": "home/.kiro/steering",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/steering/workstation-global-brief.md",
+          "kind": "file",
+          "data": "---\ninclusion: always\n---\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json",
+          "kind": "file",
+          "data": "sha256:0920071a178e378c41c9f06b99914e57def7edbe6ae3168c4fa97660dd0112bb"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+          "kind": "file",
+          "data": "{\n  \"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: overlay/model-defaults.json; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; do not edit, re-run the installer\",\n  \"note\": \"The session-start model and effort keys this project set, per file, and under \\\"replaced\\\" the value each one replaced; uninstall restores those and removes the rest.\",\n  \"set\": {\n    \"<T>/home/.claude/settings.json\": {\n      \"harness\": \"claude-code\",\n      \"keys\": {\n        \"model\": \"claude-opus-5-5[1m]\",\n        \"effortLevel\": \"medium\"\n      },\n      \"replaced\": {\n        \"model\": \"owner-model\"\n      }\n    },\n    \"<T>/home/.codex/config.toml\": {\n      \"harness\": \"codex\",\n      \"keys\": {\n        \"model\": \"gpt-5.6-sol\",\n        \"model_reasoning_effort\": \"medium\"\n      },\n      \"replaced\": {\n        \"model_reasoning_effort\": \"high\"\n      }\n    },\n    \"<T>/home/.kiro/settings/cli.json\": {\n      \"harness\": \"kiro-cli\",\n      \"keys\": {\n        \"chat.defaultModel\": \"claude-sonnet-4.5\"\n      }\n    }\n  }\n}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--check",
+        "<ov:repo>"
+      ],
+      "code": 1,
+      "stdout": "OK      <T>/home/.claude/CLAUDE.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.codex/AGENTS.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.kiro/steering/workstation-global-brief.md (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.codex/rules/workstation-deny-floor.rules (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.claude/settings.json (all 260 deny-floor rules present; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.kiro/settings/permissions.yaml (all 260 deny-floor patterns present; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nOK      <T>/home/.claude/settings.json: model = \"claude-opus-5-5[1m]\", effortLevel = \"medium\" (model defaults claude-code)\nOK      <T>/home/.codex/config.toml: model = \"gpt-5.6-sol\", model_reasoning_effort = \"medium\" (model defaults codex)\nOK      <T>/home/.kiro/settings/cli.json: chat.defaultModel = \"claude-sonnet-4.5\" (model defaults kiro-cli)\nOK      <T>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json (release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown)\nDRIFT   <T>/home/.claude/settings.json: install would change permissions.allow Bash(find *) present -> absent (retired, ADR-0035 decision 4)\nNOTE    the paste wrapper and the paste filter are not ported to Windows (ADR-0011); no shell start-up file is written, and no Kiro prompt hook (Issue #455)\nMETHOD  not installed (opt-in: ./mhw install --method; off by default until the plugin cutover, #63 #64)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home/.claude",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.claude/CLAUDE.md",
+          "kind": "file",
+          "data": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.claude/settings.json",
+          "kind": "file",
+          "data": "sha256:27350ca15c93d180f0b859e3366faf559ae0f228be876f4711bb2758bf1b729d"
+        },
+        {
+          "path": "home/.claude/settings.json.pmhwc-allow-backup",
+          "kind": "file",
+          "data": "sha256:dab86b37813ba0a20d852ede98ad69f938fa48b0c0f2494a97f5c6331afab1f2"
+        },
+        {
+          "path": "home/.claude/settings.json.pmhwc-backup",
+          "kind": "file",
+          "data": "{\n  \"model\": \"owner-model\",\n  \"permissions\": {\n    \"allow\": [\n      \"Bash(find:*)\",\n      \"Bash(awk *)\",\n      \"Bash(ls:*)\"\n    ]\n  }\n}"
+        },
+        {
+          "path": "home/.claude/settings.json.pmhwc-models-backup",
+          "kind": "file",
+          "data": "sha256:485c4a6be25a19f1d43221f8f4bd03272c703b280e6707d97081801a8d6c229d"
+        },
+        {
+          "path": "home/.codex",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.codex/AGENTS.md",
+          "kind": "file",
+          "data": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.codex/config.toml",
+          "kind": "file",
+          "data": "model = \"gpt-5.6-sol\"\nmodel_reasoning_effort = \"medium\"\n\n[mcp_servers.aws-api]\ncommand = \"uvx\"\n\n[mcp_servers.aws-api.env]\nAWS_PROFILE = \"canary-value-5150\"\n\n[mcp_servers.keep-me]\ncommand = \"x\"\n"
+        },
+        {
+          "path": "home/.codex/config.toml.pmhwc-models-backup",
+          "kind": "file",
+          "data": "model_reasoning_effort = \"high\"\n\n[mcp_servers.aws-api]\ncommand = \"uvx\"\n\n[mcp_servers.aws-api.env]\nAWS_PROFILE = \"canary-value-5150\"\n\n[mcp_servers.keep-me]\ncommand = \"x\"\n"
+        },
+        {
+          "path": "home/.codex/rules",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.codex/rules/workstation-deny-floor.rules",
+          "kind": "file",
+          "data": "sha256:d69463a18346cff9923c02465e89baec7cda59406234d66acf334c3eb1656c34"
+        },
+        {
+          "path": "home/.kiro",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/settings",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/settings/cli.json",
+          "kind": "file",
+          "data": "{\n  \"chat.defaultModel\": \"claude-sonnet-4.5\"\n}"
+        },
+        {
+          "path": "home/.kiro/settings/permissions.yaml",
+          "kind": "file",
+          "data": "sha256:ef201006aafa2602c51297e7d57afb2d38efd3d37d9d4e1135a4a4a11f8a77dd"
+        },
+        {
+          "path": "home/.kiro/settings/permissions.yaml.pmhwc-backup",
+          "kind": "file",
+          "data": "rules:\n  - capability: shell\n    match:\n      - git *\n    effect: allow\n"
+        },
+        {
+          "path": "home/.kiro/steering",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.kiro/steering/workstation-global-brief.md",
+          "kind": "file",
+          "data": "---\ninclusion: always\n---\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md + overlay; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; sha256: 8a114e6908d90a2a79ec7bc510f800d0bb09df9c0d82a8796382ff1bd9fcff91; do not edit, re-run the installer -->\n\n# Workstation global brief (S27 golden input)\n\nA frozen, ASCII-only stand-in for global/AGENTS.md, so the goldens recorded from install.ps1 on Windows do\nnot move when the real brief does, and no console code page can change a byte of it.\n\n## Escalating to the owner\n\n1. One question per message.\n## Owner overlay (S27 golden input)\n\n- **Language:** a frozen stand-in for overlay/AGENTS.md.\n"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "data": ""
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json",
+          "kind": "file",
+          "data": "sha256:0920071a178e378c41c9f06b99914e57def7edbe6ae3168c4fa97660dd0112bb"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+          "kind": "file",
+          "data": "{\n  \"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: overlay/model-defaults.json; release: unknown, not a git checkout (.bumpversion.toml says 10.1.0); commit: unknown; do not edit, re-run the installer\",\n  \"note\": \"The session-start model and effort keys this project set, per file, and under \\\"replaced\\\" the value each one replaced; uninstall restores those and removes the rest.\",\n  \"set\": {\n    \"<T>/home/.claude/settings.json\": {\n      \"harness\": \"claude-code\",\n      \"keys\": {\n        \"model\": \"claude-opus-5-5[1m]\",\n        \"effortLevel\": \"medium\"\n      },\n      \"replaced\": {\n        \"model\": \"owner-model\"\n      }\n    },\n    \"<T>/home/.codex/config.toml\": {\n      \"harness\": \"codex\",\n      \"keys\": {\n        \"model\": \"gpt-5.6-sol\",\n        \"model_reasoning_effort\": \"medium\"\n      },\n      \"replaced\": {\n        \"model_reasoning_effort\": \"high\"\n      }\n    },\n    \"<T>/home/.kiro/settings/cli.json\": {\n      \"harness\": \"kiro-cli\",\n      \"keys\": {\n        \"chat.defaultModel\": \"claude-sonnet-4.5\"\n      }\n    }\n  }\n}"
+        }
+      ]
+    }
+  ]
+}

@@ -835,7 +835,6 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
           MHW_S27_LIVE_REQUIRED: "1"
-          MHW_S27_PRINT_GOLDEN: "1"
         run: |
           base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
           [ -n "$base" ] || { echo "no base revision"; exit 1; }

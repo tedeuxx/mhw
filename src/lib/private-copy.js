@@ -29,11 +29,41 @@ function lexists(p) {
  */
 function ownerOnlyAcl(file, env) {
   const sys32 = path.join(env.SystemRoot || 'C:\\Windows', 'System32');
+  const icacls = path.join(sys32, 'icacls.exe');
   const who = runAbsolute(path.join(sys32, 'whoami.exe'), ['/user', '/fo', 'csv', '/nh']);
-  const sid = (who.stdout.trim().split(',').pop() || '').trim().replace(/^"|"$/g, '');
-  if (who.code !== 0 || !sid.startsWith('S-1-')) throw new Error("cannot read the current user's SID");
-  const acl = runAbsolute(path.join(sys32, 'icacls.exe'), [file, '/inheritance:r', '/grant:r', '*' + sid + ':F']);
+  const fields = who.stdout.trim().split('","').map((f) => f.replaceAll('"', '').trim());
+  const sid = fields[fields.length - 1] || '';
+  const me = (fields.length > 1 ? fields[0] : '').toLowerCase();
+  if (who.code !== 0 || !sid.startsWith('S-1-') || !me) throw new Error("cannot read the current user's SID");
+  const acl = runAbsolute(icacls, [file, '/inheritance:r', '/grant:r', '*' + sid + ':F']);
   if (acl.code !== 0) throw new Error('icacls exited ' + acl.code);
+  // #497: removing inheritance leaves any entry that is not inherited. A file created where the directory
+  // passes nothing down gets the process's default access list (SYSTEM, Administrators, the user) as entries
+  // of its own (measured on the Windows runner, in the user's temporary directory), so every entry but the
+  // user's is removed by the name icacls itself prints, and the result is read back: one entry, the user's.
+  const others = aces(icacls, file).filter((a) => a.name.toLowerCase() !== me);
+  if (others.length) {
+    const rm = runAbsolute(icacls, [file, '/remove:g', ...others.map((a) => a.name)]);
+    if (rm.code !== 0) throw new Error('icacls /remove exited ' + rm.code);
+  }
+  const left = aces(icacls, file);
+  if (left.length !== 1 || left[0].name.toLowerCase() !== me || left[0].inherited) {
+    throw new Error('the access list is not the current user alone (' + left.length + ' entries)');
+  }
+}
+
+/**
+ * The access entries icacls prints for one file: the account name, and whether it is inherited.
+ * @param {string} icacls @param {string} file
+ * @returns {Array<{ name: string, inherited: boolean }>}
+ */
+function aces(icacls, file) {
+  const r = runAbsolute(icacls, [file]);
+  if (r.code !== 0) throw new Error('icacls exited ' + r.code);
+  return r.stdout.split(/\r?\n/)
+    .map((l) => (l.startsWith(file) ? l.slice(file.length) : l).trim())
+    .filter((l) => l.includes(':('))
+    .map((l) => ({ name: l.slice(0, l.indexOf(':(')), inherited: l.includes('(I)') }));
 }
 
 /**
