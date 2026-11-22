@@ -51,10 +51,10 @@ describe('arguments', () => {
     assert.equal(none.child.WORKSTATION_OVERLAY, 'none');
     assert.equal(unset.child.WORKSTATION_OVERLAY, undefined);
     for (const args of [check.userCheck(['--check', '--hooks=user'], p.child)[1],
-      check.installer('install-managed.sh', ['--check'], '--root=', p.child)]) {
+      check.adminCheck(['--check'], p.child)[1]]) {
       assert.ok(!args.some((a) => a.includes('overlay') || a.includes('prof')), args.join(' '));
     }
-    assert.deepEqual(check.installer('install-managed.sh', ['--check'], '--root=', { WORKSTATION_MANAGED_ROOT: '/r' }).slice(-2), ['--check', '--root=/r']);
+    assert.deepEqual(check.adminCheck(['--check'], { WORKSTATION_MANAGED_ROOT: '/r' })[1].slice(-3), ['install-admin', '--check', '--root=/r']);
   });
 });
 

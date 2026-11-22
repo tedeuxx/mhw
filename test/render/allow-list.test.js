@@ -3,7 +3,7 @@
 // sources (the allow list and the deny floor). Throwaway HOMEs and a throwaway admin root only.
 //   units      every OS: the parser's refusals, the overlap test, the tier inputs, the declared differences
 //              (test/golden/S19/expected-differences.json), the Kiro patterns.
-//   install.sh macOS and Linux, where jq is on PATH: install.sh and install-managed.sh end to end, as the
+//   install.sh macOS and Linux, where jq is on PATH: install.sh and the admin-layer installer end to end, as the
 //              shell suite ran them. CODEX=<path> (or codex on PATH) adds the execpolicy arm; skipped and
 //              said so otherwise.
 import { test, after } from 'node:test';
@@ -585,7 +585,8 @@ test('Kiro V3 permissions admit what the 2.x patterns admit (an emulation of the
 const JQ = which('jq');
 // The user-layer installer, `mhw install-user` (global/install.sh until #503), run on this node.
 const INSTALL = path.join(ROOT, 'bin', 'mhw.js');
-const MANAGED = path.join(ROOT, 'global', 'install-managed.sh');
+/** The admin-layer installer, `mhw install-admin` (global/install-managed.sh until #496), on this node. */
+const MANAGED = [path.join(ROOT, 'bin', 'mhw.js'), 'install-admin'];
 const E2E = !POSIX ? 'POSIX only (install.sh)' : (!JQ && 'jq is not on PATH');
 
 /** @param {string} home @param {Record<string, string>} [extra] */
@@ -612,16 +613,16 @@ const allowOf = (file) => permsOf(file).get('allow') || [];
 /** @param {string} file @returns {string[]} */
 const denyOf = (file) => permsOf(file).get('deny') || [];
 
-/** The admin floor installed under a throwaway root by install-managed.sh itself. @param {string} home @param {string} root */
+/** The admin floor installed under a throwaway root by the admin-layer installer itself. @param {string} home @param {string} root */
 function adminFloor(home, root) {
   fs.mkdirSync(root, { recursive: true });
   const tmp = freshDir('mgr-tmp');
-  const st = spawnSync('/bin/sh', [MANAGED, '--root=' + root], { encoding: 'utf8', env: env(home, { TMPDIR: tmp }) });
+  const st = spawnSync(process.execPath, [...MANAGED, '--root=' + root], { encoding: 'utf8', env: env(home, { TMPDIR: tmp }) });
   const line = (st.stdout.split('\n').find((l) => l.startsWith('RUN     ')) || '');
   const stage = (/--apply="([^"]*)"/.exec(line) || [])[1];
   const sha = (/--sha256=([0-9a-f]*)/.exec(line) || [])[1];
   assert.ok(stage && sha, st.stdout + st.stderr);
-  const ap = spawnSync('/bin/sh', [MANAGED, '--apply=' + stage, '--sha256=' + sha, '--root=' + root], { encoding: 'utf8', env: env(home, { TMPDIR: tmp }) });
+  const ap = spawnSync(process.execPath, [...MANAGED, '--apply=' + stage, '--sha256=' + sha, '--root=' + root], { encoding: 'utf8', env: env(home, { TMPDIR: tmp }) });
   assert.equal(ap.status, 0, ap.stdout + ap.stderr);
 }
 

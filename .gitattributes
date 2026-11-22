@@ -62,3 +62,5 @@ test/golden/S25/** -text
 # Golden transcripts, the recorded CPython, the declared differences and the fixture package of the S31 parity test (#501): byte for byte on every OS.
 test/golden/S31/** -text
 test/helpers/s31-fixture/** -text
+# Golden transcripts and the declared differences of the S26 parity test (#496): byte for byte on every OS.
+test/golden/S26/** -text

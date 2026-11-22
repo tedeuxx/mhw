@@ -227,31 +227,38 @@ export function hookNodeText(env) {
     if (p && !nodes.includes(p[0])) nodes.push(p[0]);
   }
   if (!nodes.length) return 'no prompt hook registered';
+  return nodes.map((n) => (isFile(n) ? nodeOwnership(n) : 'FAIL ' + n + ' not found: the prompt hook cannot run')).join('; ');
+}
+
+/**
+ * A node path and whether a process running as this user can replace it, or a directory above it, or the
+ * libraries it loads: '<node> (owner-writable: …)' or '<node> (not writable by you)'. mhw install-admin
+ * prints it on its NODE line (#496), and hookNodeText above reads it for status.
+ * @param {string} n an absolute path
+ */
+export function nodeOwnership(n) {
   const uid = typeof process.getuid === 'function' ? process.getuid() : -1;
-  return nodes.map((n) => {
-    if (!isFile(n)) return 'FAIL ' + n + ' not found: the prompt hook cannot run';
-    let writable = false;
-    try {
-      let q = fs.realpathSync(n);
-      for (;;) {
-        const st = fs.statSync(q);
-        if (st.uid === uid) writable = true;
-        try {
-          fs.accessSync(q, fs.constants.W_OK);
-          writable = true;
-        } catch {
-          // not writable by this process
-        }
-        const up = path.dirname(q);
-        if (up === q) break;
-        q = up;
+  let writable = false;
+  try {
+    let q = fs.realpathSync(n);
+    for (;;) {
+      const st = fs.statSync(q);
+      if (st.uid === uid) writable = true;
+      try {
+        fs.accessSync(q, fs.constants.W_OK);
+        writable = true;
+      } catch {
+        // not writable by this process
       }
-    } catch {
-      writable = false;
+      const up = path.dirname(q);
+      if (up === q) break;
+      q = up;
     }
-    return uid !== 0 && writable ? n + ' (owner-writable: a process running as you can replace it, or the libraries it loads)'
-      : n + ' (not writable by you)';
-  }).join('; ');
+  } catch {
+    writable = false;
+  }
+  return uid !== 0 && writable ? n + ' (owner-writable: a process running as you can replace it, or the libraries it loads)'
+    : n + ' (not writable by you)';
 }
 
 const TERM_LIST_KEYS = ['terms_file', 'health_terms_file', 'colleague_terms_file'];

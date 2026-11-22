@@ -8,7 +8,7 @@
 //   Options: --overlay=DIR|none, --project=DIR (default: the git root of the current directory).
 //
 // Read-only. It runs `mhw install-user --check` (global/install.sh until #503) and, when an admin layer of ours is on disk,
-// global/install-managed.sh --check, under /bin/sh, and summarises their lines; it renders nothing
+// `mhw install-admin --check` on this node (global/install-managed.sh until #496), and summarises their lines; it renders nothing
 // itself. The validated --overlay reaches the installers through WORKSTATION_OVERLAY, never their argv.
 // git, gh and the agent harness CLIs are the first on PATH, run by absolute path (src/lib/onpath.js).
 // Status never fails on what it reads: exit 0, 2 on a usage error, 1 when --mcp-connect finds a failure.
@@ -619,12 +619,6 @@ export function npmNotes(source, userStamps, root = ROOT) {
   return out;
 }
 
-/** The installers' argv: /bin/sh, the script, its flags, and the managed root when one is set. @param {string} script @param {string[]} extra @param {string} flag @param {Env} env */
-function installer(script, extra, flag, env) {
-  const args = [path.join(ROOT, 'global', script), ...extra];
-  if (managedRoot(env)) args.push(flag + managedRoot(env));
-  return args;
-}
 
 /**
  * Everything the two views print, read from the installed files and the installers' --check.
@@ -646,7 +640,10 @@ export function gather(project, env, cwd) {
   /** @type {string[]} */
   let adminLines = [];
   let adminCode = 0;
-  if (adminPresent(env)) [adminCode, adminLines] = runLines('/bin/sh', installer('install-managed.sh', ['--check'], '--root=', env), env);
+  // The admin layer's --check is `mhw install-admin` on this node (#496; global/install-managed.sh until then).
+  const adminArgs = [path.join(ROOT, 'bin', 'mhw.js'), 'install-admin', '--check'];
+  if (managedRoot(env)) adminArgs.push('--root=' + managedRoot(env));
+  if (adminPresent(env)) [adminCode, adminLines] = runLines(process.execPath, adminArgs, env);
   const stamp = admin ? adminStamp(env) : 'none';
   /** @type {Record<string, string>} */
   const userStamps = {};

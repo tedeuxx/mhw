@@ -12,7 +12,7 @@
 import { adminInstalled, adminPresent } from '../lib/readers/admin.js';
 import { darwin } from '../lib/readers/common.js';
 import {
-  SH, NODE, FRESH, capture, installArgs, managedArgs, issues, isProblem, show, heading, nextSteps, styled, interactive,
+  NODE, FRESH, capture, installArgs, managedArgs, issues, isProblem, show, heading, nextSteps, styled, interactive,
   confirm, adminAccess, adminApply, ownerSteps,
 } from '../lib/lifecycle.js';
 import { wordsOf } from './status.js';
@@ -48,7 +48,7 @@ export function installPlan(adminWanted, userWanted, env, run = capture) {
     if (!adminPresent(env)) {
       plan.admin = 'absent';
     } else {
-      const [acode, alines] = run(SH, managedArgs(['--check'], env), env);
+      const [acode, alines] = run(NODE, managedArgs(['--check'], env), env);
       plan.admin = acode === 0 ? 'current' : 'differs';
       plan.admin_count = acode ? Math.max(issues(alines), 1) : 0;
     }
@@ -136,7 +136,7 @@ export function install(o, env, io, t = {}) {
     failed.push('Your settings still differ in ' + Math.max(issues(clines), 1) + ' file(s)');
   }
   if (adminPresent(env) && !noAdmin) {
-    const [acode, alines] = run(SH, managedArgs(['--check'], env), env);
+    const [acode, alines] = run(NODE, managedArgs(['--check'], env), env);
     if (acode !== 0 && (plan.admin === 'absent' || plan.admin === 'differs') && !steps.length) {
       failed.push('System-wide protections still differ in ' + Math.max(issues(alines), 1) + ' file(s)');
     }

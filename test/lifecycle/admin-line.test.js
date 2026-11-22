@@ -1,7 +1,8 @@
 // S24 (#495): the one root command line the owner's `mhw install` runs for the admin layer, held on a golden
 // recorded from the deleted global/workstation.py (the Issue's main risk: any drift in its quoting is an
 // owner act going wrong). Nothing here runs sudo, an installer or any process: adminApply() and asRoot()
-// take a recording runner, and the scenarios feed them a synthetic render of install-managed.sh.
+// take a recording runner, and the scenarios feed them a synthetic render of the admin-layer installer
+// (mhw install-admin since #496; global/install-managed.sh before).
 //   golden: src/lib/lifecycle.js against test/golden/S24/admin-lines.json, on every OS.
 //   live:   the base revision's workstation.py through test/helpers/s24-admin-line.py, on the recorded
 //           CPython, while the base still holds it. MHW_UPDATE_GOLDEN=1 rewrites the golden from that side.
@@ -14,7 +15,7 @@ import { spawnSync } from 'node:child_process';
 import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
 import { throwawayHome, which } from '../helpers/home.js';
 import { allow, baseTree } from '../helpers/mcp-golden.js';
-import { adminApply, asRoot, INSTALL_MANAGED, SUDO } from '../../src/lib/lifecycle.js';
+import { adminApply, asRoot, ADMIN, MHW_JS, NODE, SUDO } from '../../src/lib/lifecycle.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SLICE = 'S24';
@@ -56,11 +57,12 @@ function head() {
       }
     }
   }
-  const [exe, args] = asRoot(['/bin/sh', HERE, '--remove'], {});
+  const [exe, args] = asRoot([NODE, ...ADMIN, '--remove'], {});
   result['as_root remove sudo'] = [exe, ...args];
-  const [exe2, args2] = asRoot(['/bin/sh', HERE, '--remove'], { WORKSTATION_MANAGED_ROOT: '/tmp/throwaway root' });
+  const [exe2, args2] = asRoot([NODE, ...ADMIN, '--remove'], { WORKSTATION_MANAGED_ROOT: '/tmp/throwaway root' });
   result['as_root remove managed-root'] = [exe2, ...args2];
-  return JSON.parse(JSON.stringify(result, null, 2).replaceAll(INSTALL_MANAGED, HERE));
+  return JSON.parse(JSON.stringify(result, null, 2).replaceAll(JSON.stringify(MHW_JS).slice(1, -1), '<MHW_JS>')
+    .replaceAll(JSON.stringify(NODE).slice(1, -1), '<NODE>'));
 }
 
 /** Object keys in sorted order at every depth, as the recorder's json.dumps(sort_keys=True). @param {unknown} v @returns {unknown} */
@@ -80,6 +82,9 @@ test('golden: the admin-layer root command line is the one workstation.py ran, q
   // The line the owner meets, spelled out: one sudo that asks for the password itself, never -n or -v.
   const owner = /** @type {Record<string, { calls: string[][] }>} */ (golden)['rendered sudo quiet'].calls[1];
   assert.deepEqual(owner, [SUDO, '-k', '-p', 'Password for %u: ', '/bin/sh', HERE, '--apply=' + STAGE, '--sha256=' + SHA]);
+  // Since #496 (S26) the admin layer is `mhw install-admin`, on the node running mhw: the same one sudo call.
+  const now = /** @type {Record<string, { calls: string[][] }>} */ (head())['rendered sudo quiet'].calls[1];
+  assert.deepEqual(now, [SUDO, '-k', '-p', 'Password for %u: ', '<NODE>', '<MHW_JS>', 'install-admin', '--apply=' + STAGE, '--sha256=' + SHA]);
 });
 
 test('live: the base revision\'s workstation.py records the same admin-layer line', (t) => {

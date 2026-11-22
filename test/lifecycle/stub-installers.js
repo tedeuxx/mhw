@@ -1,14 +1,11 @@
-// Recording stand-ins for the user-layer installer (mhw install-user, global/install.sh until #503) and global/install-managed.sh (#495, S24 of #470), for the
+// Recording stand-ins for the user-layer installer (mhw install-user, global/install.sh until #503) and the
+// admin-layer installer (mhw install-admin, global/install-managed.sh until #496) (#495, S24 of #470), for the
 // lifecycle parity cases marked `stub`. Each appends one line per run to $STUB_LOG: its arguments, and the
 // environment the lifecycle command hands the installers (WORKSTATION_OVERLAY, MHW_NODE, MHW_CMD and
 // WORKSTATION_MANAGED_ROOT), so the golden pins the exact argv and env, which the written-tree comparison
 // alone does not once the live arm retires. They write only under the case's own directories.
 import fs from 'node:fs';
 import path from 'node:path';
-
-const LOG = `{ printf '%s' "$(basename "$0")"; for a in "$@"; do printf ' [%s]' "$a"; done
-  printf ' | overlay=%s node=%s cmd=%s root=%s\\n' "\${WORKSTATION_OVERLAY-<unset>}" "\${MHW_NODE-<unset>}" "\${MHW_CMD-<unset>}" "\${WORKSTATION_MANAGED_ROOT-<unset>}"; } >> "$STUB_LOG"
-`;
 
 // The user layer is `mhw install-user` since #503 (S25): its stand-in replaces src/commands/install-user.js
 // and logs the same line, named install-user (test/golden/S24/expected-differences.json).
@@ -30,25 +27,47 @@ export function main(argv, env) {
 }
 `;
 
-const MANAGED = `#!/bin/sh
-${LOG}root=; mode=render
-for a in "$@"; do
-  case $a in --root=*) root=\${a#--root=} ;; --check) mode=check ;; --remove) mode=remove ;; --apply=*) mode=apply ;; esac
-done
-if [ "$(uname)" = Darwin ]; then d="$root/Library/Application Support/ClaudeCode/managed-settings.d"; else d="$root/etc/claude-code/managed-settings.d"; fi
-f="$d/50-personal-multi-harness-workstation-configuration.json"
-case $mode in
-  render) echo "RUN     sudo /bin/sh \\"$0\\" --apply=\\"$STUB_STAGE\\" --sha256=abc123" ;;
-  apply) mkdir -p "$d"; printf '{"personal-multi-harness-workstation-configuration": "stub"}' > "$f"; echo "APPLIED stub admin layer" ;;
-  check) if [ -f "$f" ]; then echo "OK      stub admin layer"; exit 0; fi; echo "MISSING stub admin layer"; exit 1 ;;
-  remove) rm -f "$f"; echo "REMOVED stub admin layer" ;;
-esac
+// The admin layer is `mhw install-admin` since #496 (S26): its stand-in replaces src/commands/install-admin.js,
+// which src/cli.js starts as a child, and logs the same line, named install-admin
+// (test/golden/S24/expected-differences.json). It answers as global/install-managed.sh's stand-in did.
+const INSTALL_ADMIN = `import fs from 'node:fs';
+import os from 'node:os';
+const env = process.env;
+const argv = process.argv.slice(2);
+const v = (k) => (env[k] === undefined ? '<unset>' : env[k]);
+fs.appendFileSync(env.STUB_LOG, 'install-admin' + argv.map((a) => ' [' + a + ']').join('')
+  + ' | overlay=' + v('WORKSTATION_OVERLAY') + ' node=' + v('MHW_NODE') + ' cmd=' + v('MHW_CMD') + ' root=' + v('WORKSTATION_MANAGED_ROOT') + '\\n');
+let root = '';
+let mode = 'render';
+for (const a of argv) {
+  if (a.startsWith('--root=')) root = a.slice(7);
+  else if (a === '--check') mode = 'check';
+  else if (a === '--remove') mode = 'remove';
+  else if (a.startsWith('--apply=')) mode = 'apply';
+}
+const d = root + (os.type() === 'Darwin' ? '/Library/Application Support/ClaudeCode' : '/etc/claude-code') + '/managed-settings.d';
+const f = d + '/50-personal-multi-harness-workstation-configuration.json';
+const out = (s) => fs.writeSync(1, s + '\\n');
+if (mode === 'render') out('RUN     sudo "' + process.execPath + '" "' + process.argv[1] + '" install-admin --apply="' + env.STUB_STAGE + '" --sha256=abc123');
+else if (mode === 'apply') {
+  fs.mkdirSync(d, { recursive: true });
+  fs.writeFileSync(f, '{"personal-multi-harness-workstation-configuration": "stub"}');
+  out('APPLIED stub admin layer');
+} else if (mode === 'check') {
+  if (fs.existsSync(f)) out('OK      stub admin layer');
+  else {
+    out('MISSING stub admin layer');
+    process.exitCode = 1;
+  }
+} else {
+  fs.rmSync(f, { force: true });
+  out('REMOVED stub admin layer');
+}
 `;
 
 /** Replace a tree's two installers with the recorders. @param {string} tree */
 export function stubInstallers(tree) {
-  fs.writeFileSync(path.join(tree, 'global', 'install-managed.sh'), MANAGED);
-  fs.chmodSync(path.join(tree, 'global', 'install-managed.sh'), 0o700);
+  fs.writeFileSync(path.join(tree, 'src', 'commands', 'install-admin.js'), INSTALL_ADMIN);
   fs.writeFileSync(path.join(tree, 'src', 'commands', 'install-user.js'), INSTALL_USER);
 }
 

@@ -1,7 +1,7 @@
 // Which layer carries the deny floor (ADR-0016, 2026-10-05 amendment): the FLOOR lines install.sh prints at
 // the end of every run. The Node form of its report_floor (#491, S20 of #470), whose counts were jq programs.
-// A report, never a status change: the admin copy is the owner's sudo act (install-managed.sh), and its drift
-// is install-managed.sh --check's to report.
+// A report, never a status change: the admin copy is the owner's sudo act (mhw install-admin; install-managed.sh
+// until #496), and its drift is mhw install-admin --check's to report.
 //
 //   node src/render/floor-report.js --settings=FILE --floor-claude=FILE --floor-codex=FILE --floor=FILE
 //        --stamp=STAMP --codex-rules=FILE [--floor-from=TEXT] [--managed-root=DIR] [--cmd=TEXT]

@@ -1,0 +1,51 @@
+[
+  {
+    "run": "--bogus R",
+    "code": 2,
+    "stdout": "",
+    "stderr": "unknown argument: --bogus\n",
+    "tree": []
+  },
+  {
+    "run": "apply without a hash",
+    "code": 2,
+    "stdout": "",
+    "stderr": "REFUSE  --apply needs --sha256\n",
+    "tree": []
+  },
+  {
+    "run": "an MHW_NODE that is not executable",
+    "code": 2,
+    "stdout": "",
+    "stderr": "REFUSE  MHW_NODE (<T>/no-such-node) is not an executable file; nothing staged or installed\n",
+    "tree": []
+  },
+  {
+    "run": "an admin root holding a quote",
+    "code": 2,
+    "stdout": "",
+    "stderr": "REFUSE  <QUOTED>/<BASE>/bin holds a quote, backslash, dollar sign or backtick\n",
+    "tree": []
+  },
+  {
+    "run": "uninstall prints the line for the real root",
+    "code": 0,
+    "stdout": "RUN     sudo /bin/sh \"<T>/tree/global/install-managed.sh\" --remove\nTHEN    ./mhw install   (restores the user-level hooks), then open fresh sessions\n",
+    "stderr": "",
+    "tree": []
+  },
+  {
+    "run": "apply as a non-root user",
+    "code": 2,
+    "stdout": "",
+    "stderr": "REFUSE  --apply needs administrator privilege (sudo)\n",
+    "tree": []
+  },
+  {
+    "run": "remove as a non-root user",
+    "code": 2,
+    "stdout": "",
+    "stderr": "REFUSE  --remove needs administrator privilege (sudo)\n",
+    "tree": []
+  }
+]

@@ -12,6 +12,7 @@ import * as core from '../../src/lib/clean.js';
 import * as hook from '../../src/commands/hook-prompt.js';
 import * as addTerm from '../../src/commands/add-term.js';
 import { pasteWrap, pasteCmd } from '../../src/commands/install-user.js';
+import { HOOK_FILES } from '../../src/commands/install-admin.js';
 import { saltOrCreate, readSalt, orphanedLists, addTermHashes } from '../../src/lib/salt.js';
 import { loadPty } from '../../src/lib/pty.js';
 import { ROOT } from '../helpers/s15.js';
@@ -190,15 +191,6 @@ test('a stalled payload read gives the error notice at the deadline, not the har
 const wrap = pasteWrap;
 /** The hook command the user-layer installer renders, for a node and an entry. @param {string} harness @param {string} conf @param {string} [node] @param {string} [entry] */
 const rendered = (harness, conf, node = process.execPath, entry = MHW) => pasteCmd(harness, node, entry, conf);
-/** install-managed.sh's own start-fallback function (paste_wrap), read from it, so the test runs the real thing. */
-const MANAGED_SH = fs.readFileSync(path.join(ROOT, 'global', 'install-managed.sh'), 'utf8');
-const WRAP_FN = MANAGED_SH.slice(MANAGED_SH.indexOf("PASTE_START_NOTICE='"), MANAGED_SH.indexOf('\n}\n', MANAGED_SH.indexOf('paste_wrap() {')) + 3);
-/** The command as install-managed.sh renders it. @param {string} harness @param {string} cmd */
-function managedWrap(harness, cmd) {
-  const p = spawnSync('/bin/sh', ['-c', WRAP_FN + '\npaste_wrap "$1" "$2"', 'sh', harness, cmd], { encoding: 'utf8' });
-  assert.equal(p.status, 0, p.stderr);
-  return p.stdout;
-}
 
 // PR #536 lens B3: an entry or node that is missing or does not start still gives the NOT-checked answer in
 // the harness's protocol (Claude Code and Codex: the notice JSON, exit 0; Kiro: exit 2 with the notice on
@@ -239,11 +231,8 @@ test('the rendered command\'s start fallback: a hook that cannot start says NOT 
   assert.equal(wrap('claude', 'X'), "/bin/sh -c 'X || { printf \"%s\\n\" \"{\\\"systemMessage\\\": \\\"" + notice + "\\\"}\"; exit 0; }'");
   assert.equal(KIRO_NOTICE, notice, 'prod-canary.js no longer spells out the notice the installer renders');
   assert.equal(kiroHookCommand('X'), wrap('kiro', 'X'), 'prod-canary.js no longer spells out the Kiro fallback the installer renders');
-  // install-managed.sh's shell function renders exactly what the user-layer installer renders.
-  assert.ok(WRAP_FN.startsWith("PASTE_START_NOTICE='" + notice + "'") && WRAP_FN.includes('paste_wrap() {'), 'install-managed.sh lost its paste_wrap');
-  for (const harness of ['claude', 'codex', 'kiro']) {
-    for (const cmd of ['X', rendered(harness, b.confPath).slice(12, -1).split(' || ')[0]]) assert.equal(managedWrap(harness, cmd), wrap(harness, cmd), harness);
-  }
+  // The admin layer (mhw install-admin, #496; install-managed.sh's own paste_wrap until then) renders with this
+  // same pasteWrap: test/install/admin.test.js holds its drop-in and requirements commands equal to it.
 });
 
 test('the rendered hook command names node by absolute path and clears NODE_OPTIONS: a planted --require never runs', { skip: !POSIX && 'POSIX' }, () => {
@@ -541,8 +530,7 @@ test('the admin layer copies exactly the files the hook imports', () => {
     for (const m of code.matchAll(/mod(?:ule)? = '(\.{1,2}\/[^']+)'/g)) queue.push(path.resolve(path.dirname(file), m[1]));
   }
   const closure = [...seen].map((p) => path.relative(ROOT, p).split(path.sep).join('/')).sort();
-  const sh = fs.readFileSync(path.join(ROOT, 'global', 'install-managed.sh'), 'utf8');
-  const listed = /** @type {RegExpMatchArray} */ (sh.match(/^HOOK_FILES="([^"]*)"/m))[1].split(' ').filter((x) => x !== 'hook/package.json').map((x) => x.slice(5)).sort();
+  const listed = HOOK_FILES.filter((x) => x !== 'hook/package.json').map((x) => x.slice(5)).sort();
   assert.ok(closure.includes('src/commands/hook-prompt.js') && closure.includes('src/lib/clean.js'), closure.join(' '));
   assert.deepEqual(listed, closure);
 });
