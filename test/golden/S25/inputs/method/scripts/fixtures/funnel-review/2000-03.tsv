@@ -1,0 +1,8 @@
+# FIXTURE — synthetic. The case the ruled route makes real: the driver ran, the browser was not
+# authenticated, and NOTHING was read. It carries figures below the declaration on purpose — a
+# `collected: no` file must produce the not-collected literal whatever else is in it, or the
+# declaration is decoration.
+
+collected: no chrome-not-authenticated
+
+figure: ga4 sessions 999 999
