@@ -48,8 +48,9 @@ Pass the generated directory with `--overlay=PATH` (on Windows too since #497; ~
 The repository's `overlay/` is the reference owner's profile, not a universal default for every adopter.
 Hand-authored overlays remain supported; the compiler refuses to overwrite their unmarked files.
 Both installers verify structured profiles before writing. If you edit `profile.json`, regenerate
-before installation; otherwise the stale-output check refuses the run. Python 3.9+ must be available
-when installing a structured profile, including on Windows.
+before installation; otherwise the stale-output check refuses the run. ~~Python 3.9+ must be available
+when installing a structured profile, including on Windows.~~ The profile compiler is `mhw profile`, in
+Node since #479; no Python is needed (#502, ADR-0045).
 
 ## Apply and check existing components
 
