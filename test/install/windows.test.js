@@ -82,8 +82,11 @@ function ownerOnly(p) {
   const sys32 = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32');
   const me = spawnSync(path.join(sys32, 'whoami.exe'), [], { encoding: 'utf8' }).stdout.trim().toLowerCase();
   const acl = spawnSync(path.join(sys32, 'icacls.exe'), [p], { encoding: 'utf8' }).stdout;
-  const aces = acl.split(/\r?\n/).map((l, i) => (i === 0 ? l.slice(p.length) : l).trim()).filter((l) => /^\S.*:\(/.test(l));
-  return aces.length === 1 && aces[0].toLowerCase().startsWith(me + ':') && !aces[0].includes('(I)');
+  // icacls prints the path, then one access entry per line ("DOMAIN\user:(F)"), then a summary line.
+  const aces = acl.split(/\r?\n/).map((l) => (l.startsWith(p) ? l.slice(p.length) : l).trim()).filter((l) => l.includes(':('));
+  const ok = aces.length === 1 && aces[0].toLowerCase().startsWith(me + ':') && !aces[0].includes('(I)');
+  if (!ok) console.log('# acl of ' + p + ' (whoami ' + me + '): ' + JSON.stringify(aces));
+  return ok;
 }
 
 // Expected counts from the sources, independently of the installer: a cmd line is one Claude rule and one

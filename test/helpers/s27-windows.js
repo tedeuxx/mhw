@@ -68,7 +68,7 @@ function stepEnv(t, step) {
   env.USERPROFILE = home;
   env.HOME = home;
   if (step.codexHome) env.CODEX_HOME = path.join(t, 'codex-home');
-  if (step.node === 'bogus') env.MHW_NODE = path.join(t, WIN ? 'no-such-node.exe' : 'no-such-node');
+  if (step.node === 'bogus') env.MHW_NODE = path.join(t, 'no-such-node.exe');
   if (step.node === 'node') env.MHW_NODE = process.execPath;
   if (step.path === 'no-node') {
     const sys = WIN ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32') : '/usr/sbin';
@@ -109,8 +109,12 @@ function tree(t, norm) {
         out.push({ path: base + '/' + r, kind: 'dir', data: '' });
         walk(base, r);
       } else {
-        let text = norm(fs.readFileSync(path.join(dir, name), 'utf8'));
-        if (/\.json($|\.)/.test(name)) text = canonical(text);
+        // CRLF to LF and a backslash to a slash: the renderers write CRLF and Windows paths on Windows (as
+        // Python's text mode did), on both sides alike, so one golden serves every OS. In a JSON file only
+        // an escaped backslash (a path separator) becomes a slash; the JSON escapes stay.
+        let text = fs.readFileSync(path.join(dir, name), 'utf8').replaceAll('\r\n', '\n');
+        if (/\.json($|\.)/.test(name)) text = norm(canonical(text)).replaceAll('\\\\', '/');
+        else text = norm(text).replaceAll('\\', '/');
         out.push({ path: base + '/' + r, kind: 'file', data: text.length > 2048 ? 'sha256:' + crypto.createHash('sha256').update(text).digest('hex') : text });
       }
     }
@@ -123,7 +127,7 @@ function tree(t, norm) {
 /** The normaliser of one scenario directory. @param {string} t */
 function normaliser(t) {
   const subs = [[t, '<T>'], [t.replaceAll('\\', '/'), '<T>'], [t.replaceAll('\\', '\\\\'), '<T>'],
-    [process.execPath, '<NODE>'], [process.execPath.replaceAll('\\', '/'), '<NODE>']]
+    [process.execPath, '<NODE>'], [process.execPath.replaceAll('\\', '/'), '<NODE>'], [process.execPath.replaceAll('\\', '\\\\'), '<NODE>']]
     .sort((a, b) => b[0].length - a[0].length);
   return (/** @type {string} */ s) => {
     let o = s;

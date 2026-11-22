@@ -178,6 +178,7 @@ test('the Windows mapping onto mhw install-windows (#497; install.ps1 until then
   assert.deepEqual(windowsPlan(['status', '--overlay=x']), { code: 0, argv: ['--check', '--overlay=x'] });
   // End to end on a throwaway profile: install, then check and status, through bin/mhw.js on the Windows path.
   const prof = fresh('win-profile');
+  /** @type {Record<string, string | undefined>} */
   const env = { ...process.env, WORKSTATION_LAUNCHER_PLATFORM: 'win32', USERPROFILE: prof, HOME: prof };
   delete env.CODEX_HOME;
   delete env.MHW_NODE;

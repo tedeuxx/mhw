@@ -13,11 +13,14 @@
 // inputs of test/golden/S27/inputs (the global brief, the floor, the retired allows, the overlays, a method and
 // .bumpversion.toml), so a later change to those sources does not move the goldens; the base side adds the
 // base revision's global/install.ps1, which runs this tree's renderers exactly as it ran its own.
-// Normalised: CRLF to LF and every backslash to a slash in stdout and stderr (PowerShell writes CRLF; the
-// paths are Windows paths on one side), the scenario directory (<T>), the node (<NODE>), and each JSON file's
-// formatting (install.ps1 wrote ConvertTo-Json's, which differs between PowerShell 5.1 and 7; the head writes
-// two-space JSON): a JSON file is compared as its parsed value, key order kept. Directories PowerShell
-// itself creates under the profile (AppData/Local/Microsoft/...) are left out.
+// Normalised: CRLF to LF and every backslash to a slash in stdout, stderr and the files written (PowerShell
+// writes CRLF, the renderers write CRLF on Windows, and the paths are Windows paths there; this is what lets a
+// golden recorded on Windows hold the head on macOS and Linux too), the scenario directory (<T>), the node
+// (<NODE>), and each JSON file's formatting (install.ps1 wrote ConvertTo-Json's, which differs between
+// PowerShell 5.1 and 7; the head writes two-space JSON): a JSON file is compared as its parsed value, key
+// order kept. Directories PowerShell itself creates under the profile (AppData/...) are left out. The
+// modes of the files are not compared (Windows has none); the owner-only access list of each backup is
+// asserted by test/install/windows.test.js on Windows.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
