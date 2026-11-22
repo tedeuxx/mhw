@@ -342,3 +342,91 @@ const APPLY_ROWS = /** @type {Array<{ name: string, run: () => void }>} */ ([
   },
 ]);
 for (const row of APPLY_ROWS) test('--apply and --remove refusals: ' + row.name, { skip: SKIP }, row.run);
+
+// Lens finding on PR #548 at 59f9fac5: the words of the owner's sudo line are pasted inside double quotes into an
+// interactive shell, where `!` is history expansion. A node path or a stage path that line cannot carry is
+// refused (exit 2, nothing staged); a space, and the usual nvm and Homebrew paths, pass.
+const SUDO_ROWS = /** @type {Array<{ name: string, args: string[], tmp?: string, execPath?: string, code: number, err?: RegExp }>} */ ([
+  { name: 'a node path holding ! is refused by render', args: [], execPath: '/opt/bang!x/bin/node', code: 2, err: /^REFUSE {2}the node path \/opt\/bang!x\/bin\/node holds .*exclamation mark/m },
+  { name: 'a node path holding ! is refused by --uninstall', args: ['--uninstall'], execPath: '/opt/bang!x/bin/node', code: 2, err: /^REFUSE {2}the node path .*exclamation mark/m },
+  { name: 'a node path holding a double quote is refused', args: ['--uninstall'], execPath: '/opt/q"x/bin/node', code: 2, err: /^REFUSE {2}the node path/m },
+  { name: 'a stage path holding ! is refused before anything is staged', args: [], tmp: 'tmp-bang!x', code: 2, err: /^REFUSE {2}the stage path .*tmp-bang!x.*exclamation mark/m },
+  { name: 'a stage path holding a backtick is refused', args: [], tmp: 'tmp-tick`x', code: 2, err: /^REFUSE {2}the stage path/m },
+  { name: 'a stage path holding a dollar sign is refused', args: [], tmp: 'tmp-dollar$x', code: 2, err: /^REFUSE {2}the stage path .*tmp-dollar\$x/m },
+  { name: 'an nvm node path passes', args: ['--uninstall'], execPath: '/Users/someone/.nvm/versions/node/v26.13.1/bin/node', code: 0 },
+  { name: 'a Homebrew node path passes', args: ['--uninstall'], execPath: '/opt/homebrew/bin/node', code: 0 },
+  { name: 'a username holding a space passes', args: ['--uninstall'], execPath: '/Users/Some One/.nvm/versions/node/v26.13.1/bin/node', code: 0 },
+]);
+for (const row of SUDO_ROWS) {
+  test('the sudo line\'s words: ' + row.name, { skip: SKIP }, () => {
+    const tmp = path.join(base, row.tmp || 'tmp');
+    fs.mkdirSync(tmp, { recursive: true });
+    const before = fs.readdirSync(tmp);
+    let out = '';
+    let err = '';
+    const code = adminMain([...row.args, '--root=' + path.join(base, 'root-sudo')], envFor({ TMPDIR: tmp }),
+      { out: (s) => { out += s; }, err: (s) => { err += s; } }, row.execPath ? { execPath: row.execPath } : {});
+    assert.equal(code, row.code, out + err);
+    if (row.err) {
+      assert.match(err, row.err);
+      assert.doesNotMatch(out, /^RUN /m);
+      assert.deepEqual(fs.readdirSync(tmp), before, 'a stage was created');
+    } else assert.ok(out.includes('RUN     sudo "' + row.execPath + '" "'), out);
+  });
+}
+
+// QA B2 on PR #548: the same refusal, end to end in a real process, for the two words the program itself
+// supplies. The package path is a copy of src/ and bin/ under a directory named pk$g or pk!g; the node path is a
+// hard link to this node in a directory named n$x or n!x (process.execPath is the link's own path; a copy when
+// the link cannot be made). Each of render and --uninstall: exit 2, a REFUSE line naming the word, no RUN line.
+const WORDS = /** @type {const} */ (['$', '!']);
+/** @type {Map<string, string>} */
+const made = new Map();
+/** A tree holding this package's src/ and bin/ under pk<c>g. @param {string} c */
+function packageTree(c) {
+  const key = 'pkg' + c;
+  if (!made.has(key)) {
+    const tree = path.join(base, 'pk' + c + 'g');
+    for (const d of ['src', 'bin']) fs.cpSync(path.join(ROOT, d), path.join(tree, d), { recursive: true });
+    fs.copyFileSync(path.join(ROOT, 'package.json'), path.join(tree, 'package.json'));
+    made.set(key, tree);
+  }
+  return /** @type {string} */ (made.get(key));
+}
+/** This node, reached through n<c>x/node. @param {string} c */
+function linkedNode(c) {
+  const key = 'node' + c;
+  if (!made.has(key)) {
+    const dir = path.join(base, 'n' + c + 'x');
+    fs.mkdirSync(dir, { recursive: true });
+    const node = path.join(dir, 'node');
+    try {
+      fs.linkSync(process.execPath, node);
+    } catch {
+      fs.copyFileSync(process.execPath, node);
+      fs.chmodSync(node, 0o755);
+    }
+    made.set(key, node);
+  }
+  return /** @type {string} */ (made.get(key));
+}
+for (const mode of [[], ['--uninstall']]) {
+  for (const c of WORDS) {
+    for (const word of ['package path', 'node path']) {
+      const name = (mode.length ? '--uninstall' : 'render') + ' refuses a ' + word + ' holding ' + c;
+      test('the sudo line\'s words, end to end: ' + name, { skip: SKIP }, () => {
+        const node = word === 'node path' ? linkedNode(c) : process.execPath;
+        const tree = word === 'package path' ? packageTree(c) : ROOT;
+        const tmp = path.join(base, 'tmp-e2e');
+        fs.mkdirSync(tmp, { recursive: true });
+        const before = fs.readdirSync(tmp);
+        const r = spawnSync(node, [path.join(tree, 'src', 'commands', 'install-admin.js'), ...mode, '--root=' + path.join(base, 'root-e2e')],
+          { env: envFor({ TMPDIR: tmp }), encoding: 'utf8', timeout: 300000 });
+        assert.equal(r.status, 2, r.stdout + r.stderr);
+        assert.match(r.stderr, new RegExp('^REFUSE {2}the ' + word + ' \\S*' + (c === '$' ? '\\$' : '!') + '.* exclamation mark, which the sudo line cannot carry$', 'm'));
+        assert.doesNotMatch(r.stdout, /^RUN /m);
+        assert.deepEqual(fs.readdirSync(tmp), before, 'a stage was created');
+      });
+    }
+  }
+}

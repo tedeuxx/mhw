@@ -48,6 +48,11 @@ export const LEGACY = ['restart_guard.py', 'breaking_glass.py', 'hitl-escalation
 const STAGE_EXTRA = ['../claude.json', '../requirements.toml', '../kiro.json'];
 const PASTE_ENV = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE';
 const QUOTED = /["\\$`']/;
+// A word of the owner's sudo line, which he pastes into an interactive shell inside double quotes: there a
+// quote, backslash, dollar sign or backtick breaks the quoting, and `!` is history expansion in zsh and bash
+// ("event not found", or an earlier command spliced into the path; measured on PR #548). A space is fine.
+const SUDO_UNSAFE = /["\\$`'!]/;
+const SUDO_REFUSAL = 'holds a quote, backslash, dollar sign, backtick or exclamation mark, which the sudo line cannot carry';
 
 export const USAGE = `Install the hook layers and the deny floor in each harness's native admin layer (ADR-0025, ADR-0016).
 
@@ -232,7 +237,7 @@ function kiroForeign(p) {
 
 /**
  * @typedef {{ env: Env, io: Io, root: string, overlay: string, t: ReturnType<typeof targets>, node: string,
- *   nodeLine: string }} Ctx
+ *   nodeLine: string, execPath: string }} Ctx
  */
 
 /** @param {Ctx} ctx @param {string} s */
@@ -404,18 +409,30 @@ function mktemp(env, name) {
   return fs.mkdtempSync(path.join(env.TMPDIR || '/tmp', name + '.'));
 }
 
-/** The sudo line's program: this node and this package's entry, quoted. */
-const sudoProgram = () => 'sudo "' + process.execPath + '" "' + MHW_JS + '" install-admin';
+/** The sudo line's program: this node and this package's entry, quoted. @param {Ctx} ctx */
+const sudoProgram = (ctx) => 'sudo "' + ctx.execPath + '" "' + MHW_JS + '" install-admin';
+
+/**
+ * The first word of the sudo line that it cannot carry, refused with a REFUSE line; true when one was.
+ * @param {Ctx} ctx @param {Array<[string, string]>} words [what, path]
+ */
+function sudoUnsafe(ctx, words) {
+  const bad = words.find(([, p]) => SUDO_UNSAFE.test(p));
+  if (bad) warn(ctx, 'REFUSE  the ' + bad[0] + ' ' + bad[1] + ' ' + SUDO_REFUSAL);
+  return Boolean(bad);
+}
+
+/** The node, the package entry and the --root of the sudo line. @param {Ctx} ctx @returns {Array<[string, string]>} */
+const sudoWords = (ctx) => [['node path', ctx.execPath], ['package path', MHW_JS], ...(/** @type {Array<[string, string]>} */ (ctx.root ? [['admin root', ctx.root]] : []))];
 /** The --root suffix of a printed line. @param {Ctx} ctx */
 const rootArg = (ctx) => (ctx.root ? ' --root="' + ctx.root + '"' : '');
 
 /** @param {Ctx} ctx */
 function renderMode(ctx) {
-  // The sudo line names this node, quoted: a path that would break that quoting is refused, as the hook node is.
-  if (QUOTED.test(process.execPath) || QUOTED.test(MHW_JS)) {
-    warn(ctx, 'REFUSE  the node or package path holds a quote, backslash, dollar sign or backtick');
-    return 2;
-  }
+  // The sudo line names this node, the package and the stage, each in double quotes: a word that quoting
+  // cannot carry is refused before anything is staged. mkdtemp's suffix is letters and digits only.
+  const prefix = path.join(ctx.env.TMPDIR || '/tmp', 'pmhwc-managed.');
+  if (sudoUnsafe(ctx, [...sudoWords(ctx), ['stage path', prefix]])) return 2;
   const st = mktemp(ctx.env, 'pmhwc-managed');
   render(ctx, st);
   if (codexForeign(ctx.t.codex)) {
@@ -428,18 +445,15 @@ function renderMode(ctx) {
   }
   say(ctx, 'STAGED  ' + st + ' (validated; nothing installed)');
   say(ctx, ctx.nodeLine);
-  say(ctx, 'RUN     ' + sudoProgram() + ' --apply="' + st + '" --sha256=' + stageHash(st) + rootArg(ctx));
+  say(ctx, 'RUN     ' + sudoProgram(ctx) + ' --apply="' + st + '" --sha256=' + stageHash(st) + rootArg(ctx));
   say(ctx, 'THEN    ' + (ctx.env.MHW_CMD || './mhw') + ' install   (detects the admin layer and removes the user-level duplicates), then open fresh sessions');
   return 0;
 }
 
 /** @param {Ctx} ctx */
 function uninstallMode(ctx) {
-  if (QUOTED.test(process.execPath) || QUOTED.test(MHW_JS)) {
-    warn(ctx, 'REFUSE  the node or package path holds a quote, backslash, dollar sign or backtick');
-    return 2;
-  }
-  say(ctx, 'RUN     ' + sudoProgram() + ' --remove' + rootArg(ctx));
+  if (sudoUnsafe(ctx, sudoWords(ctx))) return 2;
+  say(ctx, 'RUN     ' + sudoProgram(ctx) + ' --remove' + rootArg(ctx));
   say(ctx, 'THEN    ' + (ctx.env.MHW_CMD || './mhw') + ' install   (restores the user-level hooks), then open fresh sessions');
   return 0;
 }
@@ -665,8 +679,9 @@ function removeMode(ctx) {
  * The command: parse, look the node up for the modes that render, refuse an admin path the hook command
  * cannot carry, and run the mode.
  * @param {string[]} argv @param {Env} env @param {Io} [io]
+ * @param {{ execPath?: string }} [opts] tests only: the node the sudo line names (process.execPath)
  */
-export function main(argv, env, io = STDIO) {
+export function main(argv, env, io = STDIO, opts = {}) {
   let mode = 'render';
   let root = '';
   let stage = '';
@@ -691,7 +706,7 @@ export function main(argv, env, io = STDIO) {
     }
   }
   /** @type {Ctx} */
-  const ctx = { env, io, root, overlay, t: targets(root), node: '', nodeLine: '' };
+  const ctx = { env, io, root, overlay, t: targets(root), node: '', nodeLine: '', execPath: opts.execPath || process.execPath };
   if (mode === 'render' || mode === 'check') {
     // The node that runs mhw install-user (MHW_NODE, set by mhw, else node on PATH), by absolute path. An
     // absolute MHW_NODE that is not an executable file is refused, never replaced by another node (PR #515
