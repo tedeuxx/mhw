@@ -95,5 +95,12 @@ test('the help tells mcp check (connection) from mcp render --check (drift)', ()
   assert.ok(!USAGE.includes('--mcp-connect['), 'the help no longer offers status --mcp-connect');
   const help = mhw(['--help'], cleanEnv(h));
   assert.equal(help.status, 0);
-  assert.ok(help.stdout.includes('./mhw mcp check [--timeout=SECONDS] connection test'), help.stdout);
+  if (process.platform === 'win32') {
+    // The Windows usage names only what works there. The connection check is not available on Windows
+    // (mcp-connect.js prints its SKIP line and exits 0), so the Windows help does not offer it, nor the
+    // removed status --mcp-connect.
+    assert.ok(!help.stdout.includes('mcp check') && !help.stdout.includes('--mcp-connect'), help.stdout);
+  } else {
+    assert.ok(help.stdout.includes('./mhw mcp check [--timeout=SECONDS] connection test'), help.stdout);
+  }
 });
