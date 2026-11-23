@@ -57,6 +57,8 @@ describe('the source shape', () => {
       'content-publishing', 'orchestration',
       // #195: the canonical merge-authority contract.
       'merge-authority',
+      // #591: the merge act on the delivery rulesets, which replaced mhw delivery.
+      'merge-pull-request',
       // #567: the positioning-sync procedure, moved out of a private note.
       'positioning-sync',
       // The four rites moved at #130 (owner, 2026-10-12) and became skills on 2026-10-26 (owner: "para mim sao skills").

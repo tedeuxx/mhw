@@ -1,8 +1,99 @@
 {
-  "description": "Workstation standard for GitHub repository merge settings (ADR-0016, 2026-10-05 amendment): never squash. Checked by src/lib/prerequisites.js (mhw check) through gh repo view (Issue #206; Node since #494); applied by the owner with gh repo edit.",
+  "description": "Workstation standard for GitHub repository merge settings (ADR-0016, 2026-10-05 amendment): never squash. Checked by src/lib/prerequisites.js (mhw check) through gh repo view (Issue #206; Node since #494); applied by the owner with gh repo edit. The rulesets (Issue #591, ADR-0045) are GitHub ruleset API bodies, one per delivery branch, held to github-repo-settings.schema.json; applying them is the owner's act, never an agent's.",
   "settings": {
     "allow_merge_commit": true,
     "allow_squash_merge": false,
     "allow_rebase_merge": false
-  }
+  },
+  "rulesets": [
+    {
+      "name": "delivery: rc/next",
+      "target": "branch",
+      "enforcement": "active",
+      "bypass_actors": [],
+      "conditions": {
+        "ref_name": {
+          "include": ["refs/heads/rc/next"],
+          "exclude": []
+        }
+      },
+      "rules": [
+        { "type": "deletion" },
+        { "type": "non_fast_forward" },
+        {
+          "type": "pull_request",
+          "parameters": {
+            "required_approving_review_count": 0,
+            "dismiss_stale_reviews_on_push": false,
+            "require_code_owner_review": false,
+            "require_last_push_approval": false,
+            "required_review_thread_resolution": false,
+            "allowed_merge_methods": ["merge"]
+          }
+        },
+        {
+          "type": "required_status_checks",
+          "parameters": {
+            "strict_required_status_checks_policy": true,
+            "do_not_enforce_on_create": false,
+            "required_status_checks": [
+              { "context": "delivery-ci", "integration_id": 15368 },
+              { "context": "scan", "integration_id": 15368 },
+              { "context": "docs-baseline", "integration_id": 15368 },
+              { "context": "semver-label", "integration_id": 15368 },
+              { "context": "SonarCloud Code Analysis" },
+              { "context": "review/route", "integration_id": 15368 },
+              { "context": "review/quality-assurance", "integration_id": 15368 },
+              { "context": "review/agents-lead", "integration_id": 15368 }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "delivery: main",
+      "target": "branch",
+      "enforcement": "active",
+      "bypass_actors": [
+        { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" }
+      ],
+      "conditions": {
+        "ref_name": {
+          "include": ["refs/heads/main"],
+          "exclude": []
+        }
+      },
+      "rules": [
+        { "type": "deletion" },
+        { "type": "non_fast_forward" },
+        {
+          "type": "pull_request",
+          "parameters": {
+            "required_approving_review_count": 0,
+            "dismiss_stale_reviews_on_push": false,
+            "require_code_owner_review": false,
+            "require_last_push_approval": false,
+            "required_review_thread_resolution": false,
+            "allowed_merge_methods": ["merge"]
+          }
+        },
+        {
+          "type": "required_status_checks",
+          "parameters": {
+            "strict_required_status_checks_policy": true,
+            "do_not_enforce_on_create": false,
+            "required_status_checks": [
+              { "context": "delivery-ci", "integration_id": 15368 },
+              { "context": "scan", "integration_id": 15368 },
+              { "context": "docs-baseline", "integration_id": 15368 },
+              { "context": "semver-label", "integration_id": 15368 },
+              { "context": "SonarCloud Code Analysis" },
+              { "context": "review/route", "integration_id": 15368 },
+              { "context": "review/quality-assurance", "integration_id": 15368 }
+            ]
+          }
+        }
+      ]
+    }
+  ]
 }

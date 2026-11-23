@@ -5,6 +5,7 @@ inclusion: always
 Read this workspace's AGENTS.md and workspace/README.md. There is no session-type intake: start on
 the owner's first prompt. Do not infer or announce a type for the session (bugfix or any other) from
 the task; this workspace has none. Agents merge a completed slice into rc/next after the review gate; only the
-release-candidate pull request (rc/next to main) waits for the owner's go. The checked merge is
-`./mhw delivery merge --pr N`, then `./mhw delivery verify --pr N`. Never treat a
+release-candidate pull request (rc/next to main) waits for the owner's go. The merge follows the
+merge-pull-request skill: its conditions and the required review statuses, then
+`gh pr merge N --merge --match-head-commit SHA`, then its after-merge proof. Never treat a
 conversational pause as the end of a slice.

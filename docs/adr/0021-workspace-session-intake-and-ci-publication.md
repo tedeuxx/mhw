@@ -200,3 +200,16 @@ Status unchanged. The owner decided, recorded on PR #233
 - **Evidence level.** *Written and tested*; the new assertion was mutation-checked by re-creating a
   removed directory (red) and deleting it again (green). Not installed: a fresh session of this
   repository stops listing the skill.
+
+## Amendment 2026-11-23: the route is GitHub rulesets and a skill, not a command ([Issue #591](https://github.com/tedeuxx/mhw/issues/591))
+
+- **What changed.** ~~`./mhw delivery merge --pr N` and `verify`~~ are removed from the CLI (the owner's
+  CLI review of 2026-11-23, *"GitHub + skill"*). Who merges what is unchanged: agents merge slices into
+  `rc/next`; only the release candidate waits for the owner. The conditions are held by rulesets
+  declared in `global/github-repo-settings.json`, the review verdicts reach them as commit statuses
+  posted by `.github/workflows/review-status.yml`, and the `merge-pull-request` method skill conducts the
+  merge with `gh pr merge N --merge --match-head-commit SHA`.
+- **Where it is decided.** [ADR-0045](0045-delivery-route-on-github-rulesets-and-a-skill.md), proposed,
+  with the condition-by-condition mapping and the trust model.
+- **Evidence level.** *Written and tested*; the rulesets are not applied to any repository. Applying them
+  is the owner's act, an `owner-action` Issue.
