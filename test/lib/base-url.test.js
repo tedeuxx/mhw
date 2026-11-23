@@ -49,8 +49,19 @@ test('findInSettings: the line of the key and the length of the value, never the
   assert.deepEqual(findInSettings(WITHOUT), []);
   assert.deepEqual(findInSettings('{"ANTHROPIC_BASE_URL": "x"}'), [], 'a top-level key is not the env block');
   assert.deepEqual(findInSettings('{"env": ["ANTHROPIC_BASE_URL"]}'), []);
-  assert.deepEqual(findInSettings('not json "ANTHROPIC_BASE_URL": 1'), []);
+  assert.deepEqual(findInSettings('not json "ANTHROPIC_BASE_URL": 1'), [[1, 0]], 'unparsable text still reports the key');
   assert.deepEqual(findInSettings('﻿{"env":{"ANTHROPIC_BASE_URL":""}}'), [[1, 0]]);
+});
+
+test('findInSettings: a decoy key outside env does not move the line (agents-lead lens on #560, scenario 2)', () => {
+  const text = '{\n  "note": { "ANTHROPIC_BASE_URL": 1 },\n  "env": {\n    "ANTHROPIC_BASE_URL": "abc"\n  }\n}\n';
+  assert.deepEqual(findInSettings(text), [[4, 3]]);
+});
+
+test('findInSettings: a file JSON cannot parse still reports the key, never silently nothing (lens scenario 1)', () => {
+  const text = '{\n  // a comment\n  "env": {\n    "ANTHROPIC_BASE_URL": "' + VALUE + '",\n  },\n}\n';
+  assert.deepEqual(findInSettings(text), [[4, VALUE.length]]);
+  assert.deepEqual(findInSettings('{ // c\n "env": { "OTHER": 1, }\n}'), []);
 });
 
 test('isSettingsPath names only the two workspace settings files', () => {

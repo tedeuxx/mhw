@@ -17,23 +17,40 @@ export function isSettingsPath(rel) {
 /**
  * [line, length] when the text is a JSON object whose `env` object sets ANTHROPIC_BASE_URL; length is the
  * value's when it is a string, else that of its JSON form. The line is the first line naming the key as a
- * JSON member, or 1 when none can be located. Text that is not such JSON yields nothing.
+ * member at or after the line that opens `"env"`, or 1 when none can be located. Text JSON cannot parse
+ * (comments, a trailing comma) still reports every line naming the key as a member, with the length of a
+ * string value on that line, or 0: a check that informs must not go silent on a file it cannot parse.
  * @param {string} text
  * @returns {Array<[number, number]>}
  */
 export function findInSettings(text) {
+  const lines = text.split('\n');
+  const member = new RegExp('"' + VARIABLE + '"\\s*:\\s*("(?:[^"\\\\]|\\\\.)*")?');
   let doc;
   try {
-    doc = JSON.parse(text.replace(/^﻿/, ''));
+    doc = JSON.parse(text.replace(/^\uFEFF/, ''));
   } catch {
-    return [];
+    /** @type {Array<[number, number]>} */
+    const raw = [];
+    lines.forEach((l, i) => {
+      const m = member.exec(l);
+      if (!m) return;
+      let length = 0;
+      try {
+        length = m[1] ? String(JSON.parse(m[1])).length : 0;
+      } catch {
+        length = 0;
+      }
+      raw.push([i + 1, length]);
+    });
+    return raw;
   }
   const env = doc && typeof doc === 'object' && !Array.isArray(doc) ? doc.env : undefined;
   if (!env || typeof env !== 'object' || Array.isArray(env) || !Object.hasOwn(env, VARIABLE)) return [];
   const value = env[VARIABLE];
   const length = typeof value === 'string' ? value.length : JSON.stringify(value ?? null).length;
-  const lines = text.split('\n');
-  const at = lines.findIndex((l) => new RegExp('"' + VARIABLE + '"\\s*:').test(l));
+  const envAt = Math.max(0, lines.findIndex((l) => /"env"\s*:/.test(l)));
+  const at = lines.findIndex((l, i) => i >= envAt && member.test(l));
   return [[at >= 0 ? at + 1 : 1, length]];
 }
 
