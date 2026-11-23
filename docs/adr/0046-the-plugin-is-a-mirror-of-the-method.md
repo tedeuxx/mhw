@@ -59,8 +59,12 @@ Option 1. Each of the seven briefs now opens with:
 > plugin-form mirror, a Claude Code plugin that carries as much of what mhw maintains as it can (the
 > workstation repository's ADR-0046). …
 
-The rest of each notice is unchanged. `test/render/mirror-notice.test.js` fails when a brief in
-`method/agents/` carries the old notice wording or describes the mirror as no longer maintained.
+The rest of each notice is unchanged. The same correction reaches the sentences that called the
+plugin's rule 5e, its guard or its hooks retired: they do not run in this method, and the mirror still
+runs them (`git -C <tadeumendonca-skills checkout> show origin/main:hooks/scripts/permission-guard.sh |
+grep -n '5e'` finds the rule at cd25a4df). `test/render/mirror-notice.test.js` fails when a brief in
+`method/agents/` carries the old notice wording, or describes the mirror, its rules or its hooks as
+retired, archived, deprecated or dead.
 
 ## The evidence the briefs carried
 
@@ -83,7 +87,8 @@ grep -rn 'tadeumendonca-skills' method/
    gh issue view 341 --repo tedeuxx/mhw --json body --jq .body
    ```
 
-   A bare `#393` read in mhw names a different Issue (`mhw#393`, the milestone routes).
+   A bare `#393` read in mhw names a different Issue (`mhw#393`, the milestone routes), so every bare
+   `#393` in `method/agents/` that meant this report now reads `mhw#341`.
 2. **The marker counts in the same section.** The briefs say `gh pr view <n> --json comments --jq
    '[.comments[]|select(.body|test("harness-lead-verdict"))]|length'` returns 1, 2 and 1 on
    `-skills`#417, #415 and #414, and 3 on #348. Run from an mhw checkout with no repository flag, it
