@@ -197,6 +197,9 @@ for something new.
 minor; if an existing user's setup stops working the same way, it is major; otherwise it is patch.
 **This classification is the agent's reading of the owner's table, not his words.** It stands until
 he ratifies or changes it.
+*(Since 2026-11-23 this classification is replaced by the 2026-11-23 amendment below: a control
+removed or weakened is minor or patch, and the release notes must say so; only a break of the public
+interface is major. That amendment awaits the owner's ratification.)*
 
 **Unchanged:** when a change fits more than one row, the highest row wins, and the release-candidate
 pull request carries the largest part among the changes it contains. Everything listed under "What
@@ -267,6 +270,9 @@ versions, the mandatory single `semver:` label, the cut on a merged pull request
 configuration file and its name (`.bumpversion.toml`, read by other parts of this repository until
 slice S32 of #470), the commit message and tag message `bump: {current_version} → {new_version}`, the
 `v{new_version}` tag, and the files bumped in the one commit (`.bumpversion.toml` and `package.json`).
+*(Since 2026-11-23 the cut policy is the public-interface table of the 2026-11-23 amendment below,
+which replaces the 2026-10-10 table and awaits the owner's ratification; the rest of this list still
+holds.)*
 
 **How parity is held.** `test/release/bump.test.js` runs the script on a throwaway repository holding
 this repository's real `.bumpversion.toml` and `package.json`, and compares the commit message, the
@@ -324,7 +330,8 @@ into `rc/next`, 11 carried `semver:major` (#90, #92, #95, #114, #199, #208, #214
 #525), and since the release candidate takes the largest label it contains, each of them made its
 release a major: v6.0.0 to v10.0.0 in 20 days (the requirements document's reading of the tags, not
 re-measured here). Most were not changes to what a user installs or types. The label counts were
-re-measured on 2026-11-23 (166 merged slices, the same 11 majors):
+re-measured on 2026-11-23 (166 merged slices when first measured that day and 168 at the last
+re-run, the count growing as slices merge; the same 11 majors both times):
 
 ```
 gh pr list --repo tedeuxx/mhw --state merged --base rc/next --limit 400 --json number -q 'length'
