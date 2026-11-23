@@ -3,7 +3,9 @@
 Agent harness sessions that run either on the host or in a local container, orchestrated from a web
 console on the owner's machine, and shaped so the same setup can later move to the cloud.
 
-- **Status:** agreed with the owner in an interview on 2026-11-01. Items under
+- **Status:** agreed with the owner in an interview on 2026-11-01; amended on 2026-11-23 (session
+  mode default, container runtime choice, runtime compatibility layer, see
+  [Settled after the first draft](#settled-after-the-first-draft)). Items under
   [Open decisions](#8-open-decisions) are not decided.
 - **Source:** [#78](https://github.com/tedeuxx/mhw/issues/78) (optional container mode) and
   [#79](https://github.com/tedeuxx/mhw/issues/79) (agent runtime of local containers, cloud-ready,
@@ -65,11 +67,31 @@ mode alone first and over relying on the native sandboxes only.
 
 ### 4.1 One switch per session
 
-- A session starts in one of three modes: **host** (today's behaviour, stays available), **Podman** or
-  **Docker**. Podman Desktop and Docker Desktop are both valid runtimes (owner, 2026-10-05, on #78:
+- A session starts in one of two modes: **host** (today's behaviour, stays available) or
+  **container**. Podman Desktop and Docker Desktop are both valid runtimes (owner, 2026-10-05, on #78:
   "leave Docker Desktop support as another valid option").
-- **One runtime-neutral container definition** serves both runtimes. Any difference between them is
-  stated where it applies, never hidden.
+- **The install sets the default mode; each session can switch** (owner, 2026-11-23, on
+  [#79](https://github.com/tedeuxx/mhw/issues/79#issuecomment-7102638662)). `mhw install` asks host or
+  container and records the answer as that workstation's default, in its overlay. The owner, on the
+  consequence: "I think this changes the harness configuration blueprint that mhw will manage" on each
+  workstation.
+- **The container runtime is the user's choice** (owner, 2026-11-23, on
+  [#79](https://github.com/tedeuxx/mhw/issues/79#issuecomment-7102660246): "Podman, Docker or
+  equivalents. It is the user's choice."). No single runtime is a prerequisite; the install records the
+  chosen one in the overlay beside the default mode.
+- **A compatibility layer covers the commands that differ between runtimes** (owner, 2026-11-23, on
+  [#79](https://github.com/tedeuxx/mhw/issues/79#issuecomment-7102668595): "you should have in mhw some
+  compatibility layer for the commands that differ between each container host distribution").
+  Its shape, ratified by the owner on 2026-11-23
+  ([#79](https://github.com/tedeuxx/mhw/issues/79#issuecomment-7103501623): "yes"): native first, mhw
+  drives the
+  command-line subset Podman and Docker share (`run`, `build`, `ps`, `stop`, `rm`, the Compose
+  specification), and a small adapter per runtime covers only where they diverge (socket path, rootless
+  user mapping, the macOS virtual machine: `podman machine` or Docker Desktop). The build is to list
+  each divergence with its evidence level; none is measured yet. An equivalent runtime mhw has not mapped is reported as unsupported,
+  never guessed.
+- **One runtime-neutral container definition** serves every supported runtime. Any difference between
+  them is stated where it applies, never hidden.
 - **Base image:** the owner chose **an official Linux image, pinned by digest, rebuilt weekly** so it
   picks up agent harness updates. The pin makes each build reproducible; the weekly rebuild is what
   moves it forward.
@@ -145,7 +167,7 @@ block-beta
   C4["Repository clone (ephemeral, discarded with the container)"]
   C3["Login and session state (mapped volume per agent harness)"]
   C2["Firewall: managed layer, user layer, deny floor (from the host: read-only mount, or a copy per start)"]
-  C1["Container runtime: Podman or Docker · vendor"]
+  C1["Container runtime: Podman, Docker or an equivalent · vendor"]
   classDef admin fill:#F9D8C4,stroke:#D55E00,stroke-width:2px,color:#1d2228
   classDef project fill:#CDEDE2,stroke:#009E73,stroke-width:2px,color:#1d2228
   classDef user fill:#CFE3F2,stroke:#0072B2,stroke-width:2px,color:#1d2228
@@ -176,7 +198,7 @@ contributors.*
 The owner chose **full orchestration** in version 1:
 
 - **Observe:** list running sessions, their mode, issue, branch and state.
-- **Session lifecycle:** start a session (host, Podman or Docker) on an issue, stop it, remove its
+- **Session lifecycle:** start a session (host or container, defaulting to the workstation's mode) on an issue, stop it, remove its
   container.
 - **Trigger the drain:** start the loop's autonomous drain over the ready queue.
 - **Approve gates:** give the approvals that are the owner's, such as a high-risk PROD deployment under
@@ -227,16 +249,20 @@ flowchart LR
 
 ## 8. Open decisions
 
-Nothing in the numbered list is decided. Each is written as open rather than guessed.
+Nothing in the numbered list is decided for this document's runtime. Each is written as open rather
+than guessed. Item 1 is settled for Claude Code cloud environments only, by another document.
 
 1. **How the firewall layers reach a cloud runtime in phase 2.** Version 1 mounts them from the host,
    which a cloud host cannot do. Candidates (built into the image, fetched at start from a release,
-   another route) are for a later interview.
+   another route) are for a later interview. For Claude Code cloud environments only, the
+   [cloud environments document](mhw-product-requirements-document-cloud-environments.md) settles it:
+   the environment's setup script installs the latest mhw release inside the VM.
 2. **Kiro CLI login inside a container.** To be measured: whether Kiro CLI can log in headless inside a
    Linux container, and whether that login survives in a mapped volume.
 3. **The console's technology stack.** *A recommendation from the tech lead, not the owner's decision:*
-   a small server in Python's standard library or in Node, talking to Podman and Docker through their
-   command-line tools rather than a runtime-specific API, so one code path serves both runtimes, with a
+   a small server in Python's standard library or in Node, talking to the container runtimes (Podman,
+   Docker or an equivalent) through their command-line tools rather than a runtime-specific API, so one
+   code path serves every runtime, with a
    browser terminal for the TTY. Reasons: this repository already ships Python scripts and an npm
    package, so no new language enters; the runtime CLIs are the runtime-neutral surface. Cost: a CLI
    wrapper is slower and less structured than an API client.
@@ -255,12 +281,21 @@ belongs to:
 | Parallel sessions | A configurable ceiling, default 3, held in the overlay; the console refuses beyond it | [4.1](#41-one-switch-per-session) |
 | Base image | An official Linux image pinned by digest, rebuilt weekly | [4.1](#41-one-switch-per-session) |
 
+Three more were settled on 2026-11-23 (posted on [#79](https://github.com/tedeuxx/mhw/issues/79)):
+
+| Point | The owner's choice | Where |
+| --- | --- | --- |
+| Where the host or container choice lives | The install sets the workstation's default mode; each session can switch | [4.1](#41-one-switch-per-session) |
+| Container runtime | The user's choice: Podman, Docker or an equivalent; none is a prerequisite | [4.1](#41-one-switch-per-session) |
+| Commands that differ between runtimes | A compatibility layer: the shared command subset, plus a small adapter per runtime for the divergences (shape ratified on #79) | [4.1](#41-one-switch-per-session) |
+
 ## 9. Decision records owed by the build
 
 Each of these crosses the significance gate (a new tool class or dependency, or a cross-cutting
 pattern) and is owed in the same pull request as the change it justifies:
 
-- the container mode as a supported session mode, and the runtime-neutral definition;
+- the container mode as a supported session mode, the install-time default mode, and the
+  runtime-neutral definition with its per-runtime compatibility adapters;
 - the read-only host mount as the route for the firewall layers in version 1, and the writable
   per-start copy where policy and login share a directory;
 - the web console as an owner surface, and the per-action passkey that keeps agents off its owner
