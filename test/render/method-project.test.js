@@ -236,10 +236,52 @@ test('a moved agent keeps its Codex user copy while Codex does not trust the pro
   assert.match(r.out, /HELD {4}.*tech-lead\.toml: Codex does not trust the project/);
   assert.ok(fs.existsSync(codexUser), 'the Codex user copy was removed while Codex cannot read the project copy');
   assert.ok(!fs.existsSync(claudeUser), 'the Claude Code user copy should go: Claude Code reads the project copy');
+  const record = h.p('.local/share/personal-multi-harness-workstation-configuration/method/project-holds.json');
+  assert.ok(fs.existsSync(record), 'the hold was not recorded');
+  // Later runs without --project keep the hold, and check reports it as held, not stale.
+  r = h.run(['--mode=install', '--source=' + src], { env });
+  assert.equal(r.code, 0, r.out);
+  assert.ok(fs.existsSync(codexUser), 'a later plain install removed the held Codex user copy');
+  for (const args of [['--mode=check', '--source=' + src], ['--mode=check', '--source=' + src, '--project=' + dir]]) {
+    r = h.run(args, { env });
+    assert.match(r.out, /HELD {4}.*tech-lead\.toml/, args.join(' '));
+    assert.doesNotMatch(r.out, /STALE {3}.*tech-lead\.toml/, args.join(' '));
+    assert.equal(r.code, 0, r.out);
+  }
+  // Once the owner trusts the project, a plain install removes the user copy and the record.
   fs.writeFileSync(path.join(codexHome, 'config.toml'), '[projects."' + dir.replaceAll('\\', '\\\\') + '"]\ntrust_level = "trusted"\n');
-  r = h.run(['--mode=install', '--source=' + src, '--project=' + dir], { env });
+  r = h.run(['--mode=install', '--source=' + src], { env });
   assert.equal(r.code, 0, r.out);
   assert.ok(!fs.existsSync(codexUser), 'once trusted, the Codex user copy is removed\n' + r.out);
+  assert.ok(!fs.existsSync(record), 'the record outlived its last hold');
+});
+
+test('a rendered file linked out of the project is refused before anything is written', { skip: !POSIX }, () => {
+  const h = methodHome();
+  const dir = project('deep');
+  const outside = tempDir('deep-out');
+  fs.mkdirSync(path.join(dir, '.claude', 'skills'), { recursive: true });
+  fs.symlinkSync(outside, path.join(dir, '.claude', 'skills', SKILL));
+  const r = h.run(['--mode=install', '--project=' + dir]);
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, /resolves outside the project/);
+  assert.deepEqual(filesUnder(outside), []);
+  assert.ok(!fs.existsSync(path.join(dir, '.claude', 'agents')), 'a project file was written');
+  assert.deepEqual(h.files(), [], 'the user level was written');
+});
+
+test('uninstall --project through a carrier linked out of the project removes nothing', { skip: !POSIX }, () => {
+  const h = methodHome();
+  const dir = project('unlink');
+  assert.equal(h.run(['--mode=install', '--project=' + dir]).code, 0);
+  const outside = path.join(tempDir('unlink-out'), 'claude');
+  fs.renameSync(path.join(dir, '.claude'), outside);
+  fs.symlinkSync(outside, path.join(dir, '.claude'));
+  const before = filesUnder(outside);
+  const r = h.run(['--mode=uninstall', '--project=' + dir], { stamp: null, optIn: false });
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, /resolves outside the project/);
+  assert.deepEqual(filesUnder(outside), before);
 });
 
 test('the trust read matches the real path and a trailing separator', { skip: !POSIX }, () => {

@@ -1052,7 +1052,11 @@ into the project carriers the [native enforcement matrix](../native-enforcement-
   user-level file is written or removed. If a project file is refused (an unmanaged file in the way),
   every user-level removal in that run is held (`HELD`). While Codex does not trust the project, the
   user-level Codex copy of every agent the project defines is held too, because Codex would not read the
-  project copy. A moved agent therefore keeps a copy each harness reads, at every step.
+  project copy. The project run records each hold in `project-holds.json`, beside the documents directory,
+  so a later run without `--project` keeps the copy as well, and `check` reports it `HELD`, not `STALE`. An
+  entry is dropped once its project is trusted or its project copy is gone, and the next run then removes
+  the user copy. A home that never ran a project install has no record, so its output is unchanged. A
+  moved agent therefore keeps a copy each harness reads, at every step.
 - **Kiro references.** A project Kiro agent names a preloaded skill by a `skill://` path, never by the
   absolute user-level `file://` URI the user carrier uses: a project skill as `skill://.kiro/skills/<n>/SKILL.md`,
   a method skill as `skill://~/.kiro/skills/<n>/SKILL.md`. No home path lands in a tracked project file.
@@ -1086,7 +1090,9 @@ not measured.
 **Evidence level.** *Written and tested*: `test/render/method-project.test.js`. Each guarded behaviour goes
 red when its source line is mutated and green when restored: no project target, user removal first,
 absolute Kiro paths, no hold on a refusal, trust always true, the home guard, the shared-carrier guard, the
-outside-the-project guard, no Codex hold while untrusted, the trust read without the real path, the trust
+outside-the-project guard (on the carrier directories before loading, which also covers uninstall, and on the
+rendered files after loading), no Codex hold while untrusted, the hold record not read, not written, or never
+pruned on trust, `check` reporting a held copy as stale, the trust read without the real path, the trust
 read without the trailing separator, and the project stale removal. The link cases run on POSIX only. Not
 installed, and no canary has run.
 

@@ -1085,6 +1085,11 @@ export function run(argv, opts = {}) {
         say('REMOVED ' + file);
       }
     }
+    const record = holdsFile(ctx);
+    if (lexists(record)) {
+      fs.unlinkSync(record);
+      say('REMOVED ' + record);
+    }
     return st.status;
   }
   if (!optIn && !candidateFiles(ctx).some((p) => ours(p, null))) {
@@ -1136,8 +1141,10 @@ export function run(argv, opts = {}) {
   // The order a moved agent needs (#576): the project copies are in place, and the project's own stale
   // files gone, before any user-level copy is removed. A refused project file holds every user-level removal.
   let holdRemovals = false;
-  /** @type {Set<string>} user-level Codex agent files held while Codex does not trust the project */
-  const codexHeld = new Set();
+  // Held Codex user copies outlive this run (lens on PR #602): a later run without --project reads them from
+  // the record a project run wrote, so it needs no list of projects.
+  const holds = readHolds(ctx);
+  const holdsBefore = JSON.stringify(holds);
   if (project !== null) {
     const pst = { status: 0 };
     for (const t of projectWanted) processTarget(pst, mode, t, stamp, say, warn, platform);
@@ -1159,17 +1166,33 @@ export function run(argv, opts = {}) {
     st.status = Math.max(st.status, pst.status);
     if (projectCounts.agents) {
       const t = codexTrust(project, ctx);
-      if (t.trusted) say('CODEX   ' + project + ' is trusted in ' + t.config + ': Codex reads its project agents');
+      if (t.trusted) {
+        for (let i = holds.length - 1; i >= 0; i--) if (holds[i].project === project) holds.splice(i, 1);
+        say('CODEX   ' + project + ' is trusted in ' + t.config + ': Codex reads its project agents');
+      }
       else {
         // Codex skips an untrusted project's agents (measured), so the user copy of each agent the project
         // defines is its only Codex copy: keep it until the owner trusts the project.
-        for (const n of projectAgents) codexHeld.add(key(join(platform, homes(ctx).codex, 'agents', n + '.toml'), platform));
+        for (const n of projectAgents) {
+          const file = join(platform, homes(ctx).codex, 'agents', n + '.toml');
+          if (!holds.some((e) => e.file === file && e.project === project)) holds.push({ file, project });
+        }
         say('UNTRUSTED ' + project + ' is not trusted by Codex (' + t.config + ': ' + t.why + '): Codex skips its '
           + '.codex/agents without a word, while its .agents/skills still load. The owner trusts it: open codex in it and '
           + 'accept, or add [projects."' + project + '"] trust_level = "trusted" to that file');
       }
     }
   }
+  // An entry still holds while its project is untrusted and its project copy is there (or is written in
+  // this run); any other entry is dropped, so the next run removes that user copy as usual.
+  for (let i = holds.length - 1; i >= 0; i--) {
+    const e = holds[i];
+    const copy = join(platform, e.project, '.codex', 'agents', basename(e.file, platform));
+    const present = e.project === project ? projectWanted.some((t) => t[0] === copy) : lexists(copy) && ours(copy, null, PROJECT_TAG);
+    if (!present || codexTrust(e.project, ctx).trusted) holds.splice(i, 1);
+  }
+  const codexHeld = new Set(holds.map((e) => key(e.file, platform)));
+  if (mode === 'install' && JSON.stringify(holds) !== holdsBefore) writeHolds(ctx, holds, say);
   for (const t of wanted) processTarget(st, mode, t, stamp, say, warn, platform);
   const keep = new Set(wanted.map((t) => key(t[0], platform)));
   for (const file of candidateFiles(ctx)) {
@@ -1178,7 +1201,7 @@ export function run(argv, opts = {}) {
       say('HELD    ' + file + ': a project file was refused, so this user-level copy stays until the project copy is in place');
       continue;
     }
-    if (codexHeld.has(key(file, platform)) && mode !== 'check' && mode !== 'dry-run') {
+    if (codexHeld.has(key(file, platform))) {
       say('HELD    ' + file + ': Codex does not trust the project, so it would not read the project copy; this user-level copy '
         + 'stays until the owner trusts the project');
       continue;
@@ -1224,6 +1247,40 @@ const within = (d, r) => {
   const rel = path.relative(d, r);
   return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
 };
+
+/** The record of held Codex user copies, beside the documents directory. @param {Ctx} ctx */
+const holdsFile = (ctx) => join(ctx.platform, parentOf(homes(ctx).scripts, ctx.platform), 'project-holds.json');
+
+/**
+ * The held entries, [{file, project}]; an absent or unreadable record holds nothing.
+ * @param {Ctx} ctx @returns {Array<{ file: string, project: string }>}
+ */
+function readHolds(ctx) {
+  try {
+    const doc = /** @type {unknown} */ (JSON.parse(readText(holdsFile(ctx))));
+    const list = isDict(doc) ? /** @type {Record<string, unknown>} */ (doc).holds : null;
+    if (!Array.isArray(list)) return [];
+    return list.filter((e) => isDict(e) && typeof e.file === 'string' && typeof e.project === 'string')
+      .map((e) => ({ file: String(e.file), project: String(e.project) }));
+  } catch {
+    return [];
+  }
+}
+
+/** @param {Ctx} ctx @param {Array<{ file: string, project: string }>} holds @param {(s: string) => void} say */
+function writeHolds(ctx, holds, say) {
+  const file = holdsFile(ctx);
+  if (!holds.length) {
+    if (lexists(file)) fs.unlinkSync(file);
+    say('HOLDS   ' + file + ': no Codex user copy is held');
+    return;
+  }
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = file + '.new.' + process.pid;
+  writeText(tmp, JSON.stringify({ holds }, null, 2) + '\n', ctx.platform);
+  fs.renameSync(tmp, file);
+  say('HOLDS   ' + file + ': ' + holds.length + ' Codex user copies held until their project is trusted');
+}
 
 /**
  * The first path whose nearest existing part (itself or an ancestor) resolves outside the project, or null.
