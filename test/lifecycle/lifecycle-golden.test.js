@@ -13,6 +13,8 @@
 //   live:   where the base revision still holds global/workstation.py, the original runs beside the head on
 //           the same case (macOS and Linux). MHW_UPDATE_GOLDEN=1 rewrites the transcripts from the original
 //           side only. MHW_S24_LIVE_REQUIRED=1 turns a skip into a failure while the base still holds it.
+// Both sides run their tree with the frozen method of test/golden/S24/inputs/method, so a later change to
+// method/ does not move the goldens.
 // The intended differences are in test/golden/S24/expected-differences.json, with reasons.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -29,6 +31,7 @@ import { stubInstallers, stubEnv } from './stub-installers.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SLICE = 'S24';
+const METHOD = path.join(ROOT, 'test', 'golden', SLICE, 'inputs', 'method');
 const POSIX = process.platform !== 'win32';
 const DARWIN = process.platform === 'darwin';
 const NODE = process.execPath;
@@ -59,6 +62,12 @@ function archive(tree) {
 function copyTree(from, dest) {
   if (from === ROOT) copyWorkingTree(ROOT, dest);
   else fs.cpSync(from, dest, { recursive: true, verbatimSymlinks: true });
+  // The method is a frozen input: install-user-layer installs it (install --method) and the golden keeps each
+  // installed path, so the checkout's own method/ would move the golden on every method change, and with
+  // workstation.py retired the golden can no longer be re-recorded. Copied from origin/rc/next at b3c3b16,
+  // the method the goldens hold (the S25 pattern, test/install/install-user-golden.test.js).
+  fs.rmSync(path.join(dest, 'method'), { recursive: true, force: true });
+  fs.cpSync(METHOD, path.join(dest, 'method'), { recursive: true });
   fs.rmSync(path.join(dest, '.git'), { recursive: true, force: true });
   archive(dest);
 }
