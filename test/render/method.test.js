@@ -472,6 +472,57 @@ describe('the reader-facing lens before the gate', () => {
   });
 });
 
+// Issue #564 (owner, 2026-11-23): published-voice carries a closed catalog of social-post formats, and
+// funnel-review compares posts by its code. Drift checks over strings: they assert the rule is WRITTEN.
+const PUBLISHED_VOICE = src('skills/published-voice/SKILL.md');
+const CATALOG_HEADING = '## The social-post catalog — rule 26, five formats, and the digest is one of them';
+/** The catalog section, raw, up to the next level-2 heading. */
+function catalogSection() {
+  const text = read(PUBLISHED_VOICE);
+  const start = text.indexOf('\n' + CATALOG_HEADING + '\n');
+  assert.ok(start >= 0, 'the catalog section is missing');
+  const end = text.indexOf('\n## ', start + 1);
+  return text.slice(start, end === -1 ? text.length : end);
+}
+const CATALOG_CLAUSES = [
+  'Every LinkedIn or X post is drafted in exactly ONE format from the closed catalog below',
+  'it never judges the merit of the owner\'s idea.',
+  '**`F1` runs outside the rotation.**', '**Otherwise alternate `F2` and an `F3` variant.**',
+  '**The code is recorded with every published post**', '**A post published with no code is `unlabelled`.**',
+  '**A reviewer who disagrees with the idea has no finding.**', 'never originate a thesis to fill a rotation slot.',
+];
+describe('the social-post format catalog', () => {
+  test('the catalog lists the five codes, one row each, with their link rule', () => {
+    const rows = catalogSection().split('\n').filter((l) => /^\| `F[0-9a-z]+` \|/.test(l));
+    assert.deepEqual(rows.map((l) => l.split('|')[1].trim()), ['`F1`', '`F2`', '`F3a`', '`F3b`', '`F3c`']);
+    assert.ok(rows[0].includes('| yes,'), 'F1 carries the canonical link');
+    for (const row of rows.slice(1)) assert.ok(row.includes('| no |'), row);
+  });
+  test('the rotation, the label and the vehicle rule are written', () => {
+    const section = flatten(catalogSection());
+    for (const clause of CATALOG_CLAUSES) assert.ok(section.includes(clause), clause);
+  });
+  test('the catalog names no consumer', () => {
+    assert.deepEqual(catalogSection().split('\n').filter((l) => new RegExp(CONSUMER_WORDS.source, 'i').test(l)), []);
+  });
+  test('funnel-review and its contract read the format code', () => {
+    const rite = flatten(read(src('skills/funnel-review/SKILL.md')));
+    for (const clause of ['**Each post figure carries the post\'s format code**', '`<metric>.<format>.<post>`',
+      '**When the report compares posts, it compares them BY FORMAT CODE (mhw#564).**',
+      '**`unlabelled` posts are reported as such and left out of every per-format comparison.**']) assert.ok(rite.includes(clause), clause);
+    assert.ok(read(src('scripts/funnel-review-contract/README.md')).includes('<metric>.<format>.<post>'));
+  });
+  test('the catalog reaches every agent harness carrier', () => {
+    const home = methodHome();
+    const r = home.run(['--mode=install']);
+    assert.equal(r.code, 0, r.out);
+    for (const rendered of ['.claude/skills/published-voice/SKILL.md', '.agents/skills/published-voice/SKILL.md', '.kiro/skills/published-voice/SKILL.md']) {
+      const text = flatten(read(home.p(rendered)));
+      for (const clause of CATALOG_CLAUSES) assert.ok(text.includes(clause), rendered + ': ' + clause);
+    }
+  });
+});
+
 describe('render', () => {
   /** @type {import('../helpers/method-home.js').Home} */
   let h;

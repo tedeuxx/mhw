@@ -610,6 +610,10 @@ the only thing standing behind it.*
 **A publication is not done until it exists on both networks the platform publishes to.** Same batch as
 the release — not "later", which in practice means one of the two never ships.
 
+**Both posts of this pair are format `F1`, the article digest**, from `published-voice` rule 26's
+catalog (mhw#564), and each records that code with its URL. The rotation formats (`F2`, `F3a/b/c`) are
+posts with no piece behind them; this step does not draft them.
+
 **What *published* means on this lane, stated once and pointed at from everywhere else (mhw#238).**
 The owner's words: *«o fluxo de publicacao nao esta completo sem a publicacao em redes sociais.»*
 
