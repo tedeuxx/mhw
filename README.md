@@ -1,36 +1,136 @@
-# personal-multi-harness-workstation-configuration
+# mhw: one governance baseline for every agent harness
 
-The managed workstation: one versioned source for how every agent harness (Claude Code, Codex and
-Kiro) behaves on the owner's devices. One release installs the same protection, standards and working
-method into every agent harness, on any of his machines.
+You work with Claude Code, Codex or Kiro, and each one is configured on its own: its own instructions,
+its own permissions, its own idea of what an agent may run. The agents work with your credentials and
+read whatever you paste, so one misconfigured session can push a client's code to a public repository,
+send a colleague's personal data to a model, or run a command you cannot undo. And every new project
+starts that configuration again.
 
-This page is the short version. The target behaviour and the reasons for it are in the
-[Product Requirements Document](docs/mhw-product-requirements-document-project.md).
-The mission, principles and hard rules for agents working here are in [`AGENTS.md`](AGENTS.md).
+mhw installs **one baseline** into all three, from one versioned source, using each agent harness's
+own native configuration:
 
-## Why it exists
+- **The same rules and protections in every session**, whichever agent harness runs it: a deny floor
+  for irreversible commands, a prompt check for credentials and personal data, and one set of
+  instructions.
+- **Controls live only where something enforces them**: in the agent harness's own rules or in a
+  CI/CD pipeline. Nothing of mhw runs between you and the tool, and what is only an instruction is
+  called one.
+- **Projects extend the baseline; nothing weakens the floor.** A repository adds what it needs in its
+  own settings and `AGENTS.md`.
+- **The same working method everywhere**: agents, skills and delivery rules, installed once.
 
-Work done with AI agents must respect other people: clients' and employers' confidential material,
-third parties' commercial rights and intellectual property, and everyone's personal data. Only the
-owner's own knowledge and learning is his. This repository is the protection layer that keeps that line
-for every agent at once, and stops credential reads, irreversible commands and unsafe actions while the
-agents run. It is also a rehearsal, on one person's workstations, of what a company would roll out to
-its engineers.
+The long-term goal is the governance order of an AI-native company (organisation policy, company
+baseline, project, local), applied first to one developer.
 
-The command-line agent harnesses come first: they are fast, tile well, scale to many parallel sessions,
-and keep configuration in files that can be versioned, tested in CI and installed by one command.
-Running the same behaviour on three agent harnesses protects against any one vendor's cost changes,
-feature changes and outages.
+Every claim here is stated at its evidence level: *written* (in the source and tested in CI),
+*installed*, *loaded* (the agent harness shows it) or *enforced* (it refused or cleaned a real input).
 
-## Four layers
+## Who it is for
+
+- **Today: a developer who works with agentic command-line tools**: Claude Code, Codex and Kiro, on
+  macOS, Linux or Windows. This page is written for you.
+- **Next, not supported yet: administrative and knowledge workers** using Claude Cowork, ChatGPT's
+  agentic work surfaces, Quick and similar AI software. Those surfaces have no terminal, so only native
+  carriers (managed settings and the vendor's own controls) can reach them. mhw reaches none of them
+  today: at most its brief can be pasted into a desktop app by hand, as an instruction.
+
+## Install
+
+You need Node.js 26 or later and git (`engines` in `package.json`). Nothing is published to the npm registry; the package is
+installed from GitHub by release tag:
+
+```sh
+npm install -g github:tedeuxx/mhw#vX.Y.Z   # puts the mhw command on PATH; installs nothing else
+mhw install --method                       # lists what will change, asks for your password once if needed, installs
+```
+
+Replace `vX.Y.Z` with a [release](https://github.com/tedeuxx/mhw/releases). Drop `--method` to skip the
+working method; add `--no-admin` to install your user settings only, with no password. Remove with
+`mhw uninstall` **before** `npm uninstall -g mhw`.
+
+Today this is two commands. A single atomic install command is planned in
+[#584](https://github.com/tedeuxx/mhw/issues/584) and is not shipped. On a new machine, start with
+[Install on another workstation](docs/new-workstation.md); every option, the git-clone route and
+Windows are in [Install in detail](#install-in-detail).
+
+## Check that it works
+
+1. `mhw status` names the installed release per layer and the protections it found; `mhw check` exits
+   non-zero if anything is missing or differs from the release.
+2. Open a **fresh** session (a configuration change is not read by a session that is already running).
+3. Ask the agent to run `sudo -n true`. With the deny floor loaded, Claude Code and Codex refuse it.
+   The command changes nothing either way. On Kiro, which engine reads the floor is in the table below.
+
+`mhw status` reports what is installed; only step 3 shows a rule is enforced in your session.
+
+## What it puts on your machine
+
+- **The global brief**, the same instructions for every session: `~/.claude/CLAUDE.md`,
+  `~/.codex/AGENTS.md` and `~/.kiro/steering/workstation-global-brief.md`.
+- **The deny floor**, native deny rules by command prefix (force-push, recursive delete, secret writes,
+  releases, `sudo` and more): in your user settings for each agent harness and, with your password, in
+  each one's managed (system-wide) settings, which an agent cannot change.
+- **A prompt check** in Claude Code's and Codex's managed settings and as a Kiro CLI hook file: it
+  blocks a prompt carrying a credential or personal data and shows a redacted copy.
+- **A paste wrapper** (macOS and Linux): one marked block in `~/.zshrc` or `~/.bashrc` that starts the
+  agent harness command lines through a cleaner, which redacts a pasted credential or reference before
+  the agent sees it.
+- **Session defaults**: each agent harness's model pinned by ID with its effort, and a small allow list
+  of pre-authorised commands.
+- **With `--method`, the working method**: 8 agents, 20 skills and 9 commands, in each agent harness's
+  native folders.
+- **A browser MCP server definition** and, where you declare one, an active set that turns other
+  servers off.
+
+Each installed file carries a provenance stamp, and `mhw uninstall` removes only what mhw wrote and
+restores the values it replaced.
+
+## What works today and what v11 brings
+
+**Today**, in the newest release (v10.1.1):
+
+- *Written and tested in CI* on macOS and Linux, and on Windows where the table names it: everything in
+  the list above.
+- *Enforced, probed* in throwaway homes: the deny floor in Claude Code and Codex, the prompt check, and
+  the paste wrapper cleaning a synthetic paste.
+- *Installed and loaded on the owner's reference machine*: only where the table below says so; its
+  layers come from different releases.
+- *Instructions, never enforced*: the global brief, the interaction rules and the working method.
+  Whether a model follows them is not measured.
+
+**v11, in progress and not shipped.** A major release planned in the
+[CLI native baseline requirements](docs/mhw-product-requirements-document-cli-native-baseline.md).
+Parts are merged into the integration branch `rc/next` (*written and tested*); none is in a release:
+
+- **The CLI only distributes**: `install`, `update`, `uninstall`, `status`, `check` and `mcp`
+  ([#596](https://github.com/tedeuxx/mhw/issues/596)). `mhw mcp check` already replaced
+  `status --mcp-connect` on `rc/next` ([#595](https://github.com/tedeuxx/mhw/issues/595)).
+- **Runtime checks move into native carriers**: fixed-pattern checks run by each agent harness's own
+  hooks from an installed script ([#588](https://github.com/tedeuxx/mhw/issues/588)), third-party terms
+  judged by the model instead of term lists ([#589](https://github.com/tedeuxx/mhw/issues/589)), and the
+  paste wrapper and `mhw scan` removed ([#590](https://github.com/tedeuxx/mhw/issues/590),
+  [#600](https://github.com/tedeuxx/mhw/issues/600)).
+- **Delivery moves to the forge**: the merge route on GitHub rulesets and a skill
+  ([#591](https://github.com/tedeuxx/mhw/issues/591)), and the delivery gates as a reusable GitHub
+  Action a project references ([#592](https://github.com/tedeuxx/mhw/issues/592)).
+- **A major only for a break of the public interface** (the CLI and the overlay schema): the
+  [ADR-0002](docs/adr/0002-automatic-semver-cut-policy.md) amendment the owner ratified on 2026-11-23.
+- **Claude Code cloud sessions**, set up by mhw itself
+  ([cloud requirements](docs/mhw-product-requirements-document-cloud-environments.md),
+  [#580](https://github.com/tedeuxx/mhw/issues/580) to [#582](https://github.com/tedeuxx/mhw/issues/582)).
+
+The per-control record, per agent harness, operating system and evidence level, is
+[Current state](#current-state) below.
+
+## How it is layered
 
 ```mermaid
 block-beta
   columns 1
-  L5["Session (command line) · machine user"]
-  L4["Workspace (git repository / multi-root) · project contributors"]
-  L3["User (global) · machine user"]
-  L2["Managed (admin policy) · administrator only"]
+  L5["Local: one clone's adjustments, untracked · machine user"]
+  L4["Project: settings, AGENTS.md, workflow · project contributors"]
+  L3["Baseline: rules, skills, method, reusable workflows · mhw release"]
+  L2["Policy floor: deny floor, outbound checks, delivery gates · administrator only"]
   L1["Built-in defaults: Claude Code · Codex · Kiro · vendor"]
   classDef admin fill:#F9D8C4,stroke:#D55E00,stroke-width:2px,color:#1d2228
   classDef project fill:#CDEDE2,stroke:#009E73,stroke-width:2px,color:#1d2228
@@ -43,21 +143,14 @@ block-beta
   class L1 vendor
 ```
 
-*Read bottom-up. Grey dashed: vendor. Orange: administrator only. Blue: machine user. Green: project
-contributors.*
+*Read bottom-up. Grey dashed: vendor. Orange: administrator only. Blue: the owner or machine user
+(the baseline changes only by an mhw release). Green: project contributors.*
 
-- **Managed:** a thin protection core that no agent can switch off, because changing it needs `sudo` and
-  `sudo` is denied to agents.
-- **User:** the global brief, the owner overlay, interaction standards and the working method (agents,
-  skills, commands), rendered into each agent harness's native mechanism.
-- **Workspace:** only what one project needs, plus a version key that names the workstation release
-  range it expects.
-- The `tadeumendonca-skills` plugin is a generated copy of the method, never a source and never a
-  protection, and nobody installs it once #130 removes it from the workstation (#63). Method demands
-  start here as Issues labelled `method`; the sync mirrors them there (#62).
-
-Hard locks are kept for irreversible or third-party harm only. Everything else is taught through
-instructions, native settings and automatic cleaning, and reported at its real evidence level.
+The floor sits in each agent harness's managed layer: changing it needs `sudo`, and `sudo` is denied
+to agents. Hard locks are kept for irreversible or third-party harm only; everything else is taught
+through instructions and native settings. The reasons are in the
+[CLI native baseline requirements](docs/mhw-product-requirements-document-cli-native-baseline.md),
+sections 1 to 3, and the mission and rules for agents working here in [`AGENTS.md`](AGENTS.md).
 
 ## Workflow
 
@@ -116,7 +209,7 @@ artifacts, while those rows retain the last control-specific load/enforcement me
 | Paste prompt hook, the safety net ([ADR-0033](docs/adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md), [ADR-0025](docs/adr/0025-hook-layers-in-the-native-admin-layer.md)) | written; enforced, probed (2.1.289): blocks without the wrapper's marker, passes with it. Since [#36](https://github.com/tedeuxx/mhw/issues/36) it also blocks on `phone`, `health` and `colleague-name`. `postal-address` and `contract-value` are report-only by default: named in a notice, and the prompt is sent. Written and tested, not probed | written; enforced, probed (0.160.0); runs only after the owner trusts it in `/hooks`. The same five categories: written and tested, not probed | Kiro CLI V3, since [#455](https://github.com/tedeuxx/mhw/issues/455): one user-level file, `~/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json`, runs the same core with `--harness kiro`, which ignores the wrapper's marker ~~(on V3 the wrapper cleans nothing)~~ *(amended 2026-11-08, [#462](https://github.com/tedeuxx/mhw/issues/462): the wrapper still sets the marker on V3, and it does not check typed text)*, blocks with exit 2 and the redacted copy on stderr, and never writes to stdout (Kiro appends it to the model's prompt); a failure inside the check passes the prompt unchecked, silently; if the hook file outlives the installed core, `python3` exits 2 and Kiro blocks every prompt until `mhw install` or `mhw uninstall` (`mhw status` names the file `modified`). Written and tested in throwaway homes; ~~every Kiro link (directory, file format, payload, exit-2 block, where the message shows) is *read from the bundle* (kas 2.35.2), **not measured**; Kiro runs no hook in an untrusted workspace~~. *Amended 2026-11-08 ([#462](https://github.com/tedeuxx/mhw/issues/462), Kiro CLI 3.1.0, kas 2.35.2):* **loaded and invoked, measured** from Kiro's log in the owner's canary; the installed hook command alone exits 2 with only the redacted copy on stderr, **measured** by a direct pipe; a payload with no `prompt` exits 0 (fail open, measured; whether Kiro shows its notice is not measured); the **block inside Kiro** (the model never sees a dirty prompt, and where the message shows) is **not measured**, because the wrapper cleaned the paste first; an untrusted workspace opens no session (measured). 2.x engine and IDE: none (hypothesis) | none | macOS, Linux | *installed* in the admin layer (v2.1.0); *enforced* on Claude Code (2026-10-04). That copy predates the marker, so it still blocks wrapped sessions. The Kiro V3 hook file: ~~not installed; the owner measures it in a fresh session after the release-candidate install~~ *installed* with v10.1.0 and *loaded* (2026-11-08, #455); ~~its in-Kiro block path is the owner's next measurement ([canary](docs/runbooks/kiro-v3-prompt-hook-canary.md), #462)~~ *amended 2026-11-09:* its in-Kiro block path is **not measured**; the owner accepted the measured evidence and closed #462 on 2026-11-08 ([his comment](https://github.com/tedeuxx/mhw/issues/462#issuecomment-6728227923)); the [canary](docs/runbooks/kiro-v3-prompt-hook-canary.md) stays available as an optional run |
 | Pre-authorisation allow list ([ADR-0031](docs/adr/0031-pre-authorisation-allow-list-behind-the-admin-floor.md)) | written; the permission mode loaded, probed. Wide tier only behind the admin floor. Its `Edit` deny covers only the checkout that ran the installer | written; rules loaded, probed; decisions measured with `execpolicy check` | written, narrow tier; documented. Since 2026-10-11 the agent carries the 2.0 fields and the V3 `permissions` form, so Kiro CLI no longer asks to `/upgrade-agent` (read from the bundled V3 engine; not run). The IDE then loads the agent too ([ADR-0036](docs/adr/0036-kiro-shared-deny-floor-permissions-yaml.md) amendment) | none | macOS, Linux | not installed. Since [#145](https://github.com/tedeuxx/mhw/issues/145) install also removes the user-level `Bash(find:*)` and `Bash(awk:*)` (ADR-0035 decision 4; also the `Bash(x *)` and `Bash(x*)` spellings, per the Claude Code permissions documentation; the bare forms stay) from `~/.claude/settings.json`, with a backup: written and tested in throwaway homes; not installed |
 | Milestone read route pre-authorised ([#242](https://github.com/tedeuxx/mhw/issues/242), [owner decision 2026-11-02](https://github.com/tedeuxx/mhw/issues/242#issuecomment-6576468808)) | written and tested: ~~a `script` entry renders `Bash(python3 <installed method/scripts>/milestone-read.py:*)`, with an `Edit` deny on that file~~ since [#475](https://github.com/tedeuxx/mhw/issues/475) a `route` entry in `global/allow-list.conf` renders `Bash(mhw milestone read:*)` into `~/.claude/settings.json`, in the wide tier only. Only the read: create, update and close still ask. ~~`mhw` is resolved on `PATH`, so no `Edit` deny protects the code it runs~~ Run from an npm install, the installer also renders `Edit(/<installed package directory>/**)`, in every tier, and never from a checkout ([owner ruling 2026-11-19](https://github.com/tedeuxx/mhw/pull/509#issuecomment-7007902457)). Not covered: a directory earlier on `PATH` holding another `mhw` would run instead, and a write through Bash. The owner's broad `Bash(gh api:*)` user deny stays; the route's own `gh api` call runs in a subprocess no settings rule sees, which is the read path he chose. Without an npm install, `mhw` is not on `PATH` and the rule matches nothing | none (allow-list runners are Claude Code only) | none (narrow tier only) | none | macOS, Linux (Windows renders no allow list) | not installed. Written and tested in throwaway homes; installing is the owner's act, in a fresh session |
-| Working method: 8 agents, 19 skills, ~~8~~ 9 commands ([ADR-0032](docs/adr/0032-this-repository-is-the-single-source-of-the-working-method.md)) | written; loaded, probed (2.1.289), each agent's tool list applied | written; skills loaded, probed (0.160.0), commands kept out of implicit use; agents documented, with no tool list | written; documented (agents and skills; commands as skills) | Claude Code tab documented; otherwise none | macOS, Linux, Windows (`mhw install --method`, which runs `mhw install-windows --method`, CI; ~~`install.ps1 -Method`~~ until #497) | not installed: the plugin is still the running copy until #130 removes it (#63). ~~Since #130, `--method` also retires the plugin at user scope (Claude Code settings, install records and marketplace; Codex `config.toml`), with a 0600 backup that uninstall restores from; project scopes are reported, not touched. Written and tested in throwaway homes; not run on the reference machine;~~ *Removed in v7 ([#206](https://github.com/tedeuxx/mhw/issues/206)):* install no longer edits the plugin, and uninstall no longer restores one; a plugin still enabled is named by `mhw status` and disabled with the agent harness's own command. The owner's steps are in the [cutover runbook](docs/runbooks/method-cutover.md) |
+| Working method: 8 agents, ~~19~~ 20 skills, ~~8~~ 9 commands ([ADR-0032](docs/adr/0032-this-repository-is-the-single-source-of-the-working-method.md)) | written; loaded, probed (2.1.289), each agent's tool list applied | written; skills loaded, probed (0.160.0), commands kept out of implicit use; agents documented, with no tool list | written; documented (agents and skills; commands as skills) | Claude Code tab documented; otherwise none | macOS, Linux, Windows (`mhw install --method`, which runs `mhw install-windows --method`, CI; ~~`install.ps1 -Method`~~ until #497) | not installed: the plugin is still the running copy until #130 removes it (#63). ~~Since #130, `--method` also retires the plugin at user scope (Claude Code settings, install records and marketplace; Codex `config.toml`), with a 0600 backup that uninstall restores from; project scopes are reported, not touched. Written and tested in throwaway homes; not run on the reference machine;~~ *Removed in v7 ([#206](https://github.com/tedeuxx/mhw/issues/206)):* install no longer edits the plugin, and uninstall no longer restores one; a plugin still enabled is named by `mhw status` and disabled with the agent harness's own command. The owner's steps are in the [cutover runbook](docs/runbooks/method-cutover.md) |
 | Method backlog sync: an mhw Issue labelled `method` mirrored as an adapted twin Issue in `tadeumendonca-skills` ([#62](https://github.com/tedeuxx/mhw/issues/62), [ADR-0032](docs/adr/0032-this-repository-is-the-single-source-of-the-working-method.md) 2026-10-12 amendment) | not an agent harness control: a CI workflow running `anthropics/claude-code-action` | | | | any (CI) | written and tested (the workflow's structure and its sync script, against a stub `gh`). **Works end to end on `main`, measured** (canary 4, 2026-10-12, v5.5.3): run 38324740491 created the twin tadeumendonca-skills#564 and linked it, run 38324871241 closed it, `verify` passed both times. Before that it failed three times before any write to tadeumendonca-skills: run 38269161317 (bubblewrap missing; fixed by [#163](https://github.com/tedeuxx/mhw/pull/163), its isolation then worked on the runner), run 38294048591 (most likely the env scrub dropping the token names: measured on Claude Code 2.1.296 on macOS, inferred on the runner; fixed by [#165](https://github.com/tedeuxx/mhw/pull/165), the inputs then reached the script) and run 38307434605 (the Write tool denied the body file, observed; the cause, a `Write(path)` rule that file permission checks ignore, measured on Claude Code 2.1.296 on macOS, inferred on the runner). The fix ([#167](https://github.com/tedeuxx/mhw/pull/167)) is what canary 4 ran ([runbook](docs/runbooks/method-issue-sync.md)). The secrets are stored (2026-10-12); it runs only from `main`. Without its secrets it skips with a notice |
 | Session-start model and effort, pinned by ID ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md) slice B, [ADR-0007](docs/adr/0007-session-start-model-and-effort-defaults.md)) | written: `model`, `effortLevel` in the user settings; not checked in a new session. A workspace or environment value wins | written: `model`, `model_reasoning_effort`; not checked in a new session. A profile or `-m` wins | Kiro CLI written: `chat.defaultModel`, no effort; the model list measured (2.29.0). IDE: none | the Claude Code tab shares the user settings (documented); otherwise none | macOS, Linux | not installed. ~~The owner's own Claude Code `model` and Codex `model_reasoning_effort` are kept until he deletes them~~ Since [#145](https://github.com/tedeuxx/mhw/issues/145) install writes the pin over any value, reports old -> new, and uninstall restores the value it replaced: written and tested in throwaway homes |
 | Codex descriptor-limit configuration review ([ADR-0039](docs/adr/0039-codex-managed-daemon-version-and-headroom.md), [#200](https://github.com/tedeuxx/mhw/issues/200)) | not touched | review evidence only: no permanent FD/process monitor, daemon probe, alignment check or install-time update/restart is part of `mhw`. No supported native Codex setting for the managed daemon's descriptor limit was found. No global or process limit, hook, paste wrapper or native daemon configuration is changed | not touched | none | macOS | measured 2026-10-19: Codex CLI, managed package and app-server are aligned at 0.163.0; Codex Doctor's installation, configuration and persistent app-server checks are healthy; the current session soft descriptor limit is 4096 while the launchd default is 256. These are bounded observations, not continuous monitoring or enforcement |
@@ -138,14 +231,14 @@ deny floor, the method and the #145 install steps, files read by path, pasted im
 wrapper. Every protection that is an instruction is best effort: whether a model follows it is not
 measured.
 
-## Install
+## Install in detail
 
 New machine: start with [Install on another workstation](docs/new-workstation.md), which previews the
 controls without inheriting the reference owner's overlay.
 
 **With npm, from GitHub by tag** ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md),
-[runbook](docs/runbooks/npm-install.md)). Nothing is published to the npm registry. You need Node.js 18
-or later and git; on macOS and Linux also Python 3.9+ (still listed as a prerequisite until S32; since
+[runbook](docs/runbooks/npm-install.md)). Nothing is published to the npm registry. You need Node.js ~~18~~ 26
+or later (`engines` in `package.json`) and git; on macOS and Linux also Python 3.9+ (still listed as a prerequisite until S32; since
 [#496](https://github.com/tedeuxx/mhw/issues/496) no installer runs it, and none runs `jq`). The package and its command are `mhw`
 (multi-harness managed workstation):
 
@@ -316,6 +409,8 @@ Every installation on the owner's machine is his act, in a fresh session.
 ## Further reading
 
 - [Product Requirements Document](docs/mhw-product-requirements-document-project.md)
+- [CLI native baseline requirements](docs/mhw-product-requirements-document-cli-native-baseline.md) (v11)
+- [Cloud environments requirements](docs/mhw-product-requirements-document-cloud-environments.md)
 - [Agent harness baseline vocabulary](docs/harness-baseline.md)
 - [Local persistence inventory](docs/persistence-inventory.md)
 - [Support script deprecation evaluation](docs/script-deprecation-evaluation.md)
