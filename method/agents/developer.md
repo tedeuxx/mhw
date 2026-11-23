@@ -251,6 +251,7 @@ still matters for the permission matcher, per `shell`'s own rule.
    output, every new assertion mutation-checked, the dependency/IAM/secret/action-pin axes named, and
    the docs the change made false. Not optional and not the gate's job — measured, most of what the gate
    sends back was reachable here.
+7. **Your report of done names the full forty-character head your work is on, and declares that no background process you started is still running** (mhw#439). Stop what you started first; a process that can still push makes the review spend a round on a head that will move.
 
 ## `scrum-master` — the eighth profile, and what it is to you (#375)
 
