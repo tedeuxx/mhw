@@ -3,21 +3,20 @@
 //
 //   mhw status [--verbose]              the status view
 //   mhw status --summary                the session-start runtime summary an agent harness relays (#80)
-//   mhw status --mcp-connect[=SECONDS]  also start each MCP active-set server and say whether it answers
-//                                       (opt-in: it starts processes; exit 1 when one fails; #219)
+//   (The MCP connection test, --mcp-connect until v11, is `mhw mcp check` since #595: status starts no process.)
 //   Options: --overlay=DIR|none, --project=DIR (default: the git root of the current directory).
 //
 // Read-only. It runs `mhw install-user --check` (global/install.sh until #503) and, when an admin layer of ours is on disk,
 // `mhw install-admin --check` on this node (global/install-managed.sh until #496), and summarises their lines; it renders nothing
 // itself. The validated --overlay reaches the installers through WORKSTATION_OVERLAY, never their argv.
 // git, gh and the agent harness CLIs are the first on PATH, run by absolute path (src/lib/onpath.js).
-// Status never fails on what it reads: exit 0, 2 on a usage error, 1 when --mcp-connect finds a failure.
+// Status never fails on what it reads: exit 0, 2 on a usage error.
 // macOS and Linux; on Windows `mhw status` is `mhw install-windows --check` after its NODE and PASTE lines (src/cli.js, #497). node: modules only.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { NAME, KEY_FILE, MARKER, inHome, codexHome, managedRoot, isFile, readText, runLines, resolvePath, homeOf,
-  splitlines, readJson, get, pathlibJoin } from '../lib/readers/common.js';
+  readJson, get, pathlibJoin } from '../lib/readers/common.js';
 import { keyVerdict, readKey, mismatchLine } from '../lib/readers/version-key.js';
 import { adminDropin, adminState, adminInstalled, adminPresent, adminStamp, adminReport, issues, leadingWord } from '../lib/readers/admin.js';
 import { readHooks, hooksText, hookNodeText, termListsState } from '../lib/readers/hooks.js';
@@ -25,8 +24,8 @@ import { readSettings, enabledPlugins, methodState, permissionsText, unreadSourc
 import { workspace } from '../lib/readers/workspace.js';
 import { harnessVersions, runtime } from '../lib/readers/host.js';
 import * as ownerActions from '../lib/readers/owner-actions.js';
+import { workspaceFindings as baseUrlFindings } from '../lib/base-url.js';
 import { statusText as chromeStatus, systemName } from '../render/chrome-debugging.js';
-import { runAbsolute } from '../lib/run.js';
 import { cmpStr, isPyWs } from '../lib/py.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -43,7 +42,7 @@ export { MARKER };
  *   runtime: string, admin_state?: string, admin_code?: number, settings?: Setting[], permissions?: string,
  *   method?: { installed: boolean | null, duplicate: string[], unread?: string }, npm?: string[], chrome_debugging?: string | null,
  *   unread?: import('../lib/readers/settings.js').Unread[],
- *   owner_actions?: string, hook_node?: string, terms?: [boolean, string] }} Facts
+ *   owner_actions?: string, hook_node?: string, terms?: [boolean, string], base_url?: string[] }} Facts
  *   hook_node, terms: #488 (the prompt hook's node, and the term lists the salt file does not cover)
  */
 
@@ -226,41 +225,6 @@ export function activeLine(line) {
   const open = s.lastIndexOf('(');
   if (open < 1 || s[open - 1] !== ' ' || /[()]/.test(s.slice(open + 1, -1))) return null;
   return [word, surface, s.slice(0, open - 1)];
-}
-
-/**
- * The connection check's own lines, under one heading; its tag and its word are dropped. Untagged lines
- * (a refusal) are not shown: the exit code is, with where to read the reason.
- * @param {string[]} lines
- * @param {number} code
- */
-export function mcpConnectLines(lines, code = 0) {
-  /** @type {string[]} */
-  let out = [];
-  for (const line of lines) {
-    if (line.endsWith(' (MCP connect)')) {
-      const t = line.slice(0, -' (MCP connect)'.length);
-      out.push(splitFirstWord(t));
-    }
-  }
-  if (!out.length) out = ['no result (exit ' + code + '); run mhw mcp render --active --mode=connect for the reason'];
-  return ['  mcp connect      ' + out[0], ...out.slice(1).map((x) => MCP_INDENT + x)];
-}
-
-/**
- * str.split(None, 1)[-1]: what follows the first word and the whitespace after it, or the word itself
- * when it is the only one ('' where Python raised IndexError on a line of whitespace only).
- * @param {string} t
- */
-function splitFirstWord(t) {
-  const cps = Array.from(t);
-  let i = 0;
-  while (i < cps.length && isPyWs(cps[i])) i++;
-  const start = i;
-  while (i < cps.length && !isPyWs(cps[i])) i++;
-  const word = cps.slice(start, i).join('');
-  while (i < cps.length && isPyWs(cps[i])) i++;
-  return i < cps.length ? cps.slice(i).join('') : word;
 }
 
 /**
@@ -492,6 +456,7 @@ export function renderStatus(f, verbose = false) {
   lines.push('  layers           managed: ' + managedText(f) + ' · user: ' + (user.length ? 'installed' : 'absent') +
     ' · workspace: ' + wsText + ' · plugin: ' + pluginText);
   for (const finding of ws.brief || []) lines.push('  root brief       ' + finding);
+  for (const finding of f.base_url || []) lines.push('  base url         ' + finding + ' (redirects the subscription bearer; informs only)');
   lines.push('  protections      brief: ' + f.brief + ' · deny floor: ' + f.floor + ' · hooks registered: ' + f.hooks);
   // #488: the node the prompt hook runs, and any hashed term list the salt file does not cover.
   lines.push('  hook node        ' + (f.hook_node ?? 'not read'));
@@ -549,6 +514,8 @@ export function renderSummary(f, env) {
   const off = settings.filter(([, , k, v]) => k === 'disableAllHooks' && v === 'true').map(([h, layer]) => h + ' ' + layer);
   if (off.length) overrides.unshift('HOOKS OFF: disableAllHooks in ' + off.join(', '));
   for (const u of (f.unread || []).filter((x) => x.layer === 'workspace')) overrides.push(u.harness + ' not read (' + u.reason + ')');
+  // #27 rides on the overrides item, so the summary keeps its ten-line limit.
+  for (const finding of f.base_url || []) overrides.unshift('BASE URL ' + finding);
   lines.push('  overrides        ' + (overrides.length ? overrides.join('; ') : 'no workspace setting overrides a user default'));
   lines.push('  cannot override  ' + cannotOverride(f));
   // The installers' --check drift rides on the protections item (Issue #38).
@@ -673,6 +640,8 @@ export function gather(project, env, cwd) {
     method: methodState(env, userLines, plugins), npm: npmNotes(source, userStamps),
     chrome_debugging: chromeStatus(systemName(), homeOf(env)),
     owner_actions: ownerActions.text(ownerActions.read({ env })),
+    // #27: a workspace env.ANTHROPIC_BASE_URL, as file:line and a category; it informs and never blocks.
+    base_url: baseUrlFindings(ws.root),
   };
 }
 
@@ -700,17 +669,6 @@ export function validOverlay(value, env, cwd) {
 }
 
 /**
- * mhw status --mcp-connect: the owner-run connection check, after the status view (Issue #219).
- * @param {number} timeout @param {Env} env @param {(line: string) => void} out
- */
-export function mcpConnectStatus(timeout, env, out) {
-  const r = runAbsolute(process.execPath, [path.join(ROOT, 'src', 'render', 'mcp.js'), '--active', '--mode=connect', '--timeout=' + timeout],
-    { env, stdio: ['inherit', 'pipe', 'pipe'] });
-  for (const line of mcpConnectLines(splitlines(r.stdout + r.stderr), r.code)) out(line);
-  return r.code ? 1 : 0;
-}
-
-/**
  * @param {string[]} argv the arguments after `status`
  * @param {Env} env
  * @param {{ cwd?: string, out?: (line: string) => void, err?: (line: string) => void }} [o]
@@ -726,15 +684,16 @@ export function main(argv, env, o = {}) {
   let project = null;
   let verbose = false;
   let summary = false;
-  /** @type {number | null} */
-  let connect = null;
   for (const arg of argv) {
     if (arg.startsWith('--overlay=')) overlay = arg.slice('--overlay='.length);
     else if (arg.startsWith('--project=')) project = arg.slice('--project='.length);
     else if (arg === '-v' || arg === '--verbose') verbose = true;
     else if (arg === '--summary') summary = true;
-    else if (/^--mcp-connect(=[1-9][0-9]{0,3})?$/.test(arg)) connect = arg.includes('=') ? Number(arg.split('=')[1]) : 30;
-    else {
+    else if (arg === '--mcp-connect' || arg.startsWith('--mcp-connect=')) {
+      // Removed in v11 (#595): the connection test starts processes, and status never does.
+      err('mhw: unknown argument for status: ' + arg + ' (the MCP connection test is now mhw mcp check [--timeout=SECONDS])');
+      return 2;
+    } else {
       err('mhw: unknown argument for status: ' + arg);
       return 2;
     }
@@ -752,7 +711,7 @@ export function main(argv, env, o = {}) {
   }
   const facts = gather(project, child, cwd);
   for (const line of summary && !verbose ? renderSummary(facts, child) : renderStatus(facts, verbose)) out(line);
-  return connect ? mcpConnectStatus(connect, child, out) : 0;
+  return 0;
 }
 
 // Re-exported for the tests, which build facts by hand.

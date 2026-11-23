@@ -3,7 +3,7 @@
 // harness has it configured, and say whether it answers an MCP initialize.
 //
 //   mhw mcp render --active --mode=connect [--timeout=SECONDS] [--source=FILE]
-//   mhw status --mcp-connect[=SECONDS]
+//   mhw mcp check [--timeout=SECONDS]   (src/commands/mcp-check.js, #595; status --mcp-connect until v11)
 //
 // Opt-in, never part of the default status: starting a server has side effects (a package fetch, a sign-in
 // prompt, a process) and costs time. Per server and agent harness where it is enabled:

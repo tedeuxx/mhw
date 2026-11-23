@@ -229,6 +229,7 @@ capability boundary** — a real downgrade from the plugin's retired rule 5e, st
    in the latest round; drop or take the advisory ones as you judge, silently. Then say which round you
    answered, under which correction (or the first review), and whether that correction's bound is now
    spent.
+8. **Your report of done names the full forty-character head your work is on, and declares that no background process you started is still running** (mhw#439). Stop what you started first; a process that can still push makes the review spend a round on a head that will move.
 
 ## `scrum-master` — the eighth profile, and it is not in your loop (#375)
 
