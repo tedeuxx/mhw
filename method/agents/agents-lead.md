@@ -14,8 +14,10 @@ skills:
   - orchestration
 ---
 
-> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
-> text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
+> **Read this first: hooks named below are the plugin mirror's, not controls you have (#61).** The
+> source of this text is the `method/` directory of `tedeuxx/mhw`; `tedeuxx/tadeumendonca-skills` is
+> its plugin-form mirror, a Claude Code plugin that carries as much of what mhw maintains as it can
+> (the workstation repository's ADR-0046). Where this text names a plugin hook, guard rule or test
 > (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
 > and the like), it describes that plugin; **none of those runs in this method**. (If the plugin is
 > still enabled beside this method, its hooks do run, and they refuse these bare-named agents' posting,
@@ -300,8 +302,9 @@ other way round — none of those is a finding. A claim you can name a check for
 back wrong, is. **If you cannot name the command, the file and line, or the measurement that makes it
 false, it is at most advisory** — say so, and close, rather than converting it into another round.
 
-**Where this came from: the report in #393, not a historical measurement repeated by this slice.**
-Read that report with `gh issue view 393 --repo tedeuxx/tadeumendonca-skills --json body --jq .body`.
+**Where this came from: the report filed as the plugin mirror's #393, not a historical measurement
+repeated by this slice.** It now lives in mhw as #341; read it with
+`gh issue view 341 --repo tedeuxx/mhw --json body --jq .body` (the workstation repository's ADR-0046).
 It reports that five consecutive `loop` PRs ran
 the full product ceremony and three of them cost nineteen review rounds between them. Every finding in
 those rounds was real; the last of each was a word or a number, and the chain had no natural stop.

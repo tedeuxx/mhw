@@ -45,7 +45,11 @@ Each is raised one at a time, when a slice reaches it.
    vendored as the paste wrapper's pty, with the macOS binaries byte-identical to npm and the Linux ones
    built by this repository's CI from the pinned source (no npm integrity covers those). The Linux build
    is already the owner's decision on PR #521; the record as a whole is proposed.~~
-   *Ratified on 2026-11-20 ([«Ratificar»](https://github.com/tedeuxx/mhw/issues/487#issuecomment-7053800611)). No record in this index is proposed.*
+   *Ratified on 2026-11-20 ([«Ratificar»](https://github.com/tedeuxx/mhw/issues/487#issuecomment-7053800611)). ~~No record in this index is proposed.~~ ADR-0046 is, since #579 (ask 8).*
+8. **Ratify [ADR-0046](0046-the-plugin-is-a-mirror-of-the-method.md)**
+   ([#579](https://github.com/tedeuxx/mhw/issues/579)): the agent briefs name `tadeumendonca-skills` as
+   the method's plugin-form mirror, and the evidence their old notice carried moves into the record. The
+   decision is the owner's ruling on #579; the record is agent-written and proposed.
 
 ## Index
 
@@ -95,3 +99,4 @@ Each is raised one at a time, when a slice reaches it.
 | [0042](0042-node-pty-vendored-for-the-paste-wrapper.md) | node-pty 1.1.0, vendored with its macOS prebuilds from npm and Linux pty.node built by our CI from the pinned source, is the paste wrapper's pty; where it cannot load the wrapper refuses visibly (2026-11-20, #487) | ~~proposed~~ accepted 2026-11-20 ([ratification](https://github.com/tedeuxx/mhw/issues/487#issuecomment-7053800611)) |
 | [0043](0043-backlog-grooming-batch-confirmation-and-scrum-for-mhw.md) | Backlog grooming closes and rewrites the owner's Issues on one batch confirmation, under safeguards; mhw runs `scrum`, scoped by `loop-mode-repos` (2026-11-20) | ~~proposed~~ accepted 2026-11-20 ([ratification](https://github.com/tedeuxx/mhw/issues/522#issuecomment-7050932440)) |
 | [0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md) | A declared documentation baseline kept current by every merge request (`mhw docs-baseline check`, `mhw onboard`), and an add-only test/DoD override in `project-policy.json` with a coverage floor of 85; amends 0015 (2026-11-20) | ~~proposed~~ accepted 2026-11-20 ([ratification](https://github.com/tedeuxx/mhw/issues/523#issuecomment-7053423698)) |
+| [0046](0046-the-plugin-is-a-mirror-of-the-method.md) | The method's agent briefs name `tadeumendonca-skills` as its plugin-form mirror; the evidence their old notice carried lives in the record (2026-11-23, #579) | proposed |

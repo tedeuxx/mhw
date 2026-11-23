@@ -15,8 +15,10 @@ skills:
   - shell
 ---
 
-> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
-> text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
+> **Read this first: hooks named below are the plugin mirror's, not controls you have (#61).** The
+> source of this text is the `method/` directory of `tedeuxx/mhw`; `tedeuxx/tadeumendonca-skills` is
+> its plugin-form mirror, a Claude Code plugin that carries as much of what mhw maintains as it can
+> (the workstation repository's ADR-0046). Where this text names a plugin hook, guard rule or test
 > (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
 > and the like), it describes that plugin; **none of those runs in this method**. (If the plugin is
 > still enabled beside this method, its hooks do run, and they refuse these bare-named agents' posting,
@@ -397,7 +399,7 @@ rather than for quoting it.
 irreversibility that keeps `product-lead` off `gh pr comment` entirely (formerly the plugin's rule 5e; now an instruction in its brief). You are
 not closed off, because your verdict must reach the PR; so the boundary is an instruction, and an
 instruction is only as strong as the attention it gets. That is the trade, stated so it is a known cost.
-**Since the plugin's hooks retired (#61), `product-lead` holds an instruction too, and so do you.**
+**Since the plugin's hooks stopped running in this method (#61), `product-lead` holds an instruction too, and so do you.**
 
 The `.brand/` mentions elsewhere in this file are audit criteria for *other people's* diffs — that the
 directory stays gitignored and unpublished. They are not this rule, and neither implies it.
