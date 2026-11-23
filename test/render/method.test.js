@@ -943,12 +943,22 @@ describe('the positioning-sync skill', () => {
       // The owner's ruling on #567: no record of what shipped; the live surfaces are the truth.
       '**There is no record of what shipped (owner\'s ruling on #567).**',
       'the coherence check below reads them live.',
+      // The lens at 29c3475 (A7, A8): the drafts are not a record, and step 4's prose carries the order.
+      'The drafts in `<private-dir>` are a working location for his read, not a record; they are not updated to match what shipped.',
+      'The main session writes the drafts, in an attended session, in `<private-dir>`',
+      '**The professional-network profile.** Once steps 1 to 3 have merged,',
     ]) assert.ok(text.includes(clause), clause);
+    // A9: a blank line keeps the no-record ruling out of step 6's list item.
+    assert.ok(read(POSITIONING_SYNC).includes('with the new positioning.\n\n**There is no record of what shipped'), 'the ruling renders inside step 6');
     const rows = read(POSITIONING_SYNC).split('\n').filter((l) => /^\| \d+ \|/.test(l));
     assert.deepEqual(rows.map((l) => l.split('|')[2].trim()), ['gated', 'gated', 'gated', 'browser', 'browser', 'browser'],
       'gated steps come before browser writes, and no record step follows them');
-    assert.deepEqual(text.match(/canonical[- ]copy|record step|update the record|to what (actually )?shipped/gi) || [], [],
-      'a step that updates a record of what shipped is back');
+    // A record of what shipped, by any of its likely wordings: a copy step, a write-back to what shipped,
+    // or live text written into the private directory. The one negated sentence above is removed first.
+    const negated = 'they are not updated to match what shipped.';
+    assert.deepEqual(text.replace(negated, '').match(
+      /canonical[- ]copy|record step|update the record|(?:updated?|copied|written|brought) (?:back )?to (?:match )?what (?:actually )?shipped|to what (?:actually )?shipped|(?:update|write|copy)[^.]*<private-dir>[^.]*live text|live text[^.]*into[^.]*<private-dir>/gi) || [], [],
+      'a step that keeps a record of what shipped is back');
   });
   test('it points at the skills that own the rest instead of restating them', () => {
     const text = read(POSITIONING_SYNC);

@@ -51,7 +51,8 @@ consumer without one of them drops the row, and a consumer with another adds one
 
 1. **One tracked Issue for the batch**, in the consuming project, before any write. It names the
    surfaces in scope as `<surface>` entries and carries no private text.
-2. **Draft every surface's new text first**, where the owner can open it: in `<private-dir>`, because
+2. **Draft every surface's new text first**, where the owner can open it. The main session writes the
+   drafts, in an attended session, in `<private-dir>`, because
    the drafts derive from private positioning, never in a public tracked file and never only in the
    session scratchpad. Read the positioning and the surfaces list first; never write positioning from
    memory.
@@ -92,6 +93,7 @@ gated change from leaving the external surfaces on the new positioning and the s
 5. **The forge bio, and a separately maintained CV design.** Update the bio to the approved text. A CV
    design that is not derived from the site is updated to the approved text and re-exported.
 6. **The newsletter.** Align its recurring theme with the new positioning.
+
 **There is no record of what shipped (owner's ruling on #567).** The live surfaces are the source of
 truth: nothing copies their text into a private file after the batch, and the coherence check below
 reads them live. A surface that did not ship in this batch is named on the Issue as outstanding. The
