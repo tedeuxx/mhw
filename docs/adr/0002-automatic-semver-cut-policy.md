@@ -187,7 +187,7 @@ agreed with the table below.
 | ~~**patch**~~ | ~~A **bug fix**, or an **incremental change** to something that already exists. Docs, tests and CI are included here.~~ |
 
 *(Rows struck 2026-11-23: replaced by the public-interface table in the 2026-11-23 amendment below,
-which awaits the owner's ratification.)*
+which ~~awaits the owner's ratification~~ the owner ratified on 2026-11-23 ([Issue #587](https://github.com/tedeuxx/mhw/issues/587#issuecomment-7112877579)).)*
 
 **What changed from the 2026-10-06 table.** An improvement to existing functionality (UX, messages, a
 behaviour adjustment) is now **patch**; under the 2026-10-06 table it was minor. **Minor** is reserved
@@ -199,7 +199,8 @@ minor; if an existing user's setup stops working the same way, it is major; othe
 he ratifies or changes it.
 *(Since 2026-11-23 this classification is replaced by the 2026-11-23 amendment below: a control
 removed or weakened is minor or patch, and the release notes must say so; only a break of the public
-interface is major. That amendment awaits the owner's ratification.)*
+interface is major. That amendment ~~awaits the owner's ratification~~ was ratified on 2026-11-23
+([Issue #587](https://github.com/tedeuxx/mhw/issues/587#issuecomment-7112877579)).)*
 
 **Unchanged:** when a change fits more than one row, the highest row wins, and the release-candidate
 pull request carries the largest part among the changes it contains. Everything listed under "What
@@ -256,7 +257,8 @@ Ratification changes no evidence level stated above: it installs, loads or enfor
 
 The ratified cut table is the 2026-10-10 one: **major** for a breaking change, **minor** for new functionality, **patch** for a bug fix or an incremental change, docs, tests and CI included.
 *(Since 2026-11-23 that table is replaced by the public-interface table of the 2026-11-23 amendment
-below; that amendment awaits the owner's ratification. The ratification recorded here is unchanged.)*
+below; that amendment ~~awaits the owner's ratification~~ was ratified on 2026-11-23
+([Issue #587](https://github.com/tedeuxx/mhw/issues/587#issuecomment-7112877579)). The ratification recorded here is unchanged.)*
 
 ## Amendment 2026-11-18: the bump is a Node script ([#473](https://github.com/tedeuxx/mhw/issues/473), S02 of [#470](https://github.com/tedeuxx/mhw/issues/470))
 
@@ -271,7 +273,8 @@ configuration file and its name (`.bumpversion.toml`, read by other parts of thi
 slice S32 of #470), the commit message and tag message `bump: {current_version} → {new_version}`, the
 `v{new_version}` tag, and the files bumped in the one commit (`.bumpversion.toml` and `package.json`).
 *(Since 2026-11-23 the cut policy is the public-interface table of the 2026-11-23 amendment below,
-which replaces the 2026-10-10 table and awaits the owner's ratification; the rest of this list still
+which replaces the 2026-10-10 table ~~and awaits the owner's ratification~~ and was ratified on
+2026-11-23 ([Issue #587](https://github.com/tedeuxx/mhw/issues/587#issuecomment-7112877579)); the rest of this list still
 holds.)*
 
 **How parity is held.** `test/release/bump.test.js` runs the script on a throwaway repository holding
@@ -310,9 +313,10 @@ This amendment installs, loads and enforces nothing on the reference machine; it
 
 ## Amendment 2026-11-23: a major only on a break of the public interface ([#587](https://github.com/tedeuxx/mhw/issues/587))
 
-**Status of this amendment: proposed, awaiting the owner's ratification.** The record itself stays
-accepted (2026-11-17); this amendment does not change that. Until he ratifies it, the table below is the
-cut policy he chose and the agents apply, not a ratified one.
+**Status of this amendment: ~~proposed, awaiting the owner's ratification~~ accepted 2026-11-23 ([owner's ratification](https://github.com/tedeuxx/mhw/issues/587#issuecomment-7112877579)).** The
+owner answered *"Ratifico"* ("I ratify") on Issue #587. The record itself stays accepted (2026-11-17).
+~~Until he ratifies it, the table below is the cut policy he chose and the agents apply, not a ratified
+one.~~ *(Struck 2026-11-23: ratified.)* Ratification installs, loads or enforces nothing.
 
 The owner, 2026-11-23, recorded on [PR #585](https://github.com/tedeuxx/mhw/pull/585#issuecomment-7108104263)
 and in section 8 of the [CLI native baseline requirements document](../mhw-product-requirements-document-cli-native-baseline.md),

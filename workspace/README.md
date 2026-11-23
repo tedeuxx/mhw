@@ -34,8 +34,8 @@ pending; a pause for questions publishes nothing.
    or option of the `mhw` CLI is removed or changes meaning, or the overlay schema the user writes
    becomes incompatible), **minor** for a new functionality, including a new control, skill or
    harness, **patch** for a fix or an incremental change to something that exists (method, skills,
-   briefs, controls, docs, tests, CI) (ADR-0002, 2026-11-23 amendment, awaiting the owner's
-   ratification). The
+   briefs, controls, docs, tests, CI) (ADR-0002, 2026-11-23 amendment, ~~awaiting the owner's
+   ratification~~ ratified by the owner on 2026-11-23). The
    release-candidate PR carries the largest part among the changes it contains.
 3. After CI and the review gate, run `./mhw delivery merge --pr NUMBER` from the
    slice branch checkout. For a PR into `rc/next` it requires every job that the `tests` workflow's
