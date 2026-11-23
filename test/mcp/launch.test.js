@@ -467,12 +467,17 @@ test('the copy the renderer installs (one marker line added, .mjs, anywhere) run
   assert.equal(imported.status, 0, String(imported.stderr));
 });
 
-test('mhw mcp without launch or render is a usage error', async () => {
-  for (const args of [[], ['launchx'], ['--', 'x']]) {
+test('mhw mcp without launch, render or check is a usage error', async () => {
+  for (const args of [[], ['launchx'], ['checkx'], ['--', 'x']]) {
     const p = spawnSync(NODE, [BIN, 'mcp', ...args], { env: BASE_ENV, encoding: 'utf8' });
     assert.equal(p.status, 2, JSON.stringify(args));
-    assert.equal(p.stderr, 'usage: mhw mcp launch [--keychain PATH] [--secret NAME=SOURCE]... -- command [args...]\n'
-      + '       mhw mcp render [--dry-run | --check | --scan | --policy ... | --active ...] (mhw mcp render --help)\n');
+    // #595: the usage tells mcp check (connection test) from mcp render --check (drift check).
+    assert.equal(p.stderr, 'usage: mhw mcp check [--timeout=SECONDS]   connection test: start each MCP active-set server and say\n'
+      + '                                          whether it answers (default 30 seconds per server; exit 1 when one fails)\n'
+      + '       mhw mcp render --check             drift check: exit 1 when an installed MCP configuration differs from the\n'
+      + '                                          definition; it starts nothing (mhw mcp render --help)\n'
+      + '       mhw mcp render [--dry-run | --scan | --policy ... | --active ...]\n'
+      + '       mhw mcp launch [--keychain PATH] [--secret NAME=SOURCE]... -- command [args...]\n');
   }
 });
 

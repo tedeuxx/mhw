@@ -1,0 +1,18 @@
+# FIXTURE — synthetic. The CURRENT half of the glob-metacharacter probe, plus the unknown-surface
+# probe. Two defects the gate found on #459, in one run.
+#
+#   * `34?` exercises the FIRST split (`set -- $rest`) — the current period's own line. Run from a
+#     directory holding a file named `345`, an unprotected split replaces it.
+#   * its metric matches 2000-04's, so the prior-period lookup fires and exercises the SECOND split
+#     (`set -- $pv`) against a prior value carrying `*`.
+#   * `gsc` is a surface OUTSIDE the store's closed vocabulary. The first form of the ceiling function
+#     asserted "the consent banner gates nothing there" for any unknown name — a fail-open default
+#     that would have published a positive claim about a surface nothing here knows anything about.
+#
+# Both metacharacters are plain characters in this file. If either appears expanded in the report, the
+# report is a function of the working directory rather than of the collection.
+
+collected: yes 2000-05-31 synthetic fixture — do not read as a measurement of anything
+
+figure: ga4 click-through-rate 34? 9
+figure: gsc clicks 3 3

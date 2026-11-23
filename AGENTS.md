@@ -140,12 +140,21 @@ Concretely, it must keep three things true on this machine:
    ~~suited to a policy-set artifact~~ — ~~plain SemVer since 2026-10-06: **major** for a breaking change
    (something a consumer must change), **minor** for an incremental feature (including adding or
    removing a control when no consumer has to change anything), **patch** for a bug fix or a change with no behaviour change (docs, tests, CI)~~
-   since 2026-10-10: **major** for a breaking change (something that worked stops working the same way
+   ~~since 2026-10-10: **major** for a breaking change (something that worked stops working the same way
    for an existing user), **minor** for a new functionality, **patch** for a bug fix or an incremental
-   change to something that already exists, docs, tests and CI included — declared on the pull request as exactly one
-   `semver:major|minor|patch` label; a pull request without exactly one fails a check. The cut policy
+   change to something that already exists, docs, tests and CI included~~ since 2026-11-23 (#587):
+   **major** only for a break of the **public interface** (a command or option of the `mhw` CLI is
+   removed or changes meaning, or the overlay schema the user writes becomes incompatible), **minor**
+   for a new functionality, including a new control, skill or harness, **patch** for a fix or an
+   incremental change to something that exists (method, skills, briefs, controls, docs, tests, CI); a
+   control removed or weakened is minor or patch, and the release notes must say so — declared on the pull request as exactly one
+   `semver:major|minor|patch` label; a pull request without exactly one fails a check, whose message
+   names the three rows. The cut policy
    and the mechanism are in [ADR-0002](docs/adr/0002-automatic-semver-cut-policy.md), which is
-   ~~**proposed** until the owner ratifies the cut table~~ accepted (the owner ratified the cut table on 2026-11-17). Since 2026-10-05 the only pull request into
+   ~~**proposed** until the owner ratifies the cut table~~ accepted (the owner ratified it on 2026-11-17,
+   [Issue #24](https://github.com/tedeuxx/mhw/issues/24)); its 2026-11-23 amendment, the public-interface
+   table above, ~~awaits his ratification~~ was ratified by him on 2026-11-23
+   ([Issue #587](https://github.com/tedeuxx/mhw/issues/587#issuecomment-7112877579)). Since 2026-10-05 the only pull request into
    `main` is the release candidate from `rc/next`; slices merge into `rc/next` (Issue #60, ADR-0021).
    The release candidate's label is the largest part among the changes it contains.
 
