@@ -147,7 +147,9 @@
         ".workstation-version",
         "workspace/README.md",
         "workspace/session-policy.json",
-        "src/commands/delivery.js"
+        ".github/workflows/review-status.yml",
+        ".github/scripts/review-status.js",
+        "global/github-repo-settings.json"
       ]
     },
     {

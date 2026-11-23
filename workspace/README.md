@@ -37,25 +37,38 @@ pending; a pause for questions publishes nothing.
    briefs, controls, docs, tests, CI) (ADR-0002, 2026-11-23 amendment, ~~awaiting the owner's
    ratification~~ ratified by the owner on 2026-11-23). The
    release-candidate PR carries the largest part among the changes it contains.
-3. After CI and the review gate, run `./mhw delivery merge --pr NUMBER` from the
-   slice branch checkout. For a PR into `rc/next` it requires every job that the `tests` workflow's
-   `delivery-ci` aggregates (read from `.github/workflows/tests.yml`) to be registered on the head by
-   the `tests` workflow, plus `delivery-ci`, Sonar and `docs-baseline` green (`docs-baseline` since
-   #523, on both bases: a missing run refuses, as a red one does). `semver-label` is not required there,
-   because that workflow runs only on PRs into `main`. A pending check, a missing `tests` run (a
-   "CLEAN" PR on which no tests ran) and a merge state other than clean (DIRTY, BEHIND, UNKNOWN...)
-   are refused. It also reads the review gate from the PR's comments, because the plugin's merge
-   floor cannot see this command's own merge. Only a strict header at the very top of a comment
-   counts: the **first four lines** of the gate's verdict, the **first three lines** of the lens
-   marker. Lines are compared whole, and nothing below the header is read, so text in a
-   fence, a blockquote or the prose can neither supply nor override a verdict. The newest trusted
-   comment that opens with each envelope wins, so a later `REQUEST-CHANGES`, a later open lens or a
-   later malformed header refuses. `quality-assurance` must open its comment with these four lines,
-   the method's required verdict shape. Line 2 is `APPROVE-AND-MERGE`, the one clearance literal;
-   any other literal refuses, and the boundary literal retired at #134 is refused by name with no
-   transition window (a verdict is head-scoped, so a merge always needs a fresh one). Line 4 is
-   `owner-check: none` or `owner-check:` followed by the one live act the owner should do after the
-   merge; a verdict without it is malformed and refuses. Anything may follow line 4.
+3. After CI and the review gate, the executor merges by the `merge-pull-request` method skill
+   (#591, [ADR-0045](../docs/adr/0045-delivery-route-on-github-rulesets-and-a-skill.md)).
+   ~~run `./mhw delivery merge --pr NUMBER` from the slice branch checkout~~ *(struck 2026-11-23:
+   `mhw delivery` left the CLI.)* The skill names every condition the removed command checked and says
+   which of them GitHub holds and which are steps. GitHub holds them through the rulesets declared in
+   `global/github-repo-settings.json`: on `rc/next` they require `delivery-ci` (every job the `tests`
+   workflow aggregates, so a "CLEAN" PR on which no tests ran cannot merge), `scan`, `docs-baseline`,
+   `semver-label` (on both bases since #591), Sonar and three review statuses, plus a pull request,
+   merge commits only and an up-to-date head (a stale or conflicting head is refused). The skill's
+   steps hold the rest: no other check pending or failed (`gh pr checks`), a clean merge state read and
+   named, and the owner's go on the release candidate. Then one command, a real merge commit pinned to
+   the head that was reviewed:
+
+   ```
+   gh pr merge N --merge --match-head-commit SHA
+   ```
+
+   **The three review statuses** are posted on the PR's current head by
+   `.github/workflows/review-status.yml`, which runs `.github/scripts/review-status.js`: `review/route`
+   (a slice from its own branch into `rc/next`; into `main` only from `rc/next`; never from another
+   repository), `review/quality-assurance` and, on `rc/next`, `review/agents-lead`. They read the
+   review gate from the PR's comments. Only a strict header at the very top of a comment counts: the
+   **first four lines** of the gate's verdict, the **first three lines** of the lens marker. Lines are
+   compared whole, and nothing below the header is read, so text in a fence, a blockquote or the prose
+   can neither supply nor override a verdict. The newest trusted comment that opens with each envelope
+   wins, so a later `REQUEST-CHANGES`, a later open lens or a later malformed header turns the status
+   red. `quality-assurance` must open its comment with these four lines, the method's required verdict
+   shape. Line 2 is `APPROVE-AND-MERGE`, the one clearance literal; any other literal refuses, and the
+   boundary literal retired at #134 is refused by name (a verdict is head-scoped, so a merge always
+   needs a fresh one). Line 4 is `owner-check: none` or `owner-check:` followed by the one live act the
+   owner should do after the merge; a verdict without it is malformed and refuses. Anything may follow
+   line 4.
 
    ```
    <!-- gatekeeper-verdict: quality-assurance -->
@@ -82,7 +95,8 @@ pending; a pause for questions publishes nothing.
    parsing fences, blockquotes and prose again, which is where the spoofs this gate refuses lived.
    ~~A marker posted for an earlier head never carries forward here.~~ *(Struck 2026-11-18, the owner's
    ruling on #474: "Mantém sem harness".)* A CLOSED lens marker for an earlier commit carries forward to
-   the current head when all three hold, and the merge refuses, naming the one that failed, otherwise:
+   the current head when all three hold, and the status stays pending, naming the one that failed,
+   otherwise:
 
    - **(a)** that commit is an ancestor of the head (`git merge-base --is-ancestor`);
    - **(b)** its merge-bases with `origin/rc/next` (`git merge-base --all`, compared as a set) equal
@@ -93,16 +107,32 @@ pending; a pause for questions publishes nothing.
    it: the newest trusted comment that does not open with the gate's envelope and has a line opening
    with `<!-- harness-lead-verdict` at column 0 outside a fenced code block. That comment must then be
    in the strict three-line format above, so a newer open, malformed or preambled marker withdraws an
-   earlier closed one. An open marker never carries, and a commit this checkout cannot read refuses.
+   earlier closed one. An open marker never carries, and a commit the workflow cannot read refuses.
    The diffs are read with `git diff -z`, so git quotes no path; a path that still starts with a
-   double quote counts as a harness path.
-   **Authorship is not proven:** every persona posts
-   through the owner's account, so "trusted author" means `OWNER`, `MEMBER` or `COLLABORATOR`, not
-   "this persona wrote it". The plugin's own merge floor has the same limit. It merges
-   with `--merge --match-head-commit SHA`, never a squash. No force push, no admin bypass.
-4. Run `./mhw delivery verify --pr NUMBER`. For a slice, exit 0 means the PR is
-   merged into `rc/next` with its checks green at the exact local head; no tag or release is
-   expected.
+   double quote counts as a harness path. The release candidate gets no `review/agents-lead`: the
+   removed command did not gate it either.
+
+   **When the workflow runs, and which copy.** It runs on `pull_request_target` (a push, an edit, a
+   reopen) from the **base** branch's copy and on `issue_comment` from the **default** branch's copy
+   (`main`), so a PR can never change the evaluator that judges it; nothing from the PR is checked
+   out or run. A status is posted on the head the forge reports at run time, so a moved head has no
+   status until the next run: head-scoped by construction. Consequence: comment events act only once
+   the workflow is on `main`, and push events only once it is on the base. Until then, after a verdict
+   is posted, re-run the newest `review-status` run for the head (`gh run rerun ID`), or run the
+   evaluator's dry run from a checkout, which prints the same decisions and posts nothing:
+   `node .github/scripts/review-status.js --pr N --dry-run`.
+
+   **Trust: who can make a status green.** "Trusted author" means `OWNER`, `MEMBER` or `COLLABORATOR`,
+   that is anyone with write access; every persona posts through the owner's account, so authorship by
+   a persona is not proven (the plugin's own merge floor had the same limit). A commit status can also
+   be written by any workflow of this repository that holds `statuses: write`, including one a
+   same-repository PR adds on a `pull_request` trigger; the ruleset pins each review status to the
+   GitHub Actions app, which stops a status written by a personal token but not one written by another
+   workflow. Such a PR touches `.github/`, a harness path, so it needs the lens; that is review, not a
+   mechanism. ADR-0045 records the model.
+4. Prove the merge as the skill's *After the merge* says: for a slice, the PR is `MERGED` into
+   `rc/next` with a merge commit; no tag or release is expected. ~~Run `./mhw delivery verify`~~ *(struck
+   2026-11-23, #591.)*
 
 ## The PROD test, part of the definition of done on every PR
 
@@ -110,8 +140,8 @@ mhw has no STG or PROD environment; its PROD is the owner running `mhw install` 
 (owner, 2026-11-07, Issue #452: *"alem dos dods atuais teria esse que é o teste PROD"*, "besides the current DoDs there would be
 this one, the PROD test"). So every PR,
 each slice and the release candidate, must also pass the `tests` job
-`prod-canary-installed-not-enforced`, which `delivery-ci` aggregates and `mhw delivery` therefore
-requires (the owner chose every PR over the release candidate only, 2026-11-07). It installs the npm
+`prod-canary-installed-not-enforced`, which `delivery-ci` aggregates and the rulesets
+therefore require (~~`mhw delivery`~~ until #591) (the owner chose every PR over the release candidate only, 2026-11-07). It installs the npm
 package packed from the exact head as GitHub serves a tag, fresh and as an upgrade from the latest
 published tag, in a clean digest-pinned container on Linux and in a throwaway HOME on macOS, and runs
 the canary in `.github/scripts/prod-canary.js` (Node since #501): the installed package carries no
@@ -135,51 +165,50 @@ docker (`CONTAINER_RUNTIME`).
 ## Releasing the candidate (the owner's go)
 
 1. Open or update the PR `rc/next` → `main` with one semver label.
-2. On the owner's go, run `./mhw delivery merge --pr NUMBER` from a checkout of
-   `rc/next`. His go is his own comment on the PR authorizing the merge; `quality-assurance` then posts
-   a verdict at the same head citing that comment's URL and runs the command (#133, owner decision
-   2026-11-01). **This route does not check either**: for a PR into `main` it reads no gate verdict and
-   no owner comment, so the go is an instruction here, not a check. It refuses a head branch other than `rc/next`, dirty workspaces, a different/unpushed
-   head, a stale base, a non-clean merge state, missing labels, a missing `tests` run and
-   incomplete or failed checks. The stable `delivery-ci` job requires every test matrix to pass; the
-   semver, Sonar and `docs-baseline` checks must also be present and successful (`docs-baseline` since
-   #523; `semver-label` runs only on a PR into `main`). Only the most recent run of each
-   check on the head counts: a re-run that passed supersedes an older failure of the same check, and
-   a newer failed or still running re-run blocks. A Sonar check not yet registered is pending, not
-   permission to race ahead of analysis.
+2. On the owner's go, the executor merges by the `merge-pull-request` skill (~~`./mhw delivery merge
+   --pr NUMBER` from a checkout of `rc/next`~~, struck 2026-11-23, #591). His go is his own comment on
+   the PR authorizing the merge; `quality-assurance` then posts a verdict at the same head citing that
+   comment's URL and runs the merge (#133, owner decision 2026-11-01). The `main` ruleset requires
+   `review/quality-assurance`, so the merge waits for that re-verdict at the head; **nothing reads the
+   citation**, so the go itself stays an instruction. ~~This route does not check either~~ *(struck: the
+   removed command read no verdict for `main`; the status now does.)* `review/route` refuses a head
+   branch other than `rc/next`; the ruleset refuses a stale head and missing or failed required checks
+   (`delivery-ci`, `scan`, `semver-label`, Sonar, `docs-baseline`). Only the most recent run of each
+   check on the head counts, and a Sonar check not yet registered is pending, not permission to race
+   ahead of analysis.
 3. `version-main` bumps with the Node script `src/commands/release-bump.js` (~~bump-my-version~~ until
    #473), atomically pushes the bump commit and numeric tag, and
    creates a published GitHub Release in the same CI job. Tag-triggered downstream workflows are not
-   assumed: the Actions token normally does not trigger them.
-4. Run `./mhw delivery verify --pr NUMBER` from the same checkout. Exit 0 means the
-   exact local head's PR is merged, its checks and version workflow succeeded, and a newer published
-   stable release contains the merge commit. Exit 1 means pending or blocked, including network/auth
-   failures. Never reinterpret it as success. Report the release link only after exit 0.
+   assumed: the Actions token normally does not trigger them. The push to `main` is why the `main`
+   ruleset keeps one bypass, the repository admin role: an agent acting through the owner's account
+   can therefore bypass it too (`gh pr merge --admin`), and not doing so is an instruction.
+4. Prove the release as the skill's *After the merge* says (~~`./mhw delivery verify --pr NUMBER`~~,
+   struck 2026-11-23, #591): the PR is merged, the newest version workflow run for its head succeeded,
+   and the latest release is published, stable, newer than the version before the merge, and contains
+   the merge commit. Report the release link only then; a network or auth failure is pending, never
+   success.
 
-`mhw delivery` refuses any PR into `main` whose head branch is not `rc/next`: a slice never goes
-straight to `main`. Bases other than `rc/next` and `main` are refused.
+A slice never goes straight to `main`: `review/route` is red on any PR into `main` whose head branch
+is not `rc/next`, and on any PR from another repository.
 
 ## Boundaries and recovery
 
-The merge and verify commands are a mechanical gate for both supported routes. The `rc/next`
-route is written and tested against a synthetic `gh` only; no real PR has exercised it yet. Workspace
-instructions require agents to use it; it cannot prevent a human or agent from invoking unrelated
-GitHub commands directly, and nothing mechanical stops an agent from merging the release candidate
-without the owner's go: that rule is an instruction. No background watcher, detached agent or
-scheduler is installed.
+The rulesets are *written and tested* against their schema
+(`global/github-repo-settings.schema.json`, `test/review-status/`); **they are not applied** to any
+repository. Applying them is the owner's act, recorded as an `owner-action` Issue, and it should follow
+the release that puts `.github/workflows/review-status.yml` on `main`, because comment events run the
+default branch's copy. Until they are applied, no status is required by anything and the
+`merge-pull-request` skill's conditions are the whole check; GitHub reported `main` unprotected when
+the removed command was written. The evaluator is tested against synthetic payloads only; no real PR
+has exercised it yet. Nothing mechanical stops an agent from merging the release candidate without the
+owner's go: that rule is an instruction. No background watcher, detached agent or scheduler is
+installed.
 
 If CI fails, fix the failure, push and let fresh checks run. If publishing fails **after** a tag was
 pushed, do not blindly rerun the version workflow: first inspect the existing tag and failed step to
-avoid an unintended second bump. The verifier stays red until the release is actually available.
-No new branch protections or bypass permissions are created by these scripts. At implementation time
-GitHub reported `main` unprotected; the checked merge route is not server-wide enforcement.
+avoid an unintended second bump.
 
-The command is Node (`src/commands/delivery.js`, #474; `./mhw delivery` runs `node bin/mhw.js
-delivery` (since #495 `./mhw` is itself a Node file that runs `bin/mhw.js`), and an npm-installed
-`mhw delivery` is the same command). It acts on the checkout that holds
-the current directory, so run it from the checkout. It finds `gh` and `git` on PATH and runs each by its
-absolute path, never through a shell. Node 26 or later, authenticated GitHub CLI and Git are required.
-Tests: `npm test` (`test/delivery/`): every case of the deleted `workspace/delivery_test.py` against a
-synthetic `gh` and `git`, compared with `workspace/delivery.py`'s own transcripts in `test/golden/S03/`.
-Cross-OS CI validates the gate logic, not live account authorization; the PATH-level run of the
-synthetic tools is POSIX only, and Windows runs the same cases in process.
+~~The command is Node (`src/commands/delivery.js`, #474)~~ *(Struck 2026-11-23, #591: the command, its
+tests in `test/delivery/` and the golden transcripts in `test/golden/S03/` are removed; their verdict
+and lens cases moved to `test/review-status/`.)* The evaluator imports only `node:` modules, finds
+`gh` and `git` on PATH and runs each by its absolute path, never through a shell (`src/lib/gh.js`).

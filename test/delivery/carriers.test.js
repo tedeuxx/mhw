@@ -1,13 +1,13 @@
 // The repository-content cases of the deleted workspace/delivery_test.py (#474), unchanged in what they
-// assert, plus what the move adds: the carriers name `./mhw delivery`, no live instruction names the
-// Python route, the launcher routes the command to Node, and the real tests workflow parses.
+// assert, plus what the moves add: since #591 the carriers name the merge-pull-request skill and its one
+// pinned gh pr merge, no live instruction names the Python route, and `mhw delivery` is an unknown
+// command.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { testsJobs } from '../../src/commands/delivery.js';
 import { which } from '../helpers/home.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -17,11 +17,8 @@ const exists = (rel) => fs.existsSync(path.join(ROOT, rel));
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 /** Whitespace collapsed, as the old suite's " ".join(text.split()). @param {string} rel */
 const flat = (rel) => read(rel).split(/\s+/).filter(Boolean).join(' ');
-
-test('the delivery-ci job list is read from the real tests workflow', () => {
-  assert.deepEqual(testsJobs(ROOT), ['shellcheck', 'profiles', 'suites', 'node', 'git-route', 'windows',
-    'isolation-smoke', 'prod-canary-installed-not-enforced']);
-});
+/** The text with every struck span removed. @param {string} rel */
+const liveOf = (rel) => read(rel).replace(/~~[\s\S]*?~~/g, '');
 
 test('no session-type intake is registered anywhere (Issue #60)', () => {
   assert.ok(!exists('workspace/startup.py'));
@@ -83,11 +80,14 @@ test('the session-finish skill stays removed (PR #233)', () => {
   assert.ok(!flat('AGENTS.md').includes('$session-finish'));
 });
 
-test('the carriers route slices through mhw delivery, never a hand merge', () => {
+test('the carriers route every merge through the merge-pull-request skill, pinned to the head (#591)', () => {
   for (const carrier of ['workspace/README.md', 'AGENTS.md', '.kiro/steering/workspace-session.md']) {
-    assert.ok(flat(carrier).includes('./mhw delivery merge --pr'), carrier);
-    assert.ok(!flat(carrier).includes('gh pr merge NUMBER'), carrier);
+    assert.ok(flat(carrier).includes('merge-pull-request'), carrier);
+    assert.ok(flat(carrier).includes('gh pr merge N --merge --match-head-commit'), carrier);
+    assert.ok(!/\.\/mhw delivery (merge|verify)/.test(liveOf(carrier)), carrier + ': a live mention of the removed command');
   }
+  assert.ok(exists('method/skills/merge-pull-request/SKILL.md'));
+  assert.ok(!exists('src/commands/delivery.js'));
   assert.ok(!exists('workspace/delivery.py'));
   assert.ok(!exists('workspace/delivery_test.py'));
   assert.ok(!read('overlay/allow-list.conf').includes('delivery_test.py'));
@@ -102,11 +102,11 @@ test('no live instruction names the Python route: every remaining mention is str
   assert.deepEqual(live, []);
 });
 
-test('./mhw routes delivery to Node, and the CLI answers it on the Windows mapping too', { skip: process.platform === 'win32' && './mhw is the POSIX launcher' }, () => {
-  const sh = spawnSync(path.join(ROOT, 'mhw'), ['delivery', '--help'], { encoding: 'utf8', env: { PATH: path.dirname(process.execPath) + ':/usr/bin:/bin' } });
-  assert.equal(sh.status, 0, sh.stderr);
-  assert.equal(sh.stdout, 'usage: mhw delivery {merge,verify} --pr N\n');
-  const win = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'delivery', 'nope'], { encoding: 'utf8', env: { ...process.env, WORKSTATION_LAUNCHER_PLATFORM: 'win32' } });
-  assert.equal(win.status, 2);
-  assert.match(win.stderr, /invalid choice: 'nope'/);
+test('mhw delivery is an unknown command (#591): it merges nothing and runs no gh', { skip: process.platform === 'win32' && './mhw is the POSIX launcher' }, () => {
+  for (const args of [['delivery'], ['delivery', 'merge', '--pr', '1'], ['delivery', 'verify', '--pr', '1'], ['delivery', '--help']]) {
+    const sh = spawnSync(path.join(ROOT, 'mhw'), args, { encoding: 'utf8', env: { PATH: path.dirname(process.execPath) + ':/usr/bin:/bin' } });
+    assert.notEqual(sh.status, 0, args.join(' '));
+    assert.match(sh.stderr, /^mhw: unknown (subcommand delivery |argument for delivery: )/, args.join(' '));
+    assert.ok(!sh.stdout.includes('MERGED'));
+  }
 });

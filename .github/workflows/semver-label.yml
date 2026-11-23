@@ -1,9 +1,11 @@
-# Every PR into main must carry exactly one semver:major|minor|patch label (ADR-0002).
+# Every PR into main or rc/next must carry exactly one semver:major|minor|patch label (ADR-0002).
+# rc/next since #591: the delivery: rc/next ruleset (global/github-repo-settings.json) requires this check
+# there, where the removed mhw delivery merge read the label itself.
 name: semver-label
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, rc/next]
     types: [opened, reopened, synchronize, labeled, unlabeled]
 
 permissions: {}

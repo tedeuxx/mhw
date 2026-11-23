@@ -6,8 +6,7 @@
 //   Windows:         install, install --method, check and status (= check) run `mhw install-windows`
 //                    (src/commands/install-windows.js, #497, S27; it was global\install.ps1); update is
 //                    answered here; install --admin and uninstall do not exist there.
-// Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474),
-// `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477),
+// Moved commands (the strangler's later steps) are answered here on every OS: `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477),
 // `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
 // `mhw scan` (#486), `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux), `mhw check`
 // (#494; macOS and Linux; on Windows both run `mhw install-windows --check`, #497), and `mhw hook prompt`, `mhw hook
@@ -28,7 +27,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { enginesNode, nodeLine } from './lib/version.js';
 import { runAbsolute } from './lib/run.js';
-import { delivery } from './commands/delivery.js';
 import { main as milestoneMain } from './commands/milestone.js';
 import { main as worklogMain } from './commands/worklog.js';
 import { main as launchLineMain } from './commands/launch-line.js';
@@ -234,13 +232,8 @@ function mcpMain(argv, env) {
  * @returns {number}
  */
 export function main(argv, platform, env, opts = {}) {
-  // The first moved command (#474, S03): mhw delivery runs here on every platform, never forwarded.
-  if (argv[0] === 'delivery') {
-    const r = delivery(argv.slice(1), { cwd: process.cwd(), env, platform: process.platform });
-    if (r.stdout) fs.writeSync(1, r.stdout);
-    if (r.stderr) fs.writeSync(2, r.stderr);
-    return r.code;
-  }
+  // `mhw delivery` (#474) left the CLI at #591 (ADR-0045): GitHub rulesets and the merge-pull-request skill
+  // carry the delivery route, so the word is an unknown subcommand like any other.
   // own keys only, so `mhw constructor` is forwarded like any unknown word
   if (argv.length && Object.hasOwn(MOVED, argv[0])) return MOVED[argv[0]](argv.slice(1), env);
   if (argv[0] === 'status') {

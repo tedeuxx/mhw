@@ -57,6 +57,8 @@ describe('the source shape', () => {
       'content-publishing', 'orchestration',
       // #195: the canonical merge-authority contract.
       'merge-authority',
+      // #591: the merge act on the delivery rulesets, which replaced mhw delivery.
+      'merge-pull-request',
       // The four rites moved at #130 (owner, 2026-10-12) and became skills on 2026-10-26 (owner: "para mim sao skills").
       'sprint-planning', 'sprint-review', 'sprint-retrospective', 'funnel-review'].sort(byCode));
     // #198 added /handoff; #522 added /backlog-grooming.

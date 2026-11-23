@@ -195,5 +195,22 @@
     "head": "(?!)",
     "replace": "    ./mhw mcp check [--timeout=SECONDS] connection test: start each MCP active-set server and say whether\n                                          it answers (it starts processes; exit 1 when one fails; #219,\n                                          #595; it was status --mcp-connect until v11)\n    ./mhw mcp render --check            drift check: exit 1 when an installed MCP configuration differs\n                                          from the definition; it starts nothing (mhw mcp render --help)",
     "why": "A break of the public interface (#595, v11, section 4 of the CLI native baseline PRD): `mhw status --mcp-connect[=SECONDS]` is removed, because the connection test starts processes and status never does. The usage text drops its two lines and names `mhw mcp check [--timeout=SECONDS]` (the connection test) and `mhw mcp render --check` (the drift check) in their place, so the help tells the two apart. Every other line is compared unchanged. Steps 0 to 3 (--help, -h, help and no argument) all print it."
+  },
+  {
+    "case": [
+      "install-user-layer"
+    ],
+    "stream": [
+      "home/.agents/skills/merge-pull-request",
+      "home/.agents/skills/merge-pull-request/SKILL.md",
+      "home/.claude/skills/merge-pull-request",
+      "home/.claude/skills/merge-pull-request/SKILL.md",
+      "home/.kiro/skills/merge-pull-request",
+      "home/.kiro/skills/merge-pull-request/SKILL.md"
+    ],
+    "base": "^<absent>$",
+    "head": "^(dir 755|file 644)$",
+    "replace": "<the merge-pull-request skill, new since the recording>",
+    "why": "#591 adds the method skill merge-pull-request, which replaced mhw delivery (ADR-0045). The method install renders it into the three skill directories as it renders every other method skill: a directory 755 and a SKILL.md 644. The original never had the skill, so its side is absent; every other written path is compared unchanged."
   }
 ]

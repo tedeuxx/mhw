@@ -1,0 +1,51 @@
+# The review verdicts as commit statuses (Issue #591, ADR-0045): review/route, review/quality-assurance
+# and, on slices, review/agents-lead, posted on the pull request's current head by
+# .github/scripts/review-status.js. The rulesets in global/github-repo-settings.json require them.
+#
+# Which copy of the evaluator runs is the point of the triggers, and it is never the pull request's:
+#   pull_request_target  the workflow and script of the BASE branch (rc/next or main)
+#   issue_comment        the workflow and script of the DEFAULT branch (main)
+# So a pull request cannot change the evaluator that judges it. Nothing from the pull request is checked
+# out or run: its commits are fetched as objects, to read the history the lens carry-forward needs.
+# Consequence (stated in ADR-0045): comment events act only once this file is on main, and push events
+# only once it is on the base branch. Until then, re-run the latest run of this workflow for the head
+# (`gh run rerun`) after a verdict is posted, or use the evaluator's dry run (method skill
+# merge-pull-request).
+name: review-status
+
+on:
+  pull_request_target:
+    branches: [main, rc/next]
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+  issue_comment:
+    types: [created, edited, deleted]
+
+permissions: {}
+
+concurrency:
+  group: review-status-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  review-status:
+    # A comment on an Issue is not a review event.
+    if: github.event_name == 'pull_request_target' || github.event.issue.pull_request
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
+    steps:
+      # actions/checkout v6.1.0 (same pin as tests.yml): the base or default branch, never the PR head.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      # actions/setup-node v7.1.0, the same pin and Node release as tests.yml.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 26.13.1
+      - name: post the review statuses on the head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/review-status.js
