@@ -182,9 +182,12 @@ agreed with the table below.
 
 | Part | Cut when |
 | --- | --- |
-| **major** | A **breaking change**: something that worked stops working the same way for an existing user. |
-| **minor** | A **new functionality**. |
-| **patch** | A **bug fix**, or an **incremental change** to something that already exists. Docs, tests and CI are included here. |
+| ~~**major**~~ | ~~A **breaking change**: something that worked stops working the same way for an existing user.~~ |
+| ~~**minor**~~ | ~~A **new functionality**.~~ |
+| ~~**patch**~~ | ~~A **bug fix**, or an **incremental change** to something that already exists. Docs, tests and CI are included here.~~ |
+
+*(Rows struck 2026-11-23: replaced by the public-interface table in the 2026-11-23 amendment below,
+which ~~awaits the owner's ratification~~ the owner ratified on 2026-11-23 ([Issue #587](https://github.com/tedeuxx/mhw/issues/587#issuecomment-7112877579)).)*
 
 **What changed from the 2026-10-06 table.** An improvement to existing functionality (UX, messages, a
 behaviour adjustment) is now **patch**; under the 2026-10-06 table it was minor. **Minor** is reserved
@@ -194,6 +197,10 @@ for something new.
 minor; if an existing user's setup stops working the same way, it is major; otherwise it is patch.
 **This classification is the agent's reading of the owner's table, not his words.** It stands until
 he ratifies or changes it.
+*(Since 2026-11-23 this classification is replaced by the 2026-11-23 amendment below: a control
+removed or weakened is minor or patch, and the release notes must say so; only a break of the public
+interface is major. That amendment ~~awaits the owner's ratification~~ was ratified on 2026-11-23
+([Issue #587](https://github.com/tedeuxx/mhw/issues/587#issuecomment-7112877579)).)*
 
 **Unchanged:** when a change fits more than one row, the highest row wins, and the release-candidate
 pull request carries the largest part among the changes it contains. Everything listed under "What
@@ -249,6 +256,9 @@ proposed, or that a part awaits ratification, are dated readings that this amend
 Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
 
 The ratified cut table is the 2026-10-10 one: **major** for a breaking change, **minor** for new functionality, **patch** for a bug fix or an incremental change, docs, tests and CI included.
+*(Since 2026-11-23 that table is replaced by the public-interface table of the 2026-11-23 amendment
+below; that amendment ~~awaits the owner's ratification~~ was ratified on 2026-11-23
+([Issue #587](https://github.com/tedeuxx/mhw/issues/587#issuecomment-7112877579)). The ratification recorded here is unchanged.)*
 
 ## Amendment 2026-11-18: the bump is a Node script ([#473](https://github.com/tedeuxx/mhw/issues/473), S02 of [#470](https://github.com/tedeuxx/mhw/issues/470))
 
@@ -262,6 +272,10 @@ versions, the mandatory single `semver:` label, the cut on a merged pull request
 configuration file and its name (`.bumpversion.toml`, read by other parts of this repository until
 slice S32 of #470), the commit message and tag message `bump: {current_version} → {new_version}`, the
 `v{new_version}` tag, and the files bumped in the one commit (`.bumpversion.toml` and `package.json`).
+*(Since 2026-11-23 the cut policy is the public-interface table of the 2026-11-23 amendment below,
+which replaces the 2026-10-10 table ~~and awaits the owner's ratification~~ and was ratified on
+2026-11-23 ([Issue #587](https://github.com/tedeuxx/mhw/issues/587#issuecomment-7112877579)); the rest of this list still
+holds.)*
 
 **How parity is held.** `test/release/bump.test.js` runs the script on a throwaway repository holding
 this repository's real `.bumpversion.toml` and `package.json`, and compares the commit message, the
@@ -296,3 +310,96 @@ the two tools side by side.
   that). Whether it matters is not settled here.
 
 This amendment installs, loads and enforces nothing on the reference machine; it changes a CI job.
+
+## Amendment 2026-11-23: a major only on a break of the public interface ([#587](https://github.com/tedeuxx/mhw/issues/587))
+
+**Status of this amendment: ~~proposed, awaiting the owner's ratification~~ accepted 2026-11-23 ([owner's ratification](https://github.com/tedeuxx/mhw/issues/587#issuecomment-7112877579)).** The
+owner answered *"Ratifico"* ("I ratify") on Issue #587. The record itself stays accepted (2026-11-17).
+~~Until he ratifies it, the table below is the cut policy he chose and the agents apply, not a ratified
+one.~~ *(Struck 2026-11-23: ratified.)* Ratification installs, loads or enforces nothing.
+
+The owner, 2026-11-23, recorded on [PR #585](https://github.com/tedeuxx/mhw/pull/585#issuecomment-7108104263)
+and in section 8 of the [CLI native baseline requirements document](../mhw-product-requirements-document-cli-native-baseline.md),
+translated from Portuguese:
+
+> "also make the normalisation of the semver standard part of this version"
+> "we were generating too many majors, it makes no sense. The current semver rule must have problems."
+
+Asked which rule should replace it, he chose **"public interface"**.
+
+**Why the 2026-10-10 table still produced too many majors.** Its major row (*"something that worked
+stops working the same way for an existing user"*) has no boundary: almost any change to a skill, a
+brief, a verdict literal or a control changes how something works for someone. Of the slices merged
+into `rc/next`, 11 carried `semver:major` (#90, #92, #95, #114, #199, #208, #214, #237, #423, #445,
+#525), and since the release candidate takes the largest label it contains, each of them made its
+release a major: v6.0.0 to v10.0.0 in 20 days (the requirements document's reading of the tags, not
+re-measured here). Most were not changes to what a user installs or types. The label counts were
+re-measured on 2026-11-23 (166 merged slices when first measured that day and 168 at the last
+re-run, the count growing as slices merge; the same 11 majors both times):
+
+```
+gh pr list --repo tedeuxx/mhw --state merged --base rc/next --limit 400 --json number -q 'length'
+gh pr list --repo tedeuxx/mhw --state merged --base rc/next --label semver:major --limit 400 --json number -q '[.[].number]'
+```
+
+### The public interface
+
+mhw declares a public interface, and only a break of it is a major. It is two things:
+
+- **the `mhw` CLI**: the commands `install`, `update`, `uninstall`, `status`, `check` and `mcp`
+  (`render`, `launch`, `check`), with their options, as section 4 of the CLI native baseline
+  requirements document defines them;
+- **the overlay schema** the user writes.
+
+Everything else (the method, its skills and briefs, the controls, the docs, the tests, CI) is not
+interface: a user does not type it or write it.
+
+### Cut policy (replaces the 2026-10-10 table)
+
+| Part | Cut when |
+| --- | --- |
+| **major** | A break of the public interface: a command or option of the mhw CLI is removed or changes meaning, or the overlay schema the user writes becomes incompatible. |
+| **minor** | A new functionality, including a new control, skill or harness. |
+| **patch** | A fix, or an incremental change to something that exists: method, skills, briefs, controls, docs, tests, CI. |
+
+**A control removed or weakened is minor or patch by this table; the release notes must say so.**
+Nothing checks that they do. The 2026-10-10 clarification (tightening a control is patch) agrees with
+this table and still holds.
+
+**Unchanged:** numeric-only versions, the mandatory single `semver:` label, the `semver-label` check
+on pull requests into `main`, the cut on a merged pull request into `main`, the Node bump script (the
+2026-11-18 amendment), the highest row winning when a change fits more than one, and the release
+candidate carrying the largest part among the changes it contains.
+
+**Forward only.** Labels already applied and tags already cut are not re-cut. The release that ships
+the CLI native baseline (v11) is itself the major that sets this interface: the commands it removes
+leave in that one major.
+
+**The label check names the rows.** When `semver-label` fails, its message prints the three rows of
+this table. `test/release/semver-label.test.js` reads this amendment's table and fails when the
+workflow's text drifts from it.
+
+### Considered options
+
+1. **Majors only on a break of a declared public interface (chosen).** Trade-off: a change that alters
+   how an agent behaves, or removes a protection, never moves the major part, so the number tells an
+   adopter less about being less protected; the release notes carry that, unchecked. The interface has
+   to be kept current when a command or option is added.
+2. **Keep the 2026-10-10 table and label more carefully** (rejected). It needs no new definition, but
+   the rule itself has no boundary, which is what produced eleven majors; care does not supply one.
+3. **Classify by paths touched** (rejected again, as on 2026-10-10). More mechanical, but it needs a
+   path list kept current, and a CLI option can change meaning in a file shared with internal code.
+
+### Consequences
+
+- Good: a major means *a command, an option or the overlay you wrote no longer works as before*, which
+  an adopter can check against his own use.
+- Good: method, skill and control work, the bulk of this repository's slices, no longer raises the
+  major part.
+- Bad: a control removed or weakened is visible only in the release notes, and nothing checks that the
+  notes say it.
+- Bad: "changes meaning" is still a judgement, and the label check still proves only that one label is
+  present.
+
+This amendment installs, loads and enforces nothing on the reference machine; it changes a rule and a
+CI message.
