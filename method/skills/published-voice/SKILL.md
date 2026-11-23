@@ -1,6 +1,6 @@
 ---
 name: "published-voice"
-description: "Judge or draft anything published in the owner's voice — articles, site copy, and LinkedIn/X teasers — against the calibration he ratified: the goal, the filter, the subject bound, the corpus evidence, the ranked title criteria and the teaser arc. Use when a piece is being drafted, or when a draft is being reviewed before it reaches him."
+description: "Judge or draft anything published in the owner's voice — articles, site copy, and LinkedIn/X posts — against the calibration he ratified: the goal, the filter, the subject bound, the corpus evidence, the ranked title criteria, the digest arc and the catalog of social-post formats (F1, F2, F3a/b/c). Use when a piece is being drafted, or when a draft is being reviewed before it reaches him."
 purpose: "give the drafting persona and the reviewing persona the same ruler, so the pair produces a conflict rather than two unrelated opinions"
 ---
 
@@ -1319,7 +1319,142 @@ undelivered must not resolve it by cutting the deliveries.** That produces the a
 exists to stop, arriving through the number's door — and it is the one move the ruling did **not**
 make cheaper.
 
+## The social-post catalog — rule 26, five formats, and the digest is one of them
+
+**Added 2026-11-23 (mhw#564), on the owner's decision.** It sits here, ahead of the digest section,
+because this is where a drafter reaches the social post. It is numbered 26 for citability, the same
+move rules 19–25 already made: `content-reviewer` repairs on a clause it can quote by number.
+
+> **26. Every LinkedIn or X post is drafted in exactly ONE format from the closed catalog below, and
+> its format code is recorded with the post. The format is the VEHICLE: this file shapes the mechanics
+> that invite discussion, and it never judges the merit of the owner's idea.**
+
+**What a post is for, in his decision:** to move the discussion of AI engineering and harness
+engineering among his target audience, **measured in reactions and comments. Traffic to the site is a
+byproduct.** How that composes with the digest's two jobs is reconciled below, not silently.
+
+| Code | Format | Link in the body | When |
+|---|---|---|---|
+| `F1` | Article digest — the digest section below, rules 1–8 | yes, the canonical one (rule 21) | when an article ships |
+| `F2` | Pure opinion: one thesis and one question to the audience | no | rotation |
+| `F3a` | Opinion plus one practical tip the reader can try tomorrow | no | rotation |
+| `F3b` | Opinion plus a native poll: the thesis becomes 2–3 positions to vote on | no | rotation |
+| `F3c` | Opinion plus one visual of the practice (an image or a diagram) | no | rotation |
+
+**The set is closed.** A sixth format is the owner's decision, made the way this one was; a draft that
+fits none of the five is a question back to him, not a new code.
+
+### The rotation
+
+- **`F1` runs outside the rotation.** When a piece ships, its post is `F1` whatever the rotation stands
+  at, and it does not advance the rotation.
+- **Otherwise alternate `F2` and an `F3` variant.** Read the code of the last *rotation* post from the
+  post record: after `F2`, draft an `F3` variant; after any `F3` variant, draft `F2`. With no rotation
+  post on record, either is valid; say which you picked and why.
+- **Which `F3` variant is NOT ruled**, and no order among the three is invented here. Pick the one the
+  owner's material supports: a tip needs a practice he actually uses, a poll needs a thesis that splits
+  into 2–3 defensible positions, a visual needs an artifact of his practice. Name the choice in the
+  draft's record.
+
+### The label
+
+- **The code is recorded with every published post**, in the post record the consuming repository
+  keeps, beside the post and **never printed in the post's text**. It is fixed at drafting and does
+  not change after publication.
+- **A post published with no code is `unlabelled`.** Nothing infers a code afterwards from how the post
+  reads: a guessed label is a figure with no source.
+- **The label exists to be read:** `/funnel-review` compares posts by it, on reactions and comments, at
+  the retrospective (its steps 1 and 3). **Today that comparison reads LinkedIn only:** X analytics are
+  out of scope by name in `/funnel-review`, so an X post's code is recorded and read by no step.
+
+### What each format must carry
+
+- **`F1`** — the digest, exactly as the section below states it. Not restated here.
+- **`F2`** — **one thesis, the owner's**, stated in the first line, and **one question to the
+  audience**, closing the post. No link in the body.
+- **`F3a`** — `F2`, plus **exactly one tip**: a concrete act the reader can try tomorrow, taken from
+  what the owner does, phrased as an act and not as a principle.
+- **`F3b`** — the thesis becomes **2–3 positions in the network's native poll**, and **the poll is the
+  question**. The owner's own position is one of them; the others are the positions the debate actually
+  holds, framed fairly. The positions are craft (connective framing), and like every draft they go back
+  to him. **Poll positions he does not hold are the format, not a counter-argument:** they are options
+  to vote on, never an argument the post makes against him.
+- **`F3c`** — `F2`, plus **exactly one visual of his practice**: an image or a diagram of something he
+  actually runs, never a stock or decorative image. A diagram stays simple, one idea, in the two kinds
+  `documentation-standard` names.
+- **Every format:** rule 19 (the bilingual signpost) and rule 20 (the per-block length target) apply,
+  and so do *Check the mechanical thing FIRST* and rule 8's **reader's-vocabulary** condition. A
+  hard-capped medium shortens the post; it never changes its code.
+
+### The vehicle, never the merit
+
+**What the drafter and the reviewer may shape** — the mechanics that invite discussion:
+
+- **the opening** — the thesis in the first line, finishing inside the fold;
+- **the question** — one, addressed to the audience, answerable from the reader's own practice;
+- **the language** — the reader's vocabulary, per block;
+- **the hashtags** — topical to the practice under discussion, never to the author or the site.
+
+**What neither may do, ever:** call the thesis wrong, weak, obvious, unoriginal, risky or not ready;
+swap it for a stronger one; soften it to be safer; or add a counter-argument he did not make. **A
+reviewer who disagrees with the idea has no finding.** The idea is his, and its merit is his to judge.
+
+**This is *The sourcing constraint* applied to opinion, and it cuts both ways.** The thesis of an `F2`
+or `F3` post must exist in his material; where it does not, **stop and ask — never originate a thesis
+to fill a rotation slot.** An empty slot is a missing source, not a prompt.
+
+**Three bounds survive the merit rule, because none of them is about merit:** *The subject is bounded*
+(including what he named out of bounds); every rule about third-party property; and **fidelity to the
+source** — the post states his thesis as his material states it, and a claim false against the source
+is still repaired, on `content-reviewer`'s ground that the claim is false against the source. Keeping
+the thesis is merit and stays his; whether the post reproduces it correctly is truth. The first two are
+his rulings on what may be published, the third is the sourcing rule; none is a judgement of how good
+an idea is.
+
+### What is a RULE in rule 26, and what is ADVISORY
+
+The same strict test as rule 8's split: a condition is a rule only if checking it is two questions with
+answers.
+
+- **Rules** (a ground for repair in place): exactly one code, from the closed set; link presence
+  matches the code; on `F2` and `F3`, the first line carries the thesis and the post closes on one
+  question (on `F3b`, the poll); `F3a` has exactly one tip; `F3b` has 2–3 positions, his among them;
+  `F3c` has exactly one visual.
+- **Advisory** (say it, drop it if the drafter disagrees): whether the question will actually draw
+  comments; which `F3` variant serves the material best; which hashtags, beyond being topical.
+
+### What rule 26 reconciles in this file — named, not silent
+
+1. **The digest section's two jobs**, and its failure mode *"a standalone opinion that never needs the
+   site"*, are **scoped to `F1`**. `F2` and `F3` are that standalone opinion by design, labelled, and
+   outside the entrance job; on them it is no defect. A note at that section says so.
+2. **Rules 1–8 govern `F1` only**: they were written for the post that points at a published piece.
+   Their mechanics that are not about the article (the first line, the reader's vocabulary) apply to
+   every format, as listed above.
+3. **Rule 21 has no subject on `F2` or `F3`**, which carry no link. A note at rule 21 says so.
+4. **Hashtags move into this file.** *What is deliberately not here* listed them as a distribution
+   mechanic; rule 26 makes them part of the vehicle this file shapes, and the list is struck in place.
+   **Whether a link is present is now set by the code; where in the body it sits stays a mechanic.**
+   No hashtag count is set here, because none was ruled.
+5. **The goal.** The digest section's statement (2026-09-04) is *two jobs, neither at the other's
+   expense*: earn the reaction, and bring the reader to the site. The 2026-11-23 decision makes
+   reactions and comments the measure of every post and traffic a byproduct. **Read together:** the
+   measure is reactions and comments, on every format; on `F1`, the only format with a link, carrying
+   the reader to the piece is still the digest's second job, but it is not what the post is measured
+   on.
+
+### What rule 26 CANNOT do
+
+Nothing reads a post record, so nothing checks that a code was recorded, that the rotation was
+followed, or that a review stayed off the idea's merit. Whether a format works is read only from the
+network's own reaction and comment counts, by the actor holding a credential there, and the counts are
+small. **By this loop's own test, rule 26 is an instruction.**
+
 ## The social post — a DIGEST of the content, and the turn is what the click buys
+
+**Scoped by rule 26 (mhw#564, 2026-11-23): this section is format `F1`, the article digest.** The
+other four formats in the catalog above carry no article and no link, so its rules about the article's
+arc, the turn and the click have no subject on them.
 
 ~~## The teaser — a different artifact, and three lines cannot carry the article's argument~~
 
@@ -1395,7 +1530,8 @@ distributed because people responded to it, not because it was published.
   was written against**, and because it earns no response it buys no distribution either — so it fails
   the objective it was optimised for as well.
 - **Optimised only for the reaction** → a standalone opinion that never needs the site. It would engage,
-  and it would stop being an entrance.
+  and it would stop being an entrance. *(Scoped to `F1` by rule 26: `F2` and `F3` are this standalone
+  opinion by design, labelled, and outside the entrance job.)*
 
 **The digest is the form that serves both**, which is why it is the right shape rather than merely what
 was asked for.
@@ -1992,6 +2128,9 @@ the same nothing rule 19 is: no layer observes a draft.
 > lands nobody on the piece is strictly worse than a link that lands the wrong half of the audience on
 > it in the wrong language.
 
+**Scoped by rule 26 (2026-11-23): rule 21 binds wherever a post carries a link, which in the catalog is
+`F1` only.** `F2` and `F3` carry no link in the body, so the rule has no subject on them.
+
 The owner's ruling, 2026-09-19:
 
 > *«todo post de rede social tem que ser feito com a url nao regionalizada»*
@@ -2086,7 +2225,9 @@ measured, its cost is not. What would settle it is clicks per post paired with t
 page each click resolved to, which nobody here holds.
 
 **What is deliberately not here:** the per-medium distribution conventions (which language on which
-network, where the canonical link sits, hashtags, where a draft is stored). Those are mechanics of
+network, where the canonical link sits, ~~hashtags,~~ where a draft is stored). *(Struck 2026-11-23,
+rule 26: hashtags are part of the vehicle this file shapes; whether a link is present is set by the
+format code, and where it sits stays a mechanic.)* Those are mechanics of
 publishing, not of voice, and they belong with the persona or the repo that performs the distribution.
 This file is what a draft is judged against. **Rules 19, 20 and 21 sit on this line and stay on the
 voice side of it** — rule 19 governs the text of two lines a reader reads and not which language leads;
