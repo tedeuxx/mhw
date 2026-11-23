@@ -863,7 +863,8 @@ export function codexTrust(project, ctx) {
     return { trusted: false, config, why: lexists(config) ? 'unreadable (' + /** @type {Error} */ (e).message.split('\n', 1)[0] + ')' : 'absent' };
   }
   const projects = isDict(doc.projects) ? /** @type {Record<string, unknown>} */ (doc.projects) : {};
-  const names = new Set([project, real(project)]);
+  // Both spellings, with and without a trailing separator: how Codex writes the key was not measured.
+  const names = new Set([project, real(project)].flatMap((n) => [n, n.replace(/[\\/]+$/, ''), n.replace(/[\\/]*$/, sepOf(ctx.platform))]));
   for (const n of names) {
     const entry = projects[n];
     if (isDict(entry) && /** @type {Record<string, unknown>} */ (entry).trust_level === 'trusted') return { trusted: true, config, why: 'trusted' };
@@ -1044,14 +1045,32 @@ export function run(argv, opts = {}) {
       warn('method_render: --project must name an existing directory');
       return 2;
     }
+    // Real paths, not text (lens on PR #602): HOME/sub/.., a symbolic link to HOME, or a carrier that is a
+    // link out of the project would otherwise write project files into the user carriers.
     const h = homes(ctx);
-    const pk = key(project, platform);
-    if ([h.claude, h.codex, h.agents, h.kiro].some((d) => key(parentOf(d, platform), platform) === pk)) {
-      warn('method_render: --project must not be the home directory: its carriers are the user-level ones');
+    const rp = real(project);
+    const rh = real(parentOf(h.claude, platform));
+    if (within(rp, rh)) {
+      warn('method_render: --project must not be the home directory or contain it: its carriers would be the user-level ones');
+      return 2;
+    }
+    const userRoots = [h.claude, h.codex, h.agents, h.kiro].map(real);
+    const projectRoots = Object.values(projectCarriers(project, platform)).map(real);
+    if (projectRoots.some((r) => userRoots.includes(r))) {
+      warn('method_render: --project carriers resolve to the user-level ones');
       return 2;
     }
   }
   const st = { status: 0 };
+  if (project !== null) {
+    const c = projectCarriers(project, platform);
+    const dirs = [c.claude, c.codex, c.agents, c.kiro].flatMap((d) => [d, join(platform, d, 'agents'), join(platform, d, 'skills')]);
+    const out = escapes(project, [...dirs, ...projectCandidates(project, platform)]);
+    if (out !== null) {
+      warn('REFUSE  ' + out + ': resolves outside the project ' + project + '; nothing of the project was written');
+      return 2;
+    }
+  }
   if (mode === 'uninstall' && project !== null) {
     const stops = Object.values(projectCarriers(project, platform));
     for (const file of projectCandidates(project, platform)) {
@@ -1088,6 +1107,8 @@ export function run(argv, opts = {}) {
   let projectWanted = [];
   const counts = { agents: 0, skills: 0, commands: 0 };
   const projectCounts = { agents: 0, skills: 0 };
+  /** @type {Set<string>} */
+  let projectAgents = new Set();
   try {
     const src = load(source, shown, platform);
     Object.assign(counts, { agents: src.agents.size, skills: src.skills.size, commands: src.commands.size });
@@ -1097,6 +1118,7 @@ export function run(argv, opts = {}) {
         { prefix: PROJECT_PREFIX, external: src.skills, project: true });
       Object.assign(projectCounts, { agents: psrc.agents.size, skills: psrc.skills.size });
       projectWanted = projectTargets(psrc, src.skills, stamp, project, platform);
+      projectAgents = new Set(psrc.agents.keys());
     }
     wanted = targets(src, loadDocuments(source, platform), stamp, ctx);
   } catch (e) {
@@ -1104,9 +1126,18 @@ export function run(argv, opts = {}) {
     warn('REFUSE  the working method: ' + e.message + '; nothing of it was written');
     return 2;
   }
+  if (project !== null) {
+    const out = escapes(project, projectWanted.map((t) => t[0]));
+    if (out !== null) {
+      warn('REFUSE  ' + out + ': resolves outside the project ' + project + '; nothing of it was written');
+      return 2;
+    }
+  }
   // The order a moved agent needs (#576): the project copies are in place, and the project's own stale
   // files gone, before any user-level copy is removed. A refused project file holds every user-level removal.
   let holdRemovals = false;
+  /** @type {Set<string>} user-level Codex agent files held while Codex does not trust the project */
+  const codexHeld = new Set();
   if (project !== null) {
     const pst = { status: 0 };
     for (const t of projectWanted) processTarget(pst, mode, t, stamp, say, warn, platform);
@@ -1130,6 +1161,9 @@ export function run(argv, opts = {}) {
       const t = codexTrust(project, ctx);
       if (t.trusted) say('CODEX   ' + project + ' is trusted in ' + t.config + ': Codex reads its project agents');
       else {
+        // Codex skips an untrusted project's agents (measured), so the user copy of each agent the project
+        // defines is its only Codex copy: keep it until the owner trusts the project.
+        for (const n of projectAgents) codexHeld.add(key(join(platform, homes(ctx).codex, 'agents', n + '.toml'), platform));
         say('UNTRUSTED ' + project + ' is not trusted by Codex (' + t.config + ': ' + t.why + '): Codex skips its '
           + '.codex/agents without a word, while its .agents/skills still load. The owner trusts it: open codex in it and '
           + 'accept, or add [projects."' + project + '"] trust_level = "trusted" to that file');
@@ -1142,6 +1176,11 @@ export function run(argv, opts = {}) {
     if (keep.has(key(file, platform)) || !ours(file, null)) continue;
     if (holdRemovals && mode !== 'check' && mode !== 'dry-run') {
       say('HELD    ' + file + ': a project file was refused, so this user-level copy stays until the project copy is in place');
+      continue;
+    }
+    if (codexHeld.has(key(file, platform)) && mode !== 'check' && mode !== 'dry-run') {
+      say('HELD    ' + file + ': Codex does not trust the project, so it would not read the project copy; this user-level copy '
+        + 'stays until the owner trusts the project');
       continue;
     }
     if (mode === 'check') {
@@ -1180,6 +1219,26 @@ const real = (p) => {
     return path.resolve(p);
   }
 };
+/** Is r the directory d or under it, by real path. @param {string} d @param {string} r */
+const within = (d, r) => {
+  const rel = path.relative(d, r);
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+};
+
+/**
+ * The first path whose nearest existing part (itself or an ancestor) resolves outside the project, or null.
+ * @param {string} project @param {string[]} paths
+ */
+function escapes(project, paths) {
+  const rp = real(project);
+  for (const p of paths) {
+    let q = path.resolve(p);
+    while (!lexists(q) && path.dirname(q) !== q) q = path.dirname(q);
+    if (!within(rp, real(q))) return p;
+  }
+  return null;
+}
+
 if (process.argv[1] && real(process.argv[1]) === real(fileURLToPath(import.meta.url))) {
   process.exitCode = run(process.argv.slice(2));
 }

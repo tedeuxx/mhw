@@ -1050,20 +1050,28 @@ into the project carriers the [native enforcement matrix](../native-enforcement-
 
 - **Order.** In one run, the project files are written and the project's stale files removed before any
   user-level file is written or removed. If a project file is refused (an unmanaged file in the way),
-  every user-level removal in that run is held (`HELD`), so a moved agent keeps a dispatchable copy at
-  every step.
+  every user-level removal in that run is held (`HELD`). While Codex does not trust the project, the
+  user-level Codex copy of every agent the project defines is held too, because Codex would not read the
+  project copy. A moved agent therefore keeps a copy each harness reads, at every step.
 - **Kiro references.** A project Kiro agent names a preloaded skill by a `skill://` path, never by the
   absolute user-level `file://` URI the user carrier uses: a project skill as `skill://.kiro/skills/<n>/SKILL.md`,
   a method skill as `skill://~/.kiro/skills/<n>/SKILL.md`. No home path lands in a tracked project file.
 - **Codex trust.** Codex reads a project's agents only in a trusted project (measured), so every run with a
   project agent prints the project's trust: `CODEX` when `${CODEX_HOME:-~/.codex}/config.toml` trusts it,
-  `UNTRUSTED` otherwise, with the owner's act. The renderer reads that file and never writes it, and the
-  line does not change the exit code: the trust is the machine's state, not the project's.
+  `UNTRUSTED` otherwise, with the owner's act. The key is matched for the path as given and its real path,
+  each with and without a trailing separator; how Codex itself writes the key is not measured. The renderer
+  reads that file and never writes it, and the line does not change the exit code: the trust is the
+  machine's state, not the project's.
 - **Bounds.** Commands stay user level; a project source holding `commands/` or `{{method-scripts}}` stops
   the render. A project file's managed-by line says `source: .mhw/method/...`, so the user-level `STALE`
-  and uninstall passes never take it as theirs. `--project` may not be the home directory.
+  and uninstall passes never take it as theirs.
+- **Containment, by real path.** `--project` is refused when its real path is the home or contains it, when
+  a project carrier resolves to a user-level carrier (a `CODEX_HOME` inside the project, say), and when any
+  carrier directory or rendered file resolves outside the project's real path (a symbolic link out). Text
+  comparison was not enough: `HOME/sub/..`, a link to the home, and a `.claude` linked to the user's
+  `.claude` all wrote project files into the user carriers (lens on PR #602).
 
-**Considered and rejected.** Hand-written project carriers in each consumer: ruled out by the owner, and
+**Considered options.** Hand-written project carriers in each consumer: ruled out by the owner, and
 three formats would drift. A project target that copies the user-level Kiro `file://` URIs: it would put
 the owner's home path into a public project file, and it breaks on any other machine.
 
@@ -1075,9 +1083,12 @@ either `skill://` form, Codex's same-name precedence, and dispatch as a subagent
 measured**. A trusted parent directory is not counted as trusting the project; whether Codex counts it is
 not measured.
 
-**Evidence level.** *Written and tested*: `test/render/method-project.test.js`. Each of its five guarded
-behaviours goes red when its source line is mutated (no project target, user removal first, absolute Kiro
-paths, no hold, trust always true) and green when restored. Not installed, and no canary has run.
+**Evidence level.** *Written and tested*: `test/render/method-project.test.js`. Each guarded behaviour goes
+red when its source line is mutated and green when restored: no project target, user removal first,
+absolute Kiro paths, no hold on a refusal, trust always true, the home guard, the shared-carrier guard, the
+outside-the-project guard, no Codex hold while untrusted, the trust read without the real path, the trust
+read without the trailing separator, and the project stale removal. The link cases run on POSIX only. Not
+installed, and no canary has run.
 
 ## Links
 

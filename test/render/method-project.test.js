@@ -150,10 +150,112 @@ test('a project source the target cannot render writes nothing at either level',
   }
 });
 
-test('--project must be an existing directory other than the home', () => {
-  const h = methodHome();
+/** A home that is itself a valid project, so only the guard can refuse it. */
+function homeWithSource() {
+  const h = methodHome('guard');
+  const src = path.join(h.root, '.mhw', 'method', 'agents');
+  fs.mkdirSync(src, { recursive: true });
+  fs.writeFileSync(path.join(src, AGENT + '.md'), '---\nname: ' + AGENT + '\ndescription: d\ntools: []\n---\nb\n');
+  return h;
+}
+
+const POSIX = process.platform !== 'win32';
+
+test('--project must be an existing directory, and never the home by any spelling', () => {
+  const h = homeWithSource();
+  const leaked = h.p('.claude/agents/' + AGENT + '.md');
   assert.equal(h.run(['--mode=install', '--project=' + path.join(h.root, 'nope')]).code, 2);
-  assert.equal(h.run(['--mode=install', '--project=' + h.root]).code, 2);
+  for (const spelling of [h.root, h.root + path.sep, path.join(h.root, 'sub') + path.sep + '..']) {
+    fs.mkdirSync(h.p('sub'), { recursive: true });
+    const r = h.run(['--mode=install', '--project=' + spelling]);
+    assert.equal(r.code, 2, spelling + '\n' + r.out);
+    assert.match(r.out, /must not be the home directory or contain it/);
+    assert.ok(!fs.existsSync(leaked), spelling + ': a project file landed in the user carriers');
+  }
+  // A directory that contains the home is refused too.
+  assert.equal(h.run(['--mode=install', '--project=' + path.dirname(h.root)]).code, 2);
+});
+
+test('a link to the home, or a carrier linked out of the project, writes nothing', { skip: !POSIX }, () => {
+  const h = homeWithSource();
+  const leaked = h.p('.claude/agents/' + AGENT + '.md');
+  const link = path.join(tempDir('link'), 'to-home');
+  fs.symlinkSync(h.root, link);
+  let r = h.run(['--mode=install', '--project=' + link]);
+  assert.equal(r.code, 2, r.out);
+  assert.ok(!fs.existsSync(leaked));
+
+  const outside = tempDir('outside');
+  const dir = project('out');
+  fs.symlinkSync(outside, path.join(dir, '.claude'));
+  r = h.run(['--mode=install', '--project=' + dir]);
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, /resolves outside the project/);
+  assert.deepEqual(filesUnder(outside), []);
+
+  const dir2 = project('touser');
+  fs.mkdirSync(h.p('.claude'), { recursive: true });
+  fs.symlinkSync(h.p('.claude'), path.join(dir2, '.claude'));
+  r = h.run(['--mode=install', '--project=' + dir2]);
+  assert.equal(r.code, 2, r.out);
+  assert.ok(!fs.existsSync(h.p('.claude/agents/' + AGENT + '.md')), 'a project agent landed in the user carriers');
+  assert.ok(!fs.existsSync(h.p('.claude/skills/' + SKILL)), 'a project skill landed in the user carriers');
+});
+
+test('an agent that leaves the project source is removed from the project carriers', () => {
+  const h = methodHome();
+  const dir = project();
+  assert.equal(h.run(['--mode=install', '--project=' + dir]).code, 0);
+  fs.rmSync(path.join(dir, '.mhw', 'method', 'agents', AGENT + '.md'));
+  let r = h.run(['--mode=check', '--project=' + dir]);
+  assert.equal(r.code, 1);
+  assert.match(r.out, /STALE {3}.*probe-project\.toml: rendered by an earlier project source/);
+  r = h.run(['--mode=install', '--project=' + dir]);
+  assert.equal(r.code, 0, r.out);
+  const c = carriers(dir);
+  for (const f of [c.claudeAgent, c.codexAgent, c.kiroAgent]) {
+    assert.ok(!fs.existsSync(f), f);
+    assert.match(r.out, new RegExp('REMOVED ' + f.replaceAll(/[\\.]/g, '\\$&') + ' \\(no longer in'));
+  }
+  assert.ok(fs.existsSync(c.claudeSkill), 'the skill still in the source was removed');
+});
+
+test('a moved agent keeps its Codex user copy while Codex does not trust the project', () => {
+  const h = methodHome();
+  const src = sourceCopy();
+  const codexHome = tempDir('codex-move');
+  const env = { CODEX_HOME: codexHome };
+  assert.equal(h.run(['--mode=install', '--source=' + src], { env }).code, 0);
+  const codexUser = path.join(codexHome, 'agents', 'tech-lead.toml');
+  const claudeUser = h.p('.claude/agents/tech-lead.md');
+  assert.ok(fs.existsSync(codexUser));
+  const dir = project();
+  fs.renameSync(path.join(src, 'agents', 'tech-lead.md'), path.join(dir, '.mhw', 'method', 'agents', 'tech-lead.md'));
+  let r = h.run(['--mode=install', '--source=' + src, '--project=' + dir], { env });
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /HELD {4}.*tech-lead\.toml: Codex does not trust the project/);
+  assert.ok(fs.existsSync(codexUser), 'the Codex user copy was removed while Codex cannot read the project copy');
+  assert.ok(!fs.existsSync(claudeUser), 'the Claude Code user copy should go: Claude Code reads the project copy');
+  fs.writeFileSync(path.join(codexHome, 'config.toml'), '[projects."' + dir.replaceAll('\\', '\\\\') + '"]\ntrust_level = "trusted"\n');
+  r = h.run(['--mode=install', '--source=' + src, '--project=' + dir], { env });
+  assert.equal(r.code, 0, r.out);
+  assert.ok(!fs.existsSync(codexUser), 'once trusted, the Codex user copy is removed\n' + r.out);
+});
+
+test('the trust read matches the real path and a trailing separator', { skip: !POSIX }, () => {
+  const h = methodHome();
+  const dir = project();
+  const link = path.join(tempDir('plink'), 'proj');
+  fs.symlinkSync(dir, link);
+  const codexHome = tempDir('codex-real');
+  const env = { CODEX_HOME: codexHome };
+  fs.writeFileSync(path.join(codexHome, 'config.toml'), '[projects."' + dir + '"]\ntrust_level = "trusted"\n');
+  let r = h.run(['--mode=install', '--project=' + link], { env });
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /CODEX {3}.* is trusted in /);
+  fs.writeFileSync(path.join(codexHome, 'config.toml'), '[projects."' + dir + '/"]\ntrust_level = "trusted"\n');
+  r = h.run(['--mode=check', '--project=' + dir], { env });
+  assert.match(r.out, /CODEX {3}.* is trusted in /);
 });
 
 test('uninstall --project removes the project files it rendered and nothing else', () => {
@@ -174,4 +276,13 @@ test('without --project the user-level output names no project', () => {
   const r = h.run(['--mode=install'], { stamp: STAMP });
   assert.equal(r.code, 0);
   assert.doesNotMatch(r.out, /PROJECT|UNTRUSTED|CODEX {3}/);
+});
+
+test('a project whose carrier is a user-level one (CODEX_HOME inside it) writes nothing', () => {
+  const h = methodHome();
+  const dir = project('codexhome');
+  const r = h.run(['--mode=install', '--project=' + dir], { env: { CODEX_HOME: path.join(dir, '.codex') } });
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, /carriers resolve to the user-level ones/);
+  assert.ok(!fs.existsSync(path.join(dir, '.codex')), 'the shared carrier was written');
 });
