@@ -950,10 +950,20 @@ details below are the agents' and await his ratification at the release candidat
 - **It blocks.** A finding stops the call on every harness: exit 2, the findings on stderr as
   `<where>: <category>, <N> chars`, never the matched text (ADR-0005). The fix it names is brief rule 8's:
   rewrite the unpushed commit that introduced it, not a follow-up commit.
-- **It fails closed.** A check that cannot run (no git, a payload it cannot read, more to read than the size
-  limit allows: `max_bytes` for one file's added lines, four times it for the whole push, a 20 s deadline, a hook that does not start) blocks the call and says why. The
-  outbound act is the boundary, and the owner can still run the command from his own terminal. This is
-  the opposite of the prompt half, which passes visibly on an error, as the prompt hook does.
+- **It fails closed.** A check that cannot run blocks the call and says why: no git, a payload it cannot
+  read, more to read than the size limit allows (`max_bytes` for one file's added lines, four times it for
+  the whole push), a `--body-file` that is not a regular file or is over `max_bytes` (refused before a byte
+  is read), or a hook that does not start. The outbound act is the boundary, and the owner can still run
+  the command from his own terminal. This is the opposite of the prompt half, which passes visibly on an
+  error, as the prompt hook does.
+- **The 20 s deadline, stated exactly.** It is not one interrupt over the whole check: the work is
+  synchronous, and an asynchronous timer cannot stop it (QA on PR #605 measured a slow git running past
+  it and the call passing). What holds it: each git call gets the time left as its timeout and is killed
+  (SIGKILL) at it, which blocks the call; the text-level trigger is a linear word scan, not a backtracking
+  regular expression; and a pass that arrives after the deadline is turned into a block. What does not:
+  the core's own pattern work on the command text and the commits runs to its end, bounded by `max_bytes`
+  rather than by the clock. Tested with a git that sleeps 10 s, a FIFO, a device and an oversized body
+  file, and a 24 KB command text.
 - **What it does not reach.** A push or pull request made outside an agent harness, or through a tool
   that is not a shell command (the GitHub MCP, a browser); a commit whose added text is binary; the files
   of the working tree that no commit carries (they are not sent). Employer and client terms (#589).

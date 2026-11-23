@@ -23,6 +23,10 @@
 //       no-reply address of the attribution trailer excepted). A finding blocks the call on every harness:
 //       exit 2, the findings on stderr, never the matched text. A check that could not run blocks too
 //       (fail closed): the outbound act is the boundary, and the owner can still push from his own terminal.
+//       The 20 s deadline holds for what can be interrupted: each git call gets the time left as its
+//       timeout and is killed at it, a --body-file that is not a regular file or is over max_bytes is
+//       refused unread, and a pass that arrives after the deadline is turned into a block. The core's own
+//       pattern work on the text runs to its end (it is bounded by max_bytes, not by the clock).
 //
 // --config is the paste filter's clipboard.conf: its block_categories (intersected with the fixed set) and
 // its notice templates apply, so a localised overlay localises these messages too. Without it, the defaults.
@@ -38,6 +42,17 @@ export const HARNESSES = Object.freeze(['claude', 'codex', 'kiro']);
 export const MODES = Object.freeze(['prompt', 'pre-tool']);
 /** The hook gives up after this long; every agent harness here allows the hook 30 s. */
 export const DEADLINE_MS = 20000;
+
+/**
+ * The deadline: DEADLINE_MS, or a shorter one from MHW_HOOK_DEADLINE_MS (a whole number of milliseconds),
+ * read only when MHW_HOOK_TEST=1 is set too, as `mhw hook prompt` reads it: tests only, and it can only
+ * shorten the wait.
+ * @param {Record<string, string | undefined>} env
+ */
+export function deadlineOf(env) {
+  const v = env.MHW_HOOK_TEST === '1' ? env.MHW_HOOK_DEADLINE_MS || '' : '';
+  return /^\d{1,6}$/.test(v) && Number(v) > 0 && Number(v) < DEADLINE_MS ? Number(v) : DEADLINE_MS;
+}
 const FIXED = new Set(core.FIXED_CATEGORIES);
 
 /** The notices. The first four share their keys with `mhw hook prompt`, so one overlay localises both. */
@@ -280,13 +295,30 @@ export function actionsOf(text, cwd) {
   }
   // A push or pull request the word reading above did not see (inside $(...), backticks, eval, sh -c):
   // check this directory's outgoing commits anyway. Over-triggering costs one check; missing one costs a leak.
-  if (!acts.length && (/\bgit\b[^\n]*\bpush\b/.test(text) || /\bgh\b[^\n]*\bpr\b[^\n]*\bcreate\b/.test(text))) {
+  if (!acts.length && (mentionsInOrder(text, ['git', 'push']) || mentionsInOrder(text, ['gh', 'pr', 'create']))) {
     acts.push({ kind: 'push', dir: cwd, gitDir: null, args: [] });
   }
   return acts;
 }
 
 const ASSIGNMENT = /^[A-Za-z_]\w*=/;
+
+/**
+ * True when one line of text holds the words of seq, in that order (other words between them): what
+ * /\bgit\b[^\n]*\bpush\b/ tested, in one linear pass. That regular expression backtracked over every pair
+ * of positions (about 24 KB of command text took 50 s), and the text is the agent's command.
+ * @param {string} text @param {string[]} seq
+ */
+export function mentionsInOrder(text, seq) {
+  for (const line of text.split('\n')) {
+    let k = 0;
+    for (const w of line.split(/\W+/)) {
+      if (w === seq[k]) k++;
+      if (k === seq.length) return true;
+    }
+  }
+  return false;
+}
 
 /** Where the program word is: past every leading VAR=value and wrapper (env -i, command -p, ...). @param {string[]} cmd */
 export function programIndex(cmd) {
@@ -396,15 +428,22 @@ export function pushRevisions(args) {
 }
 
 /**
- * Run git; [exit code, stdout]. Never through a shell.
- * @param {{ git: string, env: Record<string, string | undefined> }} ctx @param {string} dir @param {string | null} gitDir @param {string[]} args
+ * Run git; [exit code, stdout]. Never through a shell. It gets what is left of the hook's deadline as its
+ * timeout and is killed when that runs out (SIGKILL): the check then throws TimeoutError, which blocks the
+ * call. A synchronous child cannot be interrupted by the asynchronous deadline in run(), so this is where
+ * the deadline holds for git.
+ * @param {{ git: string, env: Record<string, string | undefined>, deadlineAt: number }} ctx @param {string} dir @param {string | null} gitDir @param {string[]} args
  * @returns {[number, string]}
  */
 function git(ctx, dir, gitDir, args) {
+  const left = ctx.deadlineAt - Date.now();
+  if (left <= 0) throw new core.PyError('TimeoutError');
   const p = spawnSync(ctx.git, [...(gitDir ? ['--git-dir=' + gitDir] : []), ...args], {
-    cwd: dir, env: ctx.env, maxBuffer: 1 << 30, shell: false, windowsHide: true,
+    cwd: dir, env: ctx.env, maxBuffer: 1 << 30, shell: false, windowsHide: true, timeout: left, killSignal: 'SIGKILL',
   });
+  if (p.error && /** @type {NodeJS.ErrnoException} */ (p.error).code === 'ETIMEDOUT') throw new core.PyError('TimeoutError');
   if (p.error) throw new core.PyError('GitStartError');
+  if (p.signal) throw new core.PyError('TimeoutError');
   return [p.status === null ? 1 : p.status, new TextDecoder('utf-8').decode(p.stdout)];
 }
 
@@ -480,7 +519,7 @@ function located(text, cats) {
 /**
  * The findings in what one push would send: every commit reachable from its revisions and from no
  * remote-tracking ref, its message and the lines it adds (a merge's message only, as `mhw scan`).
- * @param {{ git: string, env: Record<string, string | undefined>, limit: number, cats: Set<string> }} ctx
+ * @param {{ git: string, env: Record<string, string | undefined>, deadlineAt: number, limit: number, cats: Set<string> }} ctx
  * @param {string} dir @param {string | null} gitDir @param {string[]} revs
  * @returns {Array<[string, string, number]>} [where, category, length]
  */
@@ -504,7 +543,7 @@ export function outgoingFindings(ctx, dir, gitDir, revs) {
 /**
  * The revisions as git rev-list reads them: an option kept, a name resolved to its commit, a name that does
  * not resolve left out.
- * @param {{ git: string, env: Record<string, string | undefined> }} ctx @param {string} dir @param {string | null} gitDir @param {string[]} revs
+ * @param {{ git: string, env: Record<string, string | undefined>, deadlineAt: number }} ctx @param {string} dir @param {string | null} gitDir @param {string[]} revs
  */
 function resolvedRevisions(ctx, dir, gitDir, revs) {
   /** @type {string[]} */
@@ -562,12 +601,38 @@ export function gitOnPath(env) {
 }
 
 /**
+ * A --body-file's bytes. It is opened without blocking (a FIFO would otherwise wait for a writer), and
+ * anything but a regular file (a FIFO, a device, a directory) or a file over limit bytes is refused before
+ * a byte is read, so the check blocks the call instead of hanging or reading without end.
+ * @param {string} file @param {number} limit
+ */
+export function readBodyFile(file, limit) {
+  const fd = fs.openSync(file, fs.constants.O_RDONLY | (fs.constants.O_NONBLOCK ?? 0));
+  try {
+    const st = fs.fstatSync(fd);
+    if (!st.isFile()) throw new core.PyError('NotARegularFile');
+    if (st.size > limit) throw new core.PyError('TooLargeToCheck');
+    const buf = Buffer.alloc(st.size);
+    let off = 0;
+    while (off < st.size) {
+      const n = fs.readSync(fd, buf, off, st.size - off, off);
+      if (n === 0) break;
+      off += n;
+    }
+    return buf.subarray(0, off);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/**
  * What the pre-tool hook writes for one payload. Every harness: exit 0 and nothing to pass; exit 2 and the
  * message on stderr to block.
  * @param {Record<string, string>} conf @param {Buffer} raw @param {Record<string, string | undefined>} env
+ * @param {number} [deadlineAt] the epoch millisecond by which git must have answered
  * @returns {{ stdout: string, stderr: string, code: number }}
  */
-export function preToolCheck(conf, raw, env) {
+export function preToolCheck(conf, raw, env, deadlineAt = Date.now() + DEADLINE_MS) {
   const pass = { stdout: '', stderr: '', code: 0 };
   /** @param {string} msg */
   const block = (msg) => ({ stdout: '', stderr: msg + '\n', code: 2 });
@@ -596,13 +661,12 @@ export function preToolCheck(conf, raw, env) {
     const found = located(command, cats).map(([line, cat, len]) => /** @type {[string, string, number]} */ (['command:' + line, cat, len]));
     const g = gitOnPath(env);
     if (!g) throw new core.PyError('GitNotFound');
-    const ctx = { git: g, env, limit, cats };
+    const ctx = { git: g, env, limit, cats, deadlineAt };
     const seen = new Set();
     for (const a of acts) {
       if (a.kind === 'pr') {
         for (const f of bodyFiles(a.args, a.dir)) {
-          const data = fs.readFileSync(f);
-          if (data.length > limit) throw new core.PyError('TooLargeToCheck');
+          const data = readBodyFile(f, limit);
           for (const [line, cat, len] of located(new TextDecoder('utf-8').decode(data), cats)) found.push([f + ':' + line, cat, len]);
         }
       }
@@ -683,10 +747,12 @@ export async function run(argv, env, io = {}) {
     return failed(errorClass(e));
   }
   const c = conf;
+  const ms = io.deadlineMs ?? deadlineOf(env);
+  const deadlineAt = Date.now() + ms;
   /** @type {NodeJS.Timeout | undefined} */
   let timer;
   const deadline = new Promise((resolve) => {
-    timer = setTimeout(() => resolve(failed('TimeoutError')), io.deadlineMs ?? DEADLINE_MS);
+    timer = setTimeout(() => resolve(failed('TimeoutError')), ms);
   });
   const work = (async () => {
     let raw;
@@ -695,7 +761,11 @@ export async function run(argv, env, io = {}) {
     } catch (e) {
       return failed(errorClass(e));
     }
-    return mode === 'prompt' ? promptCheck(c, h, raw, defer && pasteFilterBlocks(h, env)) : preToolCheck(c, raw, env);
+    if (mode === 'prompt') return promptCheck(c, h, raw, defer && pasteFilterBlocks(h, env));
+    const r = preToolCheck(c, raw, env, deadlineAt);
+    // Synchronous work past the deadline (the core's patterns on a long text) cannot be interrupted; an
+    // answer that comes in late is not trusted as a pass.
+    return r.code === 0 && Date.now() > deadlineAt ? failed('TimeoutError') : r;
   })();
   try {
     return /** @type {{ stdout: string, stderr: string, code: number }} */ (await Promise.race([work, deadline]));

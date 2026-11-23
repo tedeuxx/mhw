@@ -295,6 +295,43 @@ test('pre-tool: a check that cannot run blocks the outbound act (fail closed) an
   assert.match(bad.stderr, /could not run/);
 });
 
+// ------------------------------------------------------------------------------------------- the deadline
+
+// QA on PR #605: synchronous work cannot be interrupted by the asynchronous deadline, so each place that can
+// run long is bounded where it runs. Each row: what is slow or endless, the expected answer, and a wall-clock
+// ceiling well under the harness's 30 s. The deadline is shortened to 1.5 s (MHW_HOOK_TEST=1 only).
+test('the pre-tool deadline holds where synchronous work could outlast it (table)', { skip: (!GIT && 'git is not on PATH') || (process.platform === 'win32' && 'POSIX: a FIFO and a shell-script git') }, () => {
+  const dir = path.join(BASE, 'deadline');
+  fs.mkdirSync(dir);
+  const r = repo('deadline-repo', [{ message: 'clean' }]);
+  // A git that answers only after 10 s: the hook must kill it and block, not wait and pass.
+  const slow = path.join(dir, 'slowbin');
+  fs.mkdirSync(slow);
+  fs.writeFileSync(path.join(slow, 'git'), '#!/bin/sh\nsleep 10\nexec ' + JSON.stringify(GIT) + ' "$@"\n', { mode: 0o755 });
+  const fifo = path.join(r, 'body.fifo');
+  assert.equal(spawnSync('mkfifo', [fifo]).status, 0);
+  const huge = path.join(r, 'huge.md');
+  fs.writeFileSync(huge, '');
+  fs.truncateSync(huge, 2_000_000); // over max_bytes (1 000 000), sparse
+  const env = { MHW_HOOK_TEST: '1', MHW_HOOK_DEADLINE_MS: '1500' };
+  /** @type {Array<{ name: string, command: string, env?: Record<string, string>, code: number, stderr: RegExp, ms: number }>} */
+  const rows = [
+    { name: 'a slow git is killed at the deadline', command: 'git push', env: { PATH: slow + ':' + (process.env.PATH || '') }, code: 2, stderr: /could not run \(TimeoutError\)/, ms: 6000 },
+    { name: 'a FIFO body file is refused unread', command: 'gh pr create --body-file body.fifo', code: 2, stderr: /could not run \(NotARegularFile\)/, ms: 6000 },
+    { name: 'a device body file is refused unread', command: 'gh pr create --body-file /dev/zero', code: 2, stderr: /could not run \(NotARegularFile\)/, ms: 6000 },
+    { name: 'a body file over max_bytes is refused unread', command: 'gh pr create --body-file huge.md', code: 2, stderr: /could not run \(TooLargeToCheck\)/, ms: 6000 },
+    { name: 'a long command text is read in linear time', command: 'echo ' + 'gh pr '.repeat(4000), code: 0, stderr: /^$/, ms: 6000 },
+  ];
+  for (const row of rows) {
+    const t0 = Date.now();
+    const out = hook(['pre-tool', '--harness', 'claude'], toolPayload('claude', row.command, r), { ...env, ...(row.env || {}) });
+    const ms = Date.now() - t0;
+    assert.equal(out.code, row.code, row.name + ': ' + out.stderr);
+    assert.match(out.stderr, row.stderr, row.name);
+    assert.ok(ms < row.ms, row.name + ': took ' + ms + ' ms');
+  }
+});
+
 // ------------------------------------------------------------------------------------------- self-contained
 
 test('the script imports only node: modules and its two core files', () => {
