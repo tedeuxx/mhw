@@ -60,8 +60,9 @@ its decision record (ADR-0045 there). They are not restated here.
    `BEHIND`, `BLOCKED`, `UNSTABLE` or `UNKNOWN` and say which. A conflict and a stale head are also
    refused by GitHub (`strict` status checks). *Held by the ruleset, and read by you so you can say why.*
    **A release candidate that is `BEHIND` `main`** (each release leaves `main` one version-bump commit
-   ahead of `rc/next`) is not updated by a push to `rc/next`, nor by GitHub's *Update branch* button,
-   nor by `--admin`: once the rulesets are applied, the `rc/next` ruleset refuses all three. Sync first,
+   ahead of `rc/next`) is not updated by a push to `rc/next`, nor by GitHub's *Update branch* button: once the rulesets
+   are applied, the `rc/next` ruleset refuses both. `gh pr merge --admin` would merge it past the `main`
+   ruleset's admin bypass; it is not a route. Sync first,
    as a slice: a branch cut from `origin/rc/next` with `origin/main` merged into it, a PR into `rc/next`
    labelled `semver:patch`, merged by this skill like any slice. The repository's delivery route says
    which escape line its documentation check needs (`workspace/README.md`, *Releasing the candidate*,
