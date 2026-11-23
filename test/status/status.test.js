@@ -307,17 +307,18 @@ describe('the models and MCP lines', () => {
     assert.equal(mcp([absent, ok])[0], 'declared; nothing on outside the set and no set member missing');
     assert.ok(mcp([skip, 'DRIFT   kiro: on outside the set: synth-b (1); install turns them off (/h/k.json)' + tag])[0].startsWith('not read for codex; 1 finding(s); '));
   });
-  test('the connection check shows a name and a result only', () => {
-    const t = ' (MCP connect)';
-    assert.deepEqual(st.mcpConnectLines(['OK      codex: s-a: ok' + t, 'FAIL    kiro: s-b: fail: timeout' + t, 'an untagged line'], 1),
-      ['  mcp connect      codex: s-a: ok', st.MCP_INDENT + 'kiro: s-b: fail: timeout']);
-    assert.ok(st.mcpConnectLines([], 2)[0].startsWith('  mcp connect      no result (exit 2)'));
-    for (const bad of ['--mcp-connect=0', '--mcp-connect=x', '--mcp-connect=99999']) {
+  test('--mcp-connect is an unknown option of status, in every form, and names mhw mcp check (#595)', () => {
+    // The connection test moved to mhw mcp check (test/mcp/check.test.js): status starts no process.
+    for (const bad of ['--mcp-connect', '--mcp-connect=2', '--mcp-connect=30', '--mcp-connect=0', '--mcp-connect=x', '--mcp-connect=99999']) {
       /** @type {string[]} */
       const err = [];
-      assert.equal(st.main([bad], {}, { err: (l) => err.push(l), out: () => {} }), 2, bad);
-      assert.deepEqual(err, ['mhw: unknown argument for status: ' + bad]);
+      /** @type {string[]} */
+      const out = [];
+      assert.equal(st.main(['--overlay=none', bad], {}, { err: (l) => err.push(l), out: (l) => out.push(l) }), 2, bad);
+      assert.deepEqual(err, ['mhw: unknown argument for status: ' + bad + ' (the MCP connection test is now mhw mcp check [--timeout=SECONDS])']);
+      assert.deepEqual(out, [], bad + ': nothing is printed or run');
     }
+    assert.equal(typeof (/** @type {Record<string, unknown>} */ (st)).mcpConnectStatus, 'undefined', 'status no longer carries the connection test');
   });
   const SETTINGS = /** @type {import('../../src/lib/readers/settings.js').Setting[]} */ ([['Claude Code', 'user', 'model', 'claude-opus-5-5[1m]'],
     ['Claude Code', 'user', 'effortLevel', 'medium'], ['Codex', 'user', 'model', 'gpt-5.6-sol'], ['Codex', 'user', 'model_reasoning_effort', 'high'],
