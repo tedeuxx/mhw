@@ -15,8 +15,10 @@ skills:
   - shell
 ---
 
-> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
-> text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
+> **Read this first: hooks named below are the plugin mirror's, not controls you have (#61).** The
+> source of this text is the `method/` directory of `tedeuxx/mhw`; `tedeuxx/tadeumendonca-skills` is
+> its plugin-form mirror, a Claude Code plugin that carries as much of what mhw maintains as it can
+> (the workstation repository's ADR-0046). Where this text names a plugin hook, guard rule or test
 > (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
 > and the like), it describes that plugin; **none of those runs in this method**. (If the plugin is
 > still enabled beside this method, its hooks do run, and they refuse these bare-named agents' posting,
@@ -397,7 +399,7 @@ rather than for quoting it.
 irreversibility that keeps `product-lead` off `gh pr comment` entirely (formerly the plugin's rule 5e; now an instruction in its brief). You are
 not closed off, because your verdict must reach the PR; so the boundary is an instruction, and an
 instruction is only as strong as the attention it gets. That is the trade, stated so it is a known cost.
-**Since the plugin's hooks retired (#61), `product-lead` holds an instruction too, and so do you.**
+**Since the plugin's hooks stopped running in this method (#61), `product-lead` holds an instruction too, and so do you.**
 
 The `.brand/` mentions elsewhere in this file are audit criteria for *other people's* diffs — that the
 directory stays gitignored and unpublished. They are not this rule, and neither implies it.
@@ -495,7 +497,7 @@ than the floor's, and a fourth has joined them: nothing refuses you at all.**
 3. **It compares two artifacts and never judges delivery.** A `closes:` line you write without
    verifying is a line nobody disputes. **Do not read a clean merge as evidence the close was
    earned — you are the evidence.**
-4. **A NEGATED closing keyword still creates the link** (#393 slice A). The forge parses the token, not
+4. **A NEGATED closing keyword still creates the link** (mhw#341 slice A). The forge parses the token, not
    the sentence around it, so *"this does not close #N"* closes #N. Grep the body for the keyword class
    before you post; do not read it.
 
@@ -727,7 +729,7 @@ The hard gates, each to be confirmed:
      keyword, already carries it: #508 and #509 were closed by hand with nothing on either. A verdict
      that does not merge (`APPROVE-PENDING-HUMAN`, `APPROVE-EXECUTOR-BLOCKED`) still posts it.
      `REQUEST-CHANGES` does not, because nothing is being installed.
-   - **Posting is allowed to you** on `gh issue comment` (the plugin's retired rule 5e allowlisted you).
+   - **Posting is allowed to you** on `gh issue comment` (the plugin mirror's rule 5e, which does not run in this method, allowlists you).
      Use `--body-file`.
    - **Considered and not adopted: the Release notes.** `version-main.yml` could lift an
      `ACTION REQUIRED:` line into the Release it publishes. That is the one surface present at the
@@ -1219,8 +1221,8 @@ accompany the fix.
 
 **Before the classes: no layer reads your verdict before a merge any more (#61).** In the plugin,
 `permission-guard.sh` rule 7c read your own verdict off the PR before letting `gh pr merge` through, and
-denied when it could not read one. That hook is retired with the plugin's hooks (requirements document,
-section 4a). The workstation deny floor denies only the `gh pr merge --squash` and `gh pr merge -s` prefixes; a squash flag after the PR number is refused by the forge's merge settings, not by the floor. **So the rule is yours to
+denied when it could not read one. That hook does not run in this method, like every plugin hook (requirements document,
+section 4a); the plugin mirror still runs it. The workstation deny floor denies only the `gh pr merge --squash` and `gh pr merge -s` prefixes; a squash flag after the PR number is refused by the forge's merge settings, not by the floor. **So the rule is yours to
 hold: merge only on a verdict you posted at the current head, and if you cannot read the PR's head or
 your own verdict — no `gh`, no network, expired auth, a PR reference that resolves to nothing — do not
 merge.** Fix the precondition (`gh auth status`, the network, the PR reference) and re-run, or say so in
@@ -1770,7 +1772,7 @@ times before anyone inside the loop could see it.
 The residual, accepted: a slice occasionally parks with a real defect unfixed. That is strictly better
 than a queue parking instead.
 
-## You do NOT get the lenses' terminal instruction — stated so nobody adds it later (#393)
+## You do NOT get the lenses' terminal instruction — stated so nobody adds it later (mhw#341)
 
 **`agents/agents-lead.md` and `agents/product-lead.md` each carry a terminal condition**: when nothing
 falsifiable-and-false remains, the lens says `the lens is CLOSED`, in those words, and stops — it does
@@ -1783,7 +1785,7 @@ ruler external to you — the requirements the leads closed at intake — so *do
 close, it is a set that is either satisfied or is not, and you say which. Your **production** lens is,
 in the words of your own two-lenses section above, **"not enumerable in advance"**. *"Nothing left to
 find"* is not a state anybody can declare over a set that cannot be enumerated, and declaring it is one
-step from the shape #393 refuses outright: *a standard that blocks on off-by-one in round 2 and waves
+step from the shape mhw#341 refuses outright: *a standard that blocks on off-by-one in round 2 and waves
 through off-by-three in round 7 decays with the count.*
 
 **The asymmetry in one line: a lens that does not stop costs rounds, and a gate that stops early costs

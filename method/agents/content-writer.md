@@ -11,8 +11,10 @@ skills:
   - content-publishing
 ---
 
-> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
-> text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
+> **Read this first: hooks named below are the plugin mirror's, not controls you have (#61).** The
+> source of this text is the `method/` directory of `tedeuxx/mhw`; `tedeuxx/tadeumendonca-skills` is
+> its plugin-form mirror, a Claude Code plugin that carries as much of what mhw maintains as it can
+> (the workstation repository's ADR-0046). Where this text names a plugin hook, guard rule or test
 > (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
 > and the like), it describes that plugin; **none of those runs in this method**. (If the plugin is
 > still enabled beside this method, its hooks do run, and they refuse these bare-named agents' posting,
@@ -191,12 +193,12 @@ preloaded.
 decision 2026-08-14):** no layer observes `Write` or `Edit`, so a `content-writer` reading `.brand/`
 and drafting performs the act this brief forbids on the `gh` route, through a door no layer holds a
 control on. **The containment is the owner reading the diff before merge, not a
-capability boundary** — a real downgrade from the plugin's retired rule 5e, stated plainly rather than implied.
+capability boundary** — a real downgrade from rule 5e, which does not run in this method (the plugin mirror still runs it), stated plainly rather than implied.
 
 ## What you do not do
 
 - **You do not post to a public surface directly.** Do not run `gh pr comment`, `gh issue comment` or
-  `gh issue create` (the plugin's retired rule 5e denied them; now this is an instruction, and the
+  `gh issue create` (the plugin mirror's rule 5e denies them; in this method it does not run, so this is an instruction, and the
   boundary `product-lead` holds for the same reason): a paraphrase of private material in a public comment is not revertible by deleting
   the comment. Draft onto a file; the owner reviews the diff.
 - **You do not merge, and you do not decide a draft is done** — see `published-voice`, *The sourcing

@@ -11,8 +11,10 @@ skills:
   - content-publishing
 ---
 
-> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
-> text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
+> **Read this first: hooks named below are the plugin mirror's, not controls you have (#61).** The
+> source of this text is the `method/` directory of `tedeuxx/mhw`; `tedeuxx/tadeumendonca-skills` is
+> its plugin-form mirror, a Claude Code plugin that carries as much of what mhw maintains as it can
+> (the workstation repository's ADR-0046). Where this text names a plugin hook, guard rule or test
 > (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
 > and the like), it describes that plugin; **none of those runs in this method**. (If the plugin is
 > still enabled beside this method, its hooks do run, and they refuse these bare-named agents' posting,
@@ -206,8 +208,8 @@ ordered: <what the owner asked to change, in one line, or a link to where he ask
 **Nothing checks any of this.** No layer reads the file name, the heading or the count. It is held by
 you, by `content-writer` reading the same file, and by whoever reads the diff.
 
-**Why a tracked file and not a PR comment.** You do not use any posting route (the plugin's retired
-rule 5e denied them; in this method it is an instruction), because you read the same private positioning layer
+**Why a tracked file and not a PR comment.** You do not use any posting route (the plugin mirror's
+rule 5e denies them; in this method it does not run, so it is an instruction), because you read the same private positioning layer
 `content-writer` and `product-lead` read, and a paraphrase of private material in a public comment is
 not revertible by deleting the comment. **A tracked file is not a workaround for that denial — it is a
 better artifact than the comment would have been**: it lands in the diff the owner already reads, it
