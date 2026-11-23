@@ -82,7 +82,9 @@ mode alone first and over relying on the native sandboxes only.
 - **A compatibility layer covers the commands that differ between runtimes** (owner, 2026-11-23, on
   [#79](https://github.com/tedeuxx/mhw/issues/79#issuecomment-7102668595): "you should have in mhw some
   compatibility layer for the commands that differ between each container host distribution").
-  *Proposed shape, not yet ratified by the owner:* native first, mhw drives the
+  Its shape, ratified by the owner on 2026-11-23
+  ([#79](https://github.com/tedeuxx/mhw/issues/79#issuecomment-7103501623): "yes"): native first, mhw
+  drives the
   command-line subset Podman and Docker share (`run`, `build`, `ps`, `stop`, `rm`, the Compose
   specification), and a small adapter per runtime covers only where they diverge (socket path, rootless
   user mapping, the macOS virtual machine: `podman machine` or Docker Desktop). The build is to list
@@ -285,7 +287,7 @@ Three more were settled on 2026-11-23 (posted on [#79](https://github.com/tedeux
 | --- | --- | --- |
 | Where the host or container choice lives | The install sets the workstation's default mode; each session can switch | [4.1](#41-one-switch-per-session) |
 | Container runtime | The user's choice: Podman, Docker or an equivalent; none is a prerequisite | [4.1](#41-one-switch-per-session) |
-| Commands that differ between runtimes | A compatibility layer (its shape, a shared command subset plus a small adapter per runtime, is proposed and not yet ratified) | [4.1](#41-one-switch-per-session) |
+| Commands that differ between runtimes | A compatibility layer: the shared command subset, plus a small adapter per runtime for the divergences (shape ratified on #79) | [4.1](#41-one-switch-per-session) |
 
 ## 9. Decision records owed by the build
 
