@@ -144,8 +144,15 @@ test('an option with no value at the end of a git command is read without failin
   assert.deepEqual(actionsOf('git --git-dir', cwd), []);
   assert.deepEqual(actionsOf('git push origin main; git -C', cwd), [{ kind: 'push', dir: cwd, gitDir: null, args: ['origin', 'main'] }]);
   // With its value, each still applies; an attached value too.
-  assert.equal(actionsOf('git --git-dir .g -C r push', cwd)[0].gitDir, path.resolve(cwd, '.g'));
-  assert.equal(actionsOf('git -C=r push', cwd)[0].dir, path.resolve(cwd, 'r'));
+  assert.deepEqual(actionsOf('git --git-dir .g -C r push', cwd), [{ kind: 'push', dir: path.resolve(cwd, 'r'), gitDir: path.resolve(cwd, '.g'), args: [] }]);
+  assert.deepEqual(actionsOf('git -C=r push', cwd), [{ kind: 'push', dir: path.resolve(cwd, 'r'), gitDir: null, args: [] }]);
+});
+
+test('a backslash that ends the command text escapes nothing (Sonar: the !== undefined that read as always true)', () => {
+  assert.deepEqual(simpleCommands('git push origin\\'), [['git', 'push', 'origin']]);
+  assert.deepEqual(simpleCommands('\\'), []);
+  // A backslash before a newline continues the line; before anything else it keeps that character.
+  assert.deepEqual(simpleCommands('git \\\npush a\\ b'), [['git', 'push', 'a b']]);
 });
 
 test('the patch reader cuts trailing tabs in linear time (no backtracking on attacker-controlled commit text)', () => {

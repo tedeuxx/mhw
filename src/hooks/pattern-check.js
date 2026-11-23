@@ -223,9 +223,9 @@ function doubleQuoted(L) {
 
 /** A backslash outside quotes: the next character literally; before a newline, a line continuation. @param {Lexer} L */
 function backslash(L) {
-  const next = L.text[L.i + 1];
-  if (next !== undefined && next !== '\n') {
-    L.word += next;
+  // A backslash that ends the text escapes nothing: the length is checked, never an undefined read.
+  if (L.i + 1 < L.text.length && L.text[L.i + 1] !== '\n') {
+    L.word += L.text[L.i + 1];
     L.inWord = true;
   }
   L.i += 2;
