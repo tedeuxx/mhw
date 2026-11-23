@@ -5,15 +5,20 @@ environment's setup produced by mhw itself.
 
 - **Status:** agreed with the owner in an interview on 2026-11-23. Items under
   [Open questions](#7-open-questions) are facts to measure, not decisions.
-- **Source:** [#561](https://github.com/tedeuxx/mhw/issues/561) and the owner interview of 2026-11-23.
+- **Source:** [#561](https://github.com/tedeuxx/mhw/issues/561); the design decision
+  ([comment](https://github.com/tedeuxx/mhw/issues/561#issuecomment-7102284717)), the canary
+  ([comment](https://github.com/tedeuxx/mhw/issues/561#issuecomment-7102392177)) and the interview
+  decisions ([comment](https://github.com/tedeuxx/mhw/issues/561#issuecomment-7102498904)). The
+  owner's words are quoted in English translation from Portuguese.
 - **Related:** [the agent runtime document](mhw-product-requirements-document-agent-runtime.md) leaves
   open how the firewall layers reach a cloud runtime (its open decision 1). This document answers that
   question for Claude Code cloud environments only. Nothing here weakens the personal policy floor.
 
 ## Evidence level
 
-Everything in this document is *written*. One canary was *measured once* in one cloud session
-(section 2). Nothing is built.
+Three levels are used. The target behaviour is *written*: nothing is built. Vendor facts are
+*documented* (code.claude.com/docs/en/cloud-environments). One canary was *measured once* in one
+cloud session (section 2).
 
 ## 1. Problem
 
@@ -25,8 +30,8 @@ Everything in this document is *written*. One canary was *measured once* in one 
 - So today a cloud session runs with only what the repository carries: no global brief, no deny floor,
   no prompt check.
 
-Owner's objective: *"I want the same mhw experience as local in my cloud environment, and the setup
-made easy by mhw itself."*
+Owner's objective (translated from Portuguese): *"I want the same mhw experience as local in my
+cloud environment, and the setup made easy by mhw itself."*
 
 ## 2. What the cloud loads (measured 2026-11-23)
 
@@ -40,25 +45,24 @@ setup script wrote three files; one session then reported:
 | `/etc/claude-code/managed-settings.json` (deny rule) | yes, the rule denied the command | measured once |
 | Project `AGENTS.md` (from the clone) | yes | measured once |
 
-The vendor page's "user settings are not read" means the local machine's file does not carry over; a
-file written inside the VM is read. Not measured: whether a lower layer can override the managed deny.
+The vendor pages say user settings are not read and managed settings files do not apply in the VM.
+Both statements describe the owner's local files, which do not carry over; files the setup script
+writes inside the VM were read. Not measured: whether a lower layer can override the managed deny.
 
 ## 3. Target behaviour
 
 The cloud VM is treated as one more workstation. The setup script runs mhw's own installer there.
 
 ```mermaid
-flowchart TB
-  A["Owner's workstation: mhw cloud setup-script prints the script"]
-  B["claude.ai/code environment: the owner pastes it once"]
-  C["Cloud VM, as root: install the latest mhw release, run mhw install --cloud"]
-  D["Session: brief, managed and user layers, method, prompt hook"]
-  A --- B --- C --- D
+flowchart LR
+  A["mhw cloud setup-script prints the script"] --> B["Owner pastes it into the environment"]
+  B --> C["VM, as root: latest mhw, mhw install --cloud"]
+  C --> D["Session: brief, layers, method, prompt hook"]
 ```
 
 1. **`mhw cloud setup-script`** prints the setup script. It holds no secret and no term.
 2. **The script installs the latest published mhw release** each time it runs (the environment caches it
-   for about seven days and reruns it when the script changes). Owner: *"Always the latest."* A release
+   for about seven days and reruns it when the script changes). Owner: *"Always the latest"* (this replaces the tag-pinned script first proposed in #561). A release
    exists only after the owner's go on the release candidate, so "latest" is never unreviewed work.
 3. **`mhw install --cloud`** detects the VM (`CLAUDE_CODE_REMOTE=true`), installs the Claude Code
    parts (global brief, managed layer, user layer with deny floor, allow list and model defaults, the
