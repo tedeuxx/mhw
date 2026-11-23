@@ -2,8 +2,9 @@
 // agents-lead marker by asking which kind of repository it is in, then selects the PR's paths of that
 // class. Until #574 the repository test looked only for the retired plugin's manifest, which the method
 // repository does not have, and every command of the hold compared against origin/main, although slices
-// in the method repository merge into rc/next. Owner rulings on PR #586 (2026-11-23): detect by
-// method/agents/quality-assurance.md only, and compare against the PR's own base. This suite runs the
+// in the method repository merge into rc/next. Owner rulings on PR #586 (2026-11-23): a method repository
+// is one carrying, at its root, method/agents/quality-assurance.md (mhw) or .claude-plugin/plugin.json (the
+// plugin mirror, tadeumendonca-skills), both under the strict class; and compare against the PR's own base. This suite runs the
 // commands AS WRITTEN IN THE BRIEF against throwaway repositories, so reverting either change turns it
 // red. It measures the commands the brief prints, never whether a gate session follows them.
 import { test, describe } from 'node:test';
@@ -28,14 +29,20 @@ function detectionCalls() {
   return calls;
 }
 
-/** The exclusion-list selector (the method repository's class), its two lines joined, read from the brief. */
-function methodSelector() {
+/**
+ * A class selector of hold 2, its two lines joined, read from the brief: the method repository's
+ * exclusion-list selector (`| grep -vE `) or the consuming repository's harness-path one (`| grep -E `).
+ * @param {string} grep
+ */
+function selector(grep) {
   const lines = briefLines();
   const i = lines.findIndex((l, k) => /^git -C <repo> diff --no-renames --name-only \S+\.\.\.<headRefOid> \\$/.test(l)
-    && (lines[k + 1] || '').startsWith('| grep -vE '));
-  assert.ok(i >= 0, 'the exclusion-list selector is in the brief');
+    && (lines[k + 1] || '').startsWith(grep));
+  assert.ok(i >= 0, 'the selector piping into ' + grep + ' is in the brief');
   return lines[i].replace(/\\$/, '') + lines[i + 1];
 }
+const methodSelector = () => selector('| grep -vE ');
+const consumerSelector = () => selector("| grep -E '(^|/)");
 
 /** @param {string[]} args @param {string} [cwd] */
 function git(args, cwd) {
@@ -89,8 +96,10 @@ describe("hold 2's repository test (mhw#574)", () => {
     }
   });
 
-  test('a repository with only the retired root manifest is NOT the method repository', () => {
-    for (const out of detects('plugin', ['.claude-plugin/plugin.json', 'agents/quality-assurance.md'])) assert.equal(out, '');
+  test('the plugin mirror (a root manifest) is a method repository too', () => {
+    for (const out of detects('plugin', ['.claude-plugin/plugin.json', 'agents/quality-assurance.md'])) {
+      assert.equal(out.trim(), '.claude-plugin/plugin.json');
+    }
   });
 
   test('a consuming repository prints nothing and exits 0, so it keeps the harness-path class', () => {
@@ -128,6 +137,24 @@ describe("hold 2 compares against the PR's own base (mhw#574)", () => {
     const mb = briefLines().filter((l) => /^git -C <repo> merge-base --all /.test(l));
     assert.equal(mb.length, 2, mb.join('\n'));
     for (const l of mb) assert.ok(l.startsWith('git -C <repo> merge-base --all origin/<base> '), l);
+  });
+
+  test("a consumer slice into an integration branch owes nothing for the branch's own harness paths", () => {
+    // main is behind the integration branch by a workflow change; the slice changes application code only.
+    const dir = tempDir('hold2-cbase');
+    assert.equal(git(['init', '-q', '-b', 'main', dir]).status, 0);
+    const m = commit(dir, ['apps/fed/src/main.ts', 'AGENTS.md'], 'seed');
+    assert.equal(git(['-C', dir, 'update-ref', 'refs/remotes/origin/main', m]).status, 0);
+    const rc = commit(dir, ['.github/workflows/app.yml'], 'rc');
+    assert.equal(git(['-C', dir, 'update-ref', 'refs/remotes/origin/' + BASE, rc]).status, 0);
+    const head = commit(dir, ['apps/fed/src/page.ts'], 'slice');
+    const p = spawnSync('sh', ['-c', fill(consumerSelector(), dir, head)], { encoding: 'utf8', env: ENV });
+    assert.ok(p.status === 0 || p.status === 1, p.stderr);
+    assert.equal(p.stdout, '', 'an application-only slice owes no marker; got:\n' + p.stdout);
+    // Calibration: the same selector over the slice's own workflow change does print it.
+    const head2 = commit(dir, ['.github/workflows/slice.yml'], 'slice2');
+    const q = spawnSync('sh', ['-c', fill(consumerSelector(), dir, head2)], { encoding: 'utf8', env: ENV });
+    assert.equal(q.stdout.trim(), '.github/workflows/slice.yml');
   });
 
   test("a slice into an integration branch owes nothing for the branch's own unreleased paths", () => {
