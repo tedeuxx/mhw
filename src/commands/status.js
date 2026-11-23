@@ -24,6 +24,7 @@ import { readSettings, enabledPlugins, methodState, permissionsText, unreadSourc
 import { workspace } from '../lib/readers/workspace.js';
 import { harnessVersions, runtime } from '../lib/readers/host.js';
 import * as ownerActions from '../lib/readers/owner-actions.js';
+import { workspaceFindings as baseUrlFindings } from '../lib/base-url.js';
 import { statusText as chromeStatus, systemName } from '../render/chrome-debugging.js';
 import { cmpStr, isPyWs } from '../lib/py.js';
 
@@ -41,7 +42,7 @@ export { MARKER };
  *   runtime: string, admin_state?: string, admin_code?: number, settings?: Setting[], permissions?: string,
  *   method?: { installed: boolean | null, duplicate: string[], unread?: string }, npm?: string[], chrome_debugging?: string | null,
  *   unread?: import('../lib/readers/settings.js').Unread[],
- *   owner_actions?: string, hook_node?: string, terms?: [boolean, string] }} Facts
+ *   owner_actions?: string, hook_node?: string, terms?: [boolean, string], base_url?: string[] }} Facts
  *   hook_node, terms: #488 (the prompt hook's node, and the term lists the salt file does not cover)
  */
 
@@ -455,6 +456,7 @@ export function renderStatus(f, verbose = false) {
   lines.push('  layers           managed: ' + managedText(f) + ' · user: ' + (user.length ? 'installed' : 'absent') +
     ' · workspace: ' + wsText + ' · plugin: ' + pluginText);
   for (const finding of ws.brief || []) lines.push('  root brief       ' + finding);
+  for (const finding of f.base_url || []) lines.push('  base url         ' + finding + ' (redirects the subscription bearer; informs only)');
   lines.push('  protections      brief: ' + f.brief + ' · deny floor: ' + f.floor + ' · hooks registered: ' + f.hooks);
   // #488: the node the prompt hook runs, and any hashed term list the salt file does not cover.
   lines.push('  hook node        ' + (f.hook_node ?? 'not read'));
@@ -512,6 +514,8 @@ export function renderSummary(f, env) {
   const off = settings.filter(([, , k, v]) => k === 'disableAllHooks' && v === 'true').map(([h, layer]) => h + ' ' + layer);
   if (off.length) overrides.unshift('HOOKS OFF: disableAllHooks in ' + off.join(', '));
   for (const u of (f.unread || []).filter((x) => x.layer === 'workspace')) overrides.push(u.harness + ' not read (' + u.reason + ')');
+  // #27 rides on the overrides item, so the summary keeps its ten-line limit.
+  for (const finding of f.base_url || []) overrides.unshift('BASE URL ' + finding);
   lines.push('  overrides        ' + (overrides.length ? overrides.join('; ') : 'no workspace setting overrides a user default'));
   lines.push('  cannot override  ' + cannotOverride(f));
   // The installers' --check drift rides on the protections item (Issue #38).
@@ -636,6 +640,8 @@ export function gather(project, env, cwd) {
     method: methodState(env, userLines, plugins), npm: npmNotes(source, userStamps),
     chrome_debugging: chromeStatus(systemName(), homeOf(env)),
     owner_actions: ownerActions.text(ownerActions.read({ env })),
+    // #27: a workspace env.ANTHROPIC_BASE_URL, as file:line and a category; it informs and never blocks.
+    base_url: baseUrlFindings(ws.root),
   };
 }
 

@@ -35,6 +35,7 @@ import { spawnSync } from 'node:child_process';
 import { onPath } from '../lib/onpath.js';
 import * as core from '../lib/clean.js';
 import { readSalt } from '../lib/salt.js';
+import * as baseUrl from '../lib/base-url.js';
 
 const NO_REPOSITORY = 'not inside a git repository; mhw scan needs one, in every mode';
 const NO_GIT = 'git was not found on PATH; mhw scan needs it in this mode';
@@ -398,7 +399,13 @@ function scan(ctx, targets, conf, root, commits) {
       continue;
     }
     scanned += 1;
-    const findings = scanText(decode(raw), ...det);
+    const text = decode(raw);
+    const findings = scanText(text, ...det);
+    // #27: a Claude Code settings file whose env block sets ANTHROPIC_BASE_URL; the value is never shown.
+    if (baseUrl.isSettingsPath(name)) {
+      for (const [line, length] of baseUrl.findInSettings(text)) findings.push([line, baseUrl.CATEGORY, length]);
+      findings.sort((a, b) => a[0] - b[0]);
+    }
     for (const [line, cat, length] of findings) ctx.out.push(name + ':' + line + ': ' + cat + ', ' + length + ' chars\n');
     total += findings.length;
     if (findings.length) filesWith += 1;

@@ -218,7 +218,9 @@ capability boundary** — a real downgrade from the plugin's retired rule 5e, st
    hypothetical: the batch the owner rejected outright was ranked honestly against the six, and the
    gate names what that ranking had no way to ask. A social post is a third pass, against the
    teaser rules in the same file — they are a different artifact from the article, not a compression
-   of it.
+   of it. **Pick its format code first, from `published-voice` rule 26's closed catalog** (mhw#564): a
+   post for a piece that ships is `F1`; any other post takes the next rotation code. Say the code you
+   picked in your return, and record it with the post. Shape the vehicle; never the merit of his idea.
 5. Where the source runs out and the draft needs a claim it doesn't have, stop that section and flag it
    explicitly rather than inventing forward.
 6. Write the draft to a tracked file. Say plainly, in your return, that it is a draft pending the owner's
@@ -227,6 +229,7 @@ capability boundary** — a real downgrade from the plugin's retired rule 5e, st
    in the latest round; drop or take the advisory ones as you judge, silently. Then say which round you
    answered, under which correction (or the first review), and whether that correction's bound is now
    spent.
+8. **Your report of done names the full forty-character head your work is on, and declares that no background process you started is still running** (mhw#439). Stop what you started first; a process that can still push makes the review spend a round on a head that will move.
 
 ## `scrum-master` — the eighth profile, and it is not in your loop (#375)
 

@@ -20,6 +20,12 @@ jobs:
           count="$(jq '[.[] | select(test("^semver:(major|minor|patch)$"))] | length' <<<"$LABELS")"
           if [ "$count" -ne 1 ]; then
             echo "::error::expected exactly one semver:major|minor|patch label, found $count"
+            # The three rows of the ADR-0002 cut table (2026-11-23 amendment); test/release/semver-label.test.js
+            # fails when these lines drift from that table.
+            echo 'Pick one (ADR-0002, 2026-11-23 amendment; the highest row wins):'
+            echo 'semver:major: A break of the public interface: a command or option of the mhw CLI is removed or changes meaning, or the overlay schema the user writes becomes incompatible.'
+            echo 'semver:minor: A new functionality, including a new control, skill or harness.'
+            echo 'semver:patch: A fix, or an incremental change to something that exists: method, skills, briefs, controls, docs, tests, CI.'
             exit 1
           fi
           echo "semver label OK: $(jq -r '[.[] | select(test("^semver:"))][0]' <<<"$LABELS")"
