@@ -57,6 +57,8 @@ describe('the source shape', () => {
       'content-publishing', 'orchestration',
       // #195: the canonical merge-authority contract.
       'merge-authority',
+      // #567: the positioning-sync procedure, moved out of a private note.
+      'positioning-sync',
       // The four rites moved at #130 (owner, 2026-10-12) and became skills on 2026-10-26 (owner: "para mim sao skills").
       'sprint-planning', 'sprint-review', 'sprint-retrospective', 'funnel-review'].sort(byCode));
     // #198 added /handoff; #522 added /backlog-grooming.
@@ -910,5 +912,42 @@ describe('through the installer', { skip: !POSIX && 'the user-layer installer is
     const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'install-user', '--method', '--overlay=none', '--managed-root=' + path.join(root, 'admin')], { env, encoding: 'utf8' });
     assert.ok(p.stdout.includes('REFUSE  the working method (method/): MHW_NODE (' + env.MHW_NODE + ') is not an executable file; nothing written'), p.stdout + p.stderr);
     assert.ok(!fs.existsSync(path.join(home, '.claude', 'agents')));
+  });
+});
+
+// Issue #567: the positioning-sync procedure is a method skill, so every agent harness runs the same steps.
+// A rule that lived only in a consumer's private, untracked note reached no agent. These are drift checks
+// over the skill's STRINGS: they assert the procedure is written, never that a session followed it.
+describe('the positioning-sync skill', () => {
+  const POSITIONING_SYNC = src('skills/positioning-sync/SKILL.md');
+  test('it carries the procedure and its key clauses', () => {
+    const text = flatten(read(POSITIONING_SYNC));
+    for (const clause of [
+      'a positioning change propagates to every public surface in one batch, or it does not propagate.',
+      'a read-only connector cannot write a profile',
+      'Nothing is typed or saved on any surface before his ok.',
+      'to what actually shipped, never to what was intended.',
+      '**Headline coherent across surfaces**',
+      '**Years of experience consistent**',
+      '**Contact address consistent**',
+      '**The portfolio points at existing, non-empty repositories**',
+      '**No client name on any surface**',
+      '## Choices and their trade-offs',
+      '**All of this is an instruction.**',
+    ]) assert.ok(text.includes(clause), clause);
+  });
+  test('it points at the skills that own the rest instead of restating them', () => {
+    const text = read(POSITIONING_SYNC);
+    for (const skill of ['published-voice', 'content-publishing', 'orchestration', 'merge-authority']) {
+      assert.ok(text.includes('the `' + skill + '` skill'), skill);
+    }
+  });
+  test('it names no consumer', () => {
+    assert.deepEqual(read(POSITIONING_SYNC).split('\n').filter((l) => new RegExp(CONSUMER_WORDS.source, 'i').test(l)), []);
+  });
+  test('product-lead points at it', () => {
+    const text = read(src('agents/product-lead.md'));
+    assert.equal(count(text, /the `positioning-sync` skill/g), 2);
+    assert.ok(!text.includes('and a sync playbook'));
   });
 });
