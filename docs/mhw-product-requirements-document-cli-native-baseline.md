@@ -176,7 +176,7 @@ release that ships this document is the major (v11) that sets the new interface.
 
 1. Which usage data each harness exposes for the worklog (Claude Code, Codex, Kiro), to be verified per
    harness before the worklog slice.
-2. Whether Kiro CLI's prompt-submit hook can block (the vendor pages conflict). To be measured.
+2. Whether Kiro CLI's prompt-submit hook can block (the vendor pages conflict). ~~To be measured.~~ *(Measured, below.)*
    **Measured once, 2026-11-23 (#588, the owner's decision on the Issue):** on `kiro-cli` 3.5.0 (as
    `kiro-cli --version` reported right after the run), V3 engine, a `UserPromptSubmit` hook that exits 2
    **does not block the prompt**. The hook ran and exited 2, Kiro recorded its stderr as a note in the turn,

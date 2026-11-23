@@ -12,7 +12,8 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { J } from '../clean/corpus.js';
 import { which } from '../helpers/home.js';
-import { simpleCommands, actionsOf, pushRevisions, bodyFiles, addedBlocks, patchPath, headerPath } from '../../src/hooks/pattern-check.js';
+import { Readable } from 'node:stream';
+import { simpleCommands, actionsOf, pushRevisions, bodyFiles, addedBlocks, patchPath, headerPath, run } from '../../src/hooks/pattern-check.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SCRIPT = path.join(ROOT, 'src', 'hooks', 'pattern-check.js');
@@ -330,6 +331,16 @@ test('the pre-tool deadline holds where synchronous work could outlast it (table
     assert.match(out.stderr, row.stderr, row.name);
     assert.ok(ms < row.ms, row.name + ': took ' + ms + ' ms');
   }
+});
+
+// The table's late-pass row, run in process so the payload arrives at once (QA round 2 on PR #605): a
+// 4.8 MB non-push command text takes longer than a 40 ms deadline to read, and the pass it reaches comes in
+// late, so it must turn into a block. With the late-pass rule removed the answer is a pass (code 0).
+test('the pre-tool deadline: a pass that comes in after the deadline is a block (late-pass row)', async () => {
+  const payload = Buffer.from(JSON.stringify({ hook_event_name: 'PreToolUse', cwd: BASE, tool_name: 'Bash', tool_input: { command: 'echo ' + 'a '.repeat(2_400_000) } }));
+  const r = await run(['pre-tool', '--harness', 'claude'], { PATH: process.env.PATH || '' }, { stdin: Readable.from([payload]), deadlineMs: 40 });
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /could not run \(TimeoutError\)/);
 });
 
 // ------------------------------------------------------------------------------------------- self-contained

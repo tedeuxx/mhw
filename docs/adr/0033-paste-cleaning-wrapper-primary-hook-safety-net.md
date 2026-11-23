@@ -344,8 +344,11 @@ declares every difference.
   127, which no agent harness treats as a block. Both installers therefore render the command as
   `/bin/sh -c '<the hook> || <fallback>'`.
   - The fallback on Claude Code and Codex prints the NOT-checked notice as a `systemMessage`
-    (`internal error (HookStartError)`) and exits 0. On Kiro it puts the notice on stderr and exits 2, the
-    one answer Kiro shows. The hook's own exit 2 (a block) passes through unchanged.
+    (`internal error (HookStartError)`) and exits 0. On Kiro it puts the notice on stderr and exits 2, ~~the
+    one answer Kiro shows. The hook's own exit 2 (a block) passes through unchanged.~~ *(Struck 2026-11-23:
+    measured on kiro-cli 3.5.0 V3, a prompt hook's exit 2 is not a block, Kiro passes its message to the
+    model as a note; see the 2026-11-23 amendment, "fixed patterns move to an installed script", and PRD
+    open question 2.)* The hook's own exit 2 passes through unchanged.
   - A healthy hook's output and exit code are unchanged (tested against the hook run directly).
   - The explicit `/bin/sh -c` means the same whether the agent harness runs the string through a shell
     (Claude Code: documented) or splits it into words itself. For Codex (its hook runner calls a shell with
