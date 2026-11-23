@@ -1,7 +1,8 @@
 # ADR-0046: The method's agent briefs name tadeumendonca-skills as its plugin-form mirror, and the evidence their old notice carried lives here
 
-- **Status:** proposed (agent-written; the decision is the owner's ruling of 2026-11-23 on
-  [Issue #579](https://github.com/tedeuxx/mhw/issues/579), and this record's text awaits his ratification)
+- **Status:** ~~proposed~~ accepted (2026-11-23, the owner's ratification on
+  [PR #601](https://github.com/tedeuxx/mhw/pull/601#issuecomment-7110437425): «Ratificado»). The decision is his ruling of 2026-11-23 on
+  [Issue #579](https://github.com/tedeuxx/mhw/issues/579); the text was written by `agents-lead`.
 - **Date:** 2026-11-23
 - **Deciders:** the owner (the premise and the ruling); written by `agents-lead`, the lens for the
   `loop` lane
