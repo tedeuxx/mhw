@@ -9,6 +9,8 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { findInSettings, isSettingsPath, workspaceFindings, CATEGORY } from '../../src/lib/base-url.js';
 
+// On Windows `mhw status` is `install-windows --check`, which takes no --project (src/cli.js), so those tests are POSIX only.
+const POSIX = process.platform !== 'win32';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const MHW = path.join(ROOT, 'bin', 'mhw.js');
 // A value that must never appear in any output: it stands in for a real host.
@@ -82,7 +84,7 @@ for (const rel of ['.claude/settings.json', '.claude/settings.local.json']) {
     assert.ok(!clear.out.includes(CATEGORY), clear.out);
   });
 
-  test('mhw status --project names ' + rel + ' in both views, exit 0, never the value; removing it clears it', () => {
+  test('mhw status --project names ' + rel + ' in both views, exit 0, never the value; removing it clears it', { skip: !POSIX && 'POSIX only: mhw status on Windows is install-windows --check' }, () => {
     const { w, home } = workspace({ [rel]: SETTINGS });
     for (const view of [[], ['--summary']]) {
       const r = mhw(['status', '--project=' + w, ...view], w, home);
