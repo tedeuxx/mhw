@@ -474,6 +474,82 @@ describe('the reader-facing lens before the gate', () => {
   });
 });
 
+// Issue #564 (owner, 2026-11-23): published-voice carries a closed catalog of social-post formats, and
+// funnel-review compares posts by its code. Drift checks over strings: they assert the rule is WRITTEN.
+const PUBLISHED_VOICE = src('skills/published-voice/SKILL.md');
+const CATALOG_HEADING = '## The social-post catalog — rule 26, five formats, and the digest is one of them';
+/** The catalog section, raw, up to the next level-2 heading. */
+function catalogSection() {
+  const text = read(PUBLISHED_VOICE);
+  const start = text.indexOf('\n' + CATALOG_HEADING + '\n');
+  assert.ok(start >= 0, 'the catalog section is missing');
+  const end = text.indexOf('\n## ', start + 1);
+  return text.slice(start, end === -1 ? text.length : end);
+}
+const CATALOG_CLAUSES = [
+  'Every LinkedIn or X post is drafted in exactly ONE format from the closed catalog below',
+  'it never judges the merit of the owner\'s idea.',
+  '**`F1` runs outside the rotation.**', '**Otherwise alternate `F2` and an `F3` variant.**',
+  '**The code is recorded with every published post**', '**A post published with no code is `unlabelled`.**',
+  '**A reviewer who disagrees with the idea has no finding.**', 'never originate a thesis to fill a rotation slot.',
+  // The vehicle rule in full (agents-lead A2 on PR #573): the prohibition list, the surviving bounds, F2's question.
+  '**What neither may do, ever:** call the thesis wrong, weak, obvious, unoriginal, risky or not ready; swap it for a '
+    + 'stronger one; soften it to be safer; or add a counter-argument he did not make.',
+  '**Three bounds survive the merit rule, because none of them is about merit:** *The subject is bounded*',
+  'every rule about third-party property; and **fidelity to the source**',
+  'a claim false against the source is still repaired',
+  '**one thesis, the owner\'s**, stated in the first line, and **one question to the audience**, closing the post.',
+  '**Poll positions he does not hold are the format, not a counter-argument:**',
+  '**Today that comparison reads LinkedIn only:**',
+];
+// The pointers that make the drafting, reviewing and publishing actors reach rule 26.
+const CATALOG_POINTERS = [
+  ['agents/content-writer.md', '**Pick its format code first, from `published-voice` rule 26\'s closed catalog**'],
+  ['agents/content-reviewer.md', '**On any social post, check its format code against `published-voice` rule 26**'],
+  // The reviewer keeps the truth repair and the merit ban (agents-lead B2 and A5 on PR #573).
+  ['agents/content-reviewer.md', 'Repair the vehicle, and a claim false against the source under ground 2;'],
+  ['agents/content-reviewer.md', 'disagreeing with his idea is never a finding.'],
+  ['skills/content-publishing/SKILL.md', '**Both posts of this pair are format `F1`, the article digest**'],
+  ['skills/funnel-review/SKILL.md', '**never with a guessed code**'],
+];
+describe('the social-post format catalog', () => {
+  test('the drafting, reviewing, publishing and funnel surfaces point at rule 26', () => {
+    for (const [rel, clause] of CATALOG_POINTERS) assert.ok(flatten(read(src(rel))).includes(clause), rel + ': ' + clause);
+  });
+  test('the skill carries no open question to the owner about the goal', () => {
+    assert.ok(!flatten(catalogSection()).includes('that is his to say'));
+  });
+  test('the catalog lists the five codes, one row each, with their link rule', () => {
+    const rows = catalogSection().split('\n').filter((l) => /^\| `F[0-9a-z]+` \|/.test(l));
+    assert.deepEqual(rows.map((l) => l.split('|')[1].trim()), ['`F1`', '`F2`', '`F3a`', '`F3b`', '`F3c`']);
+    assert.ok(rows[0].includes('| yes,'), 'F1 carries the canonical link');
+    for (const row of rows.slice(1)) assert.ok(row.includes('| no |'), row);
+  });
+  test('the rotation, the label and the vehicle rule are written', () => {
+    const section = flatten(catalogSection());
+    for (const clause of CATALOG_CLAUSES) assert.ok(section.includes(clause), clause);
+  });
+  test('the catalog names no consumer', () => {
+    assert.deepEqual(catalogSection().split('\n').filter((l) => new RegExp(CONSUMER_WORDS.source, 'i').test(l)), []);
+  });
+  test('funnel-review and its contract read the format code', () => {
+    const rite = flatten(read(src('skills/funnel-review/SKILL.md')));
+    for (const clause of ['**Each post figure carries the post\'s format code**', '`<metric>.<format>.<post>`',
+      '**When the report compares posts, it compares them BY FORMAT CODE (mhw#564).**',
+      '**`unlabelled` posts are reported as such and left out of every per-format comparison.**']) assert.ok(rite.includes(clause), clause);
+    assert.ok(read(src('scripts/funnel-review-contract/README.md')).includes('<metric>.<format>.<post>'));
+  });
+  test('the catalog reaches every agent harness carrier', () => {
+    const home = methodHome();
+    const r = home.run(['--mode=install']);
+    assert.equal(r.code, 0, r.out);
+    for (const rendered of ['.claude/skills/published-voice/SKILL.md', '.agents/skills/published-voice/SKILL.md', '.kiro/skills/published-voice/SKILL.md']) {
+      const text = flatten(read(home.p(rendered)));
+      for (const clause of CATALOG_CLAUSES) assert.ok(text.includes(clause), rendered + ': ' + clause);
+    }
+  });
+});
+
 // Issue #439: the head the builder reported is the head under review, and nothing it started is still running.
 // Drift checks over STRINGS, at the *written* level: they assert the rule is carried, never that a session followed it.
 const HEAD_CHECK_HEADING = 'Before the gate: the head the builder reported is the head under review';

@@ -218,7 +218,9 @@ capability boundary** — a real downgrade from the plugin's retired rule 5e, st
    hypothetical: the batch the owner rejected outright was ranked honestly against the six, and the
    gate names what that ranking had no way to ask. A social post is a third pass, against the
    teaser rules in the same file — they are a different artifact from the article, not a compression
-   of it.
+   of it. **Pick its format code first, from `published-voice` rule 26's closed catalog** (mhw#564): a
+   post for a piece that ships is `F1`; any other post takes the next rotation code. Say the code you
+   picked in your return, and record it with the post. Shape the vehicle; never the merit of his idea.
 5. Where the source runs out and the draft needs a claim it doesn't have, stop that section and flag it
    explicitly rather than inventing forward.
 6. Write the draft to a tracked file. Say plainly, in your return, that it is a draft pending the owner's

@@ -337,7 +337,13 @@ Read, for the period:
   link pinned to one language sets that value by the link, not by the reader. **A neutral share
   address**, one that carries no language of its own, **stays a page-path figure**: it is reported
   under its path, never assigned a language;
-- **the post metrics** for each piece published in the period — impressions, reactions, comments;
+- **the post metrics** ~~for each piece published in the period~~ for **each post** published in the
+  period, whatever its format — impressions, reactions, comments. *(Widened 2026-11-23, mhw#564: a
+  rotation post has no piece behind it, so "each piece" missed it.)* **Each
+  post figure carries the post's format code** from `published-voice` rule 26, read from the post
+  record the consuming repository keeps, in the contract's post spelling
+  `<metric>.<format>.<post>` (for example `reactions.F2.<post>`). A post whose record carries no code is
+  written with the format `unlabelled`, **never with a guessed code**;
 - **nothing else.** X analytics are out of scope by name; they were not read even in the prototype.
 
 **Declare the internal-traffic state; never leave it to be assumed.** The collection file carries one
@@ -385,6 +391,15 @@ non-empty, with one direct invocation proving it can.
 exactly this work. It holds `Write` and `Bash`, so it runs step 2 and lands the file itself; nothing
 is relayed through the orchestrator, because relaying is what turns a rite's own artifact into
 somebody else's summary of it.
+
+**When the report compares posts, it compares them BY FORMAT CODE (mhw#564).** Read the format
+segment of each post figure and group by it: `F1` against `F1`, `F2` against `F2`, each `F3` variant
+on its own, on **reactions and comments**, which are what a post is measured on; impressions are
+context, not the score. Never pool formats into one average, and never compare a rotation post with
+an `F1` post as if alike: one carries a link and an article, the other carries neither. **`unlabelled`
+posts are reported as such and left out of every per-format comparison.** Say the n of each group
+beside it; one post per format is a story about one post. `mhw funnel-review` does not group anything:
+the grouping is the driver's reading of the printed figures.
 
 **A finding is:** what the numbers show · the figure that shows it · what it costs · the change
 proposed, or the price of leaving it. **At most two, the driver choosing which** — and *"None this
