@@ -398,7 +398,12 @@ his ratification at the release candidate. Superseding this record as a whole is
 - **Evidence level.** Written and tested: the script with each harness's payload shape, and the installed
   commands from a throwaway home, block and pass. Not installed on the reference machine. Not measured in
   a live Claude Code, Codex or Kiro session. Codex asks to trust a changed hook again; that is the owner's
-  act (`/hooks`). Kiro CLI prompt-submit blocking stays unmeasured (PRD open question 2, recorded there).
+  act (`/hooks`). ~~Kiro CLI prompt-submit blocking stays unmeasured (PRD open question 2, recorded there).~~
+  *Measured once on 2026-11-23 (PRD open question 2, where the command and the evidence are):* on
+  `kiro-cli` 3.5.0, V3 engine, a `UserPromptSubmit` hook's exit 2 does **not** keep the prompt from the
+  model; Kiro adds the hook's stderr to the turn as a note and the model answers. That holds for this
+  check's prompt half and for the paste filter's Kiro hook alike, which ran in the same turn. On Kiro CLI
+  the prompt half is therefore not a block; the outbound half (PreToolUse) is not measured.
 - **Windows.** Not carried by this amendment: see ADR-0035 decision 7's amendment of the same date.
 
 ## Links

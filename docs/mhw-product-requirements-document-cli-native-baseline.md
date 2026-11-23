@@ -105,7 +105,7 @@ kiro.dev/docs/hooks):
 
 | | Claude Code | Codex 0.163 | Kiro CLI 3.1 / IDE |
 | --- | --- | --- | --- |
-| Command hook before the prompt, blocking | yes | yes | IDE yes; the CLI pages conflict, likely no |
+| Command hook before the prompt, blocking | yes | yes | IDE yes; the CLI pages conflict, likely no. **CLI: no, measured once** (3.5.0, V3, 2026-11-23, #588; open question 2) |
 | Command hook before a tool (`git push`), blocking | yes | yes | yes |
 | Model-judged hook that blocks | yes (`type: prompt`) | no: parsed and skipped | no: "Agent Prompt" only adds context |
 | Replace the prompt with a redacted copy | no, block and show | no, block | not confirmed |
@@ -177,14 +177,30 @@ release that ships this document is the major (v11) that sets the new interface.
 1. Which usage data each harness exposes for the worklog (Claude Code, Codex, Kiro), to be verified per
    harness before the worklog slice.
 2. Whether Kiro CLI's prompt-submit hook can block (the vendor pages conflict). To be measured.
-   *Not measured by #588 (2026-11-23), and why:* kiro-cli 3.1.0 is installed on the build machine, but it
+   **Measured once, 2026-11-23 (#588, the owner's decision on the Issue):** on `kiro-cli` 3.5.0 (as
+   `kiro-cli --version` reported right after the run), V3 engine, a `UserPromptSubmit` hook that exits 2
+   **does not block the prompt**. The hook ran and exited 2, Kiro recorded its stderr as a note in the turn,
+   and the turn went on to the model: a model reply came back and 0.17 credits were used. The session log
+   (`~/.kiro/sessions/.../messages.jsonl`) holds the prompt as a user record before the hook notes, and the
+   reply named the synthetic token's `ghp_` prefix, which no hook output carried, so the prompt itself most
+   likely reached the model; the log does not show the request body, so that last step is inferred, not
+   seen. Clean control: the same hook exited 0 and the model answered `PONG`. Command, run in a throwaway
+   workspace whose `.kiro/hooks/pattern-check-588.json` runs `node src/hooks/pattern-check.js prompt
+   --harness kiro` from #588's branch with a distinct notice and logs its exit code:
+   `kiro-cli chat --no-interactive --v3 --trust-workspace --trust-tools= "Reply with the single word PONG
+   and nothing else. Key: <a synthetic ghp_ token>"`. The owner's real HOME was used, because a throwaway
+   HOME is not logged in, so his user-level paste-filter hook ran in the same turn and also exited 2 without
+   blocking. Consequence: on Kiro CLI V3 neither prompt hook is a block; at most it adds a note to the
+   model's context. One run, one machine, one model; Kiro IDE not measured.
+   ~~*Not measured by #588 (2026-11-23), and why:* kiro-cli 3.1.0 is installed on the build machine, but it
    has no headless mode that runs the hooks and stops before the model: `kiro-cli chat --no-interactive`
    sends the prompt to the model whenever the hook does not block, so a run that finds "it does not block"
    is itself a model call carrying the test input. Read from the 3.1.0 bundle, not measured: its hook
    document has a `UserPromptSubmit` trigger and a `matcher` field. The #588 hook gives the same exit-2 answer
    as the paste filter's Kiro hook, whose block path inside Kiro is not measured either; that Kiro loads a
    user-level file in `~/.kiro/hooks/` and invokes it on each prompt was measured at the 2026-11-08 canary
-   (ADR-0033). To be measured in an interactive session by the owner or a later slice.
+   (ADR-0033). To be measured in an interactive session by the owner or a later slice.~~ *(Struck the same
+   day: the owner chose to measure it, accepting a small credit cost; the result is above.)*
 3. How the quality-assurance verdict becomes a GitHub status check that a ruleset can require.
 4. Which native carrier checks a publication made through the browser tool.
 5. How the cloud environments document's `mhw cloud setup-script` and `mhw install --cloud` fit the
