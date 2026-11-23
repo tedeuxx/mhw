@@ -490,8 +490,30 @@ const CATALOG_CLAUSES = [
   '**`F1` runs outside the rotation.**', '**Otherwise alternate `F2` and an `F3` variant.**',
   '**The code is recorded with every published post**', '**A post published with no code is `unlabelled`.**',
   '**A reviewer who disagrees with the idea has no finding.**', 'never originate a thesis to fill a rotation slot.',
+  // The vehicle rule in full (agents-lead A2 on PR #573): the prohibition list, the surviving bounds, F2's question.
+  '**What neither may do, ever:** call the thesis wrong, weak, obvious, unoriginal, risky or not ready; swap it for a '
+    + 'stronger one; soften it to be safer; or add a counter-argument he did not make.',
+  '**Three bounds survive the merit rule, because none of them is about merit:** *The subject is bounded*',
+  'every rule about third-party property; and **fidelity to the source**',
+  'a claim false against the source is still repaired',
+  '**one thesis, the owner\'s**, stated in the first line, and **one question to the audience**, closing the post.',
+  '**Poll positions he does not hold are the format, not a counter-argument:**',
+  '**Today that comparison reads LinkedIn only:**',
+];
+// The pointers that make the drafting, reviewing and publishing actors reach rule 26.
+const CATALOG_POINTERS = [
+  ['agents/content-writer.md', '**Pick its format code first, from `published-voice` rule 26\'s closed catalog**'],
+  ['agents/content-reviewer.md', '**On any social post, check its format code against `published-voice` rule 26**'],
+  ['skills/content-publishing/SKILL.md', '**Both posts of this pair are format `F1`, the article digest**'],
+  ['skills/funnel-review/SKILL.md', '**never with a guessed code**'],
 ];
 describe('the social-post format catalog', () => {
+  test('the drafting, reviewing, publishing and funnel surfaces point at rule 26', () => {
+    for (const [rel, clause] of CATALOG_POINTERS) assert.ok(flatten(read(src(rel))).includes(clause), rel + ': ' + clause);
+  });
+  test('the skill carries no open question to the owner about the goal', () => {
+    assert.ok(!flatten(catalogSection()).includes('that is his to say'));
+  });
   test('the catalog lists the five codes, one row each, with their link rule', () => {
     const rows = catalogSection().split('\n').filter((l) => /^\| `F[0-9a-z]+` \|/.test(l));
     assert.deepEqual(rows.map((l) => l.split('|')[1].trim()), ['`F1`', '`F2`', '`F3a`', '`F3b`', '`F3c`']);

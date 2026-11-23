@@ -1364,7 +1364,8 @@ fits none of the five is a question back to him, not a new code.
 - **A post published with no code is `unlabelled`.** Nothing infers a code afterwards from how the post
   reads: a guessed label is a figure with no source.
 - **The label exists to be read:** `/funnel-review` compares posts by it, on reactions and comments, at
-  the retrospective (its steps 1 and 3).
+  the retrospective (its steps 1 and 3). **Today that comparison reads LinkedIn only:** X analytics are
+  out of scope by name in `/funnel-review`, so an X post's code is recorded and read by no step.
 
 ### What each format must carry
 
@@ -1376,7 +1377,8 @@ fits none of the five is a question back to him, not a new code.
 - **`F3b`** — the thesis becomes **2–3 positions in the network's native poll**, and **the poll is the
   question**. The owner's own position is one of them; the others are the positions the debate actually
   holds, framed fairly. The positions are craft (connective framing), and like every draft they go back
-  to him.
+  to him. **Poll positions he does not hold are the format, not a counter-argument:** they are options
+  to vote on, never an argument the post makes against him.
 - **`F3c`** — `F2`, plus **exactly one visual of his practice**: an image or a diagram of something he
   actually runs, never a stock or decorative image. A diagram stays simple, one idea, in the two kinds
   `documentation-standard` names.
@@ -1401,9 +1403,13 @@ reviewer who disagrees with the idea has no finding.** The idea is his, and its 
 or `F3` post must exist in his material; where it does not, **stop and ask — never originate a thesis
 to fill a rotation slot.** An empty slot is a missing source, not a prompt.
 
-**Two bounds survive the merit rule, because neither is about merit:** *The subject is bounded*
-(including what he named out of bounds), and every rule about third-party property. Those are his
-rulings on what may be published, not judgements of how good an idea is.
+**Three bounds survive the merit rule, because none of them is about merit:** *The subject is bounded*
+(including what he named out of bounds); every rule about third-party property; and **fidelity to the
+source** — the post states his thesis as his material states it, and a claim false against the source
+is still repaired, on `content-reviewer`'s ground that the claim is false against the source. Keeping
+the thesis is merit and stays his; whether the post reproduces it correctly is truth. The first two are
+his rulings on what may be published, the third is the sourcing rule; none is a judgement of how good
+an idea is.
 
 ### What is a RULE in rule 26, and what is ADVISORY
 
@@ -1435,8 +1441,7 @@ answers.
    reactions and comments the measure of every post and traffic a byproduct. **Read together:** the
    measure is reactions and comments, on every format; on `F1`, the only format with a link, carrying
    the reader to the piece is still the digest's second job, but it is not what the post is measured
-   on. If the newer decision was meant to retire that job on `F1` too, that is his to say; this file
-   does not decide it for him.
+   on.
 
 ### What rule 26 CANNOT do
 
