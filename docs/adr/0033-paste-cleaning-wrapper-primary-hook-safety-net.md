@@ -359,6 +359,48 @@ declares every difference.
   - On Claude Code and Codex the other error notices are visible. On Kiro it goes to stderr at exit 0, as before, and Kiro drops stderr
   there. That Kiro gap is unchanged by this slice.
 
+## Amendment 2026-11-23: fixed patterns move to an installed script run by native hooks ([#588](https://github.com/tedeuxx/mhw/issues/588), proposed)
+
+Status of the record unchanged (accepted). This amendment records slice 2a of the
+[CLI native baseline PRD](../mhw-product-requirements-document-cli-native-baseline.md) (sections 5 and 6).
+The direction is the owner's (2026-11-23: *"native with fallback"*; fixed-format patterns by *"a small
+script installed as a file, no CLI subcommand"*). The mechanism details below are the agents' and await
+his ratification at the release candidate. Superseding this record as a whole is slice 2b
+([#600](https://github.com/tedeuxx/mhw/issues/600)), which removes `mhw hook prompt` and the wrapper.
+
+- **The carrier.** `src/hooks/pattern-check.js` checks the fixed-format categories only (credential,
+  email, payment-card, cpf, cnpj, phone; `FIXED_CATEGORIES` in the core). `mhw install` copies it and the
+  two core files it imports (`src/lib/clean.js`, `src/lib/clean-unicode.js`) to
+  `<data dir>/pattern-check/`, each stamped. The admin layer copies it beside today's `hook-entry.js`,
+  under `bin/hook/src/hooks/`, where it imports the same root-owned core copy (ADR-0025). No hook command
+  names `mhw`. It is not one file: it is one script plus the engine it reuses, so there is one detector.
+- **Where it runs.** A native command hook on each harness: before each prompt (`UserPromptSubmit`) and
+  before a tool call (`PreToolUse`). Claude Code: `~/.claude/settings.json` (PreToolUse on the `Bash`
+  matcher). Codex: `~/.codex/hooks.json` (PreToolUse with no matcher). Kiro CLI V3: its own hook file,
+  `~/.kiro/hooks/<project>-pattern-check.json` (PreToolUse with no matcher), beside the paste filter's.
+  Under `--hooks=managed` the Claude Code and Codex entries are in the admin documents instead.
+- **The prompt half** blocks a fixed-format finding with a redacted copy, in the protocol the prompt hook
+  already uses on each harness, and reads the same `clipboard.conf` (its `block_categories`, its notices),
+  so a localised overlay localises it. A clean prompt prints nothing.
+- **One block message while both run.** `mhw hook prompt` stays registered and unchanged (its term
+  categories are #589's) and already blocks every fixed-format finding outside a session the paste wrapper
+  started. So the new prompt hook is rendered with `--defer-to-paste-filter` and stays silent wherever the
+  prompt hook blocks: always on Kiro (whose prompt hook ignores the marker), and on Claude Code and Codex
+  outside a wrapped session. In a wrapped session (`PMHWC_PASTE_WRAPPER=1`), where the prompt hook lets
+  every prompt through, the new hook still checks, so a typed credential there is now blocked. One prompt,
+  one block message, in every case; slice 2b drops the flag with the old hook. Tested on every harness's
+  output form, the installed commands run side by side; not measured in a live session.
+- **What it does not do.** No term list is read; no Claude Code paste marker lines are stripped from the
+  redacted copy. If the prompt hook fails to run its check (a term list it cannot decode, its own
+  deadline), it says the prompt was NOT checked and lets it through, and the deferring hook does not block
+  either: the same visible gap as before this amendment. On Kiro, its error notice at exit 0 is dropped, as
+  the prompt hook's is.
+- **Evidence level.** Written and tested: the script with each harness's payload shape, and the installed
+  commands from a throwaway home, block and pass. Not installed on the reference machine. Not measured in
+  a live Claude Code, Codex or Kiro session. Codex asks to trust a changed hook again; that is the owner's
+  act (`/hooks`). Kiro CLI prompt-submit blocking stays unmeasured (PRD open question 2, recorded there).
+- **Windows.** Not carried by this amendment: see ADR-0035 decision 7's amendment of the same date.
+
 ## Links
 
 - ADR-0011 (superseded; the history). ADR-0005 (no log). ADR-0008 (no persistence). ADR-0025 (admin

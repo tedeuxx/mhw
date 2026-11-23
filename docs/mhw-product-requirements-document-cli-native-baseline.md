@@ -177,6 +177,14 @@ release that ships this document is the major (v11) that sets the new interface.
 1. Which usage data each harness exposes for the worklog (Claude Code, Codex, Kiro), to be verified per
    harness before the worklog slice.
 2. Whether Kiro CLI's prompt-submit hook can block (the vendor pages conflict). To be measured.
+   *Not measured by #588 (2026-11-23), and why:* kiro-cli 3.1.0 is installed on the build machine, but it
+   has no headless mode that runs the hooks and stops before the model: `kiro-cli chat --no-interactive`
+   sends the prompt to the model whenever the hook does not block, so a run that finds "it does not block"
+   is itself a model call carrying the test input. Read from the 3.1.0 bundle, not measured: its hook
+   document has a `UserPromptSubmit` trigger and a `matcher` field. The #588 hook gives the same exit-2 answer
+   as the paste filter's Kiro hook, whose block path inside Kiro is not measured either; that Kiro loads a
+   user-level file in `~/.kiro/hooks/` and invokes it on each prompt was measured at the 2026-11-08 canary
+   (ADR-0033). To be measured in an interactive session by the owner or a later slice.
 3. How the quality-assurance verdict becomes a GitHub status check that a ruleset can require.
 4. Which native carrier checks a publication made through the browser tool.
 5. How the cloud environments document's `mhw cloud setup-script` and `mhw install --cloud` fit the

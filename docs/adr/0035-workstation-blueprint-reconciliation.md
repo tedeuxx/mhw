@@ -175,7 +175,7 @@ on every PR.
 - Design proposed by the agent, not the owner's words: it reuses the paste filter's detection engine,
   and it reports `file:line`, the rule and the match length. It never prints the matched text
   ([ADR-0005](0005-detection-response-hitl-without-log.md)).
-- **It informs. It never blocks.**
+- ~~**It informs. It never blocks.**~~ *(Amended 2026-11-23, [#588](https://github.com/tedeuxx/mhw/issues/588): `mhw scan` still informs and never blocks; the native hook before a push or pull request blocks. See that amendment below.)*
 
 ### 8. Model IDs, not aliases
 
@@ -924,6 +924,47 @@ until their slices move. There is still one detector per runtime and one answer.
 - **Evidence level.** *Written and tested*: `test/clean/` and `test/scan/` against goldens recorded
   from the Python original (CPython 3.14.6, macOS), on macOS, Linux and Windows CI, with live arms
   against that CPython in CI. **Not installed** on the reference machine.
+
+## Amendment 2026-11-23: decision 7 gets a native carrier that blocks ([#588](https://github.com/tedeuxx/mhw/issues/588), proposed)
+
+Status of the record unchanged (accepted). Decision 7 above reads *"It informs. It never blocks."* That
+stays true of `mhw scan` until slice 2b ([#600](https://github.com/tedeuxx/mhw/issues/600)) removes it, and
+is no longer the whole of decision 7: the owner chose a native hook before every outbound act (CLI native
+baseline PRD, section 5: *"You should not depend on calling the CLI to implement this mechanism."*), and on
+#588 he chose what it reads: *"comando e commits"* (the command and the commits, 2026-11-23). The mechanism
+details below are the agents' and await his ratification at the release candidate.
+
+- **The carrier** is the fixed-pattern check, `src/hooks/pattern-check.js`, installed as a file (ADR-0033's
+  amendment of the same date names where). A `PreToolUse` command hook on Claude Code, Codex and Kiro CLI
+  V3 runs it before a tool call.
+- **What triggers it.** A shell command that runs `git push` (any `-C DIR`, `-c`, `--git-dir` and a
+  leading `VAR=value`, `env` or `command` read the way sh reads the words) or `gh pr create`. A command
+  the word reading cannot see into (`$(...)`, backticks, `eval`, `sh -c`) still triggers on its text and
+  is checked in the hook's working directory. Every other call passes at once.
+- **What it reads** (the owner's *"comando e commits"*). The command text, a pull request's title and body
+  included; the file a `--body-file` or `-F` names; and every commit the push would send, which is every
+  commit reachable from the refspecs' sources (HEAD when none is named; `--all`, `--mirror` and `--tags`
+  as git reads them) and from no remote-tracking ref: its message and the lines it adds, as `mhw scan`
+  reads them, with the vendor no-reply address of the attribution trailer excepted. `gh pr create` checks
+  the commits HEAD would send too, since it can push the branch. Only the fixed-format categories.
+- **It blocks.** A finding stops the call on every harness: exit 2, the findings on stderr as
+  `<where>: <category>, <N> chars`, never the matched text (ADR-0005). The fix it names is brief rule 8's:
+  rewrite the unpushed commit that introduced it, not a follow-up commit.
+- **It fails closed.** A check that cannot run (no git, a payload it cannot read, more to read than the size
+  limit allows: `max_bytes` for one file's added lines, four times it for the whole push, a 20 s deadline, a hook that does not start) blocks the call and says why. The
+  outbound act is the boundary, and the owner can still run the command from his own terminal. This is
+  the opposite of the prompt half, which passes visibly on an error, as the prompt hook does.
+- **What it does not reach.** A push or pull request made outside an agent harness, or through a tool
+  that is not a shell command (the GitHub MCP, a browser); a commit whose added text is binary; the files
+  of the working tree that no commit carries (they are not sent). Employer and client terms (#589).
+- **Windows: not carried by this slice.** `mhw install-windows` installs no hook of any kind today (the
+  paste filter was never measured there, D7 of #470), and how Claude Code, Codex and Kiro run a command
+  hook on Windows is not measured. Rendering these entries there is left for a later slice of #588's
+  scope, named in its pull request, rather than written unmeasured.
+- **Evidence level.** Written and tested (per harness payload shape, block and pass, `git -C <dir> push`
+  included, each new assertion mutation-checked; the installed commands from a throwaway home). Not
+  installed on the reference machine and not measured in a live session of any harness. Codex asks to
+  trust the changed hooks again, which is the owner's act.
 
 ## Links
 
