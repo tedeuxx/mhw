@@ -28,7 +28,8 @@ after(() => fs.rmSync(BASE, { recursive: true, force: true }));
 function hook(args, payload, env = {}) {
   const p = spawnSync(process.execPath, [SCRIPT, ...args], {
     input: typeof payload === 'string' ? payload : JSON.stringify(payload), encoding: 'utf8',
-    env: { PATH: process.env.PATH || '', HOME: path.join(BASE, 'nohome'), ...env }, timeout: 30000,
+    env: { PATH: process.env.PATH || '', HOME: path.join(BASE, 'nohome'), ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}), ...env },
+    timeout: 30000,
   });
   return { code: p.status, stdout: p.stdout, stderr: p.stderr };
 }
@@ -120,19 +121,20 @@ test('one prompt yields one block message while `mhw hook prompt` still runs bes
 
 test('the command reading finds git push (with -C, -c and wrappers) and gh pr create, and nothing else', () => {
   assert.deepEqual(simpleCommands("a 'b c' \"d\\\"e\" f\\ g; h && i | j"), [['a', 'b c', 'd"e', 'f g'], ['h'], ['i'], ['j']]);
-  const cwd = '/w';
-  assert.deepEqual(actionsOf('git push', cwd), [{ kind: 'push', dir: '/w', gitDir: null, args: [] }]);
-  assert.deepEqual(actionsOf('git -C repo -c a=b push origin HEAD', cwd), [{ kind: 'push', dir: '/w/repo', gitDir: null, args: ['origin', 'HEAD'] }]);
-  assert.deepEqual(actionsOf('cd x && FOO=1 env -i git -C "/abs dir" push', cwd)[0].dir, '/abs dir');
-  assert.deepEqual(actionsOf('gh pr create --base rc/next --body-file b.md', cwd), [{ kind: 'pr', dir: '/w', args: ['--base', 'rc/next', '--body-file', 'b.md'] }]);
+  const cwd = path.resolve('/w');
+  const at = (/** @type {string} */ p) => path.resolve(cwd, p);
+  assert.deepEqual(actionsOf('git push', cwd), [{ kind: 'push', dir: cwd, gitDir: null, args: [] }]);
+  assert.deepEqual(actionsOf('git -C repo -c a=b push origin HEAD', cwd), [{ kind: 'push', dir: at('repo'), gitDir: null, args: ['origin', 'HEAD'] }]);
+  assert.deepEqual(actionsOf('cd x && FOO=1 env -i git -C "/abs dir" push', cwd)[0].dir, path.resolve('/abs dir'));
+  assert.deepEqual(actionsOf('gh pr create --base rc/next --body-file b.md', cwd), [{ kind: 'pr', dir: cwd, args: ['--base', 'rc/next', '--body-file', 'b.md'] }]);
   assert.deepEqual(actionsOf('gh --repo o/r pr create -t x', cwd)[0].kind, 'pr');
   assert.deepEqual(actionsOf('git log --oneline', cwd), []);
   assert.deepEqual(actionsOf('gh pr view 3', cwd), []);
-  assert.deepEqual(actionsOf('echo "$(git push)"', cwd), [{ kind: 'push', dir: '/w', gitDir: null, args: [] }], 'the text-level trigger');
+  assert.deepEqual(actionsOf('echo "$(git push)"', cwd), [{ kind: 'push', dir: cwd, gitDir: null, args: [] }], 'the text-level trigger');
   assert.deepEqual(pushRevisions(['-u', 'origin', 'feat', '+a:b', ':gone']), ['feat', 'a']);
   assert.deepEqual(pushRevisions(['origin']), ['HEAD']);
   assert.deepEqual(pushRevisions(['--all', 'origin']), ['--branches']);
-  assert.deepEqual(bodyFiles(['--body-file', 'a', '-Fb', '--body-file=c', '-F', '-'], '/w'), ['/w/a', '/w/b', '/w/c']);
+  assert.deepEqual(bodyFiles(['--body-file', 'a', '-Fb', '--body-file=c', '-F', '-'], cwd), [at('a'), at('b'), at('c')]);
 });
 
 // ------------------------------------------------------------------------------------------- outbound
@@ -179,7 +181,8 @@ function toolPayload(harness, command, cwd) {
 }
 
 const HARNESSES = ['claude', 'codex', 'kiro'];
-const skipGit = !GIT && 'git is not on PATH';
+// The outbound half runs from POSIX hooks only: mhw install-windows registers no hook (#588), so these cases are POSIX.
+const skipGit = (!GIT && 'git is not on PATH') || (process.platform === 'win32' && 'Windows carries no hook (#588)');
 
 test('pre-tool: a token in an unpushed commit\'s added line blocks git push, on every harness payload shape', { skip: skipGit }, () => {
   const r = repo('token-line', [{ file: 'config.txt', text: 'one\ntoken=' + TOKEN + '\n', message: 'add config' }]);
