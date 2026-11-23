@@ -520,7 +520,8 @@ test('live: Ctrl+C and Ctrl+D cancel add-term cleanly, write nothing, and restor
 
 test('the admin layer copies exactly the files the hook imports', () => {
   const seen = new Set();
-  const queue = [path.join(ROOT, 'src', 'commands', 'hook-entry.js')];
+  // The prompt hook's entry, and the fixed-pattern check (#588), which imports the same core copy.
+  const queue = [path.join(ROOT, 'src', 'commands', 'hook-entry.js'), path.join(ROOT, 'src', 'hooks', 'pattern-check.js')];
   while (queue.length) {
     const file = /** @type {string} */ (queue.shift());
     if (seen.has(file)) continue;

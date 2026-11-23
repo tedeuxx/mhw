@@ -36,15 +36,15 @@ import { onPath } from '../lib/onpath.js';
 import * as core from '../lib/clean.js';
 import { readSalt } from '../lib/salt.js';
 import * as baseUrl from '../lib/base-url.js';
+// The -U0 patch reader and the attribution-trailer rule, written once in the fixed-pattern check (#588), which
+// reads a push's commits the way this command does; re-exported here for this command's own tests.
+import { addedBlocks, withoutAttributionTrailer } from '../hooks/pattern-check.js';
+
+export { addedBlocks, withoutAttributionTrailer };
 
 const NO_REPOSITORY = 'not inside a git repository; mhw scan needs one, in every mode';
 const NO_GIT = 'git was not found on PATH; mhw scan needs it in this mode';
 const OBJECT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
-const HUNK = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
-const ATTRIBUTION_ADDRESSES = ['noreply' + '@' + 'anthropic.com', 'noreply' + '@' + 'openai.com'];
-// Python's ^ and $ under re.MULTILINE: only at a \n (JavaScript's m flag also takes \r, U+2028, U+2029).
-const ATTRIBUTION_TRAILER = new RegExp(String.raw`(?<![^\n])` + core.ci('co-authored-by') + String.raw`:([^<>\n]*)<(?:`
-  + ATTRIBUTION_ADDRESSES.map((a) => a.replaceAll('.', String.raw`\.`)).join('|') + String.raw`)>[ \t]*(?![^\n])`, 'gu');
 
 /**
  * @typedef {{ cwd: string, env: Record<string, string | undefined>, platform: string, out: string[], git: string | null,
@@ -123,54 +123,6 @@ function outbound(ctx, base) {
     if (parts.length >= 2 && OBJECT_ID.test(parts[0])) commits.push([parts[1], parts[0], parts.length > 3]);
   }
   return { root, paths, commits };
-}
-
-/** The path from a '+++ b/<path>' line; null for /dev/null. @param {string} name */
-function patchPath(name) {
-  let end = name.length;
-  while (end > 0 && name[end - 1] === '\t') end--;
-  let n = name.slice(0, end);
-  if (n.length > 1 && n.startsWith('"') && n.endsWith('"')) n = n.slice(1, -1);
-  return n.startsWith('b/') ? n.slice(2) : null;
-}
-
-/** The new-side path of a 'diff --git a/<path> b/<path>' line. @param {string} line */
-function headerPath(line) {
-  const head = line.slice('diff --git '.length);
-  if (head.endsWith('"') && head.includes(' "b/')) return head.slice(head.lastIndexOf(' "b/') + 4, -1);
-  return head.includes(' b/') ? head.slice(head.lastIndexOf(' b/') + 3) : null;
-}
-
-/**
- * [path, first line, text or null] from a -U0 patch: each hunk's added lines as one block; a binary file
- * is one entry with text null.
- * @param {string} patch
- * @returns {Array<[string, number, string | null]>}
- */
-export function addedBlocks(patch) {
-  /** @type {Array<{ path: string, first: number, lines: string[] | null }>} */
-  const blocks = [];
-  /** @type {string | null} */
-  let file = null;
-  /** @type {{ path: string, first: number, lines: string[] | null } | null} */
-  let current = null;
-  for (const line of patch.split('\n')) {
-    if (line.startsWith('diff --git ')) {
-      current = null;
-      file = headerPath(line);
-    } else if (current === null && line.startsWith('+++ ')) {
-      file = patchPath(line.slice(4));
-    } else if (current === null && line.startsWith('Binary files ') && file) {
-      blocks.push({ path: file, first: 0, lines: null });
-    } else if (line.startsWith('@@')) {
-      const m = HUNK.exec(line);
-      current = m && file ? { path: file, first: Number(m[1]), lines: [] } : null;
-      if (current) blocks.push(current);
-    } else if (current !== null && line.startsWith('+')) {
-      /** @type {string[]} */ (current.lines).push(line.slice(1));
-    }
-  }
-  return blocks.map((b) => [b.path, b.first, b.lines === null ? null : b.lines.join('\n') + '\n']);
 }
 
 /**
@@ -346,15 +298,6 @@ function scanCommit(ctx, [short, full, isMerge], det, limit) {
     }
   }
   return found;
-}
-
-/**
- * The message with only the vendor address cut from each required attribution trailer line; the key and
- * the name are kept, so the name is scanned, and the line count is kept.
- * @param {string} message
- */
-export function withoutAttributionTrailer(message) {
-  return message.replace(ATTRIBUTION_TRAILER, (whole, name) => (core.strip(name) ? whole.slice(0, 'co-authored-by:'.length + name.length) : whole));
 }
 
 /**

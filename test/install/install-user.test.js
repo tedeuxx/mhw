@@ -155,7 +155,11 @@ test('2. fresh install', { skip }, () => {
   const s = H + '/.claude/settings.json';
   assert.ok(!exists(data(H) + '/hitl-escalation-guard.sh') && !exists(data(H) + '/hitl.conf'));
   assert.equal(ours(s), 0);
-  assert.equal((json(s).hooks?.PreToolUse ?? []).length, 0);
+  // PreToolUse holds one group since #588: the fixed-pattern check on the Bash tool, and nothing else.
+  const pre = json(s).hooks?.PreToolUse ?? [];
+  assert.equal(pre.length, 1);
+  assert.equal(pre[0].matcher, 'Bash');
+  assert.ok(pre[0].hooks.length === 1 && pre[0].hooks[0].command.includes('/pattern-check/src/hooks/pattern-check.js" pre-tool --harness claude'));
   assert.ok(!(read(s) + /** @type {string} */ (read(H + '/.codex/hooks.json'))).includes('AskUserQuestion'));
   const briefs = [H + '/.claude/CLAUDE.md', H + '/.codex/AGENTS.md', H + '/.kiro/steering/workstation-global-brief.md'];
   for (const b of briefs) {
@@ -190,7 +194,8 @@ test('2. fresh install', { skip }, () => {
   const both = read(s) + /** @type {string} */ (read(H + '/.codex/hooks.json'));
   assert.ok(!both.includes('restart_guard') && !both.includes('breaking_glass'));
   assert.ok(!exists(data(H) + '/restart_guard.py') && !exists(data(H) + '/breaking_glass.py') && !exists(H + '/.claude/commands/breaking-glass.md'));
-  assert.deepEqual(Object.keys(json(H + '/.codex/hooks.json').hooks), ['UserPromptSubmit']);
+  // No restart-guard event; PreToolUse is the fixed-pattern check's (#588).
+  assert.deepEqual(Object.keys(json(H + '/.codex/hooks.json').hooks), ['UserPromptSubmit', 'PreToolUse']);
 });
 
 /** The lines of a markdown section, from the heading matching re to the next ## heading. @param {string} t @param {RegExp} re */
@@ -370,7 +375,7 @@ test('2c. the paste filter: its settings, one UserPromptSubmit entry for Claude 
   const ch = json(H + '/.codex/hooks.json');
   assert.ok(ch.description.startsWith(MARKER));
   assert.equal(ch.hooks.UserPromptSubmit.flatMap((/** @type {any} */ g) => g.hooks).filter((/** @type {any} */ x) => x.command === hookCmd('codex', cc) && x.type === 'command').length, 1);
-  assert.deepEqual(Object.keys(ch.hooks), ['UserPromptSubmit']);
+  assert.deepEqual(Object.keys(ch.hooks), ['UserPromptSubmit', 'PreToolUse']); // PreToolUse: the fixed-pattern check (#588)
   // The registered commands, run as a harness runs them: a hit blocks, a clean prompt prints nothing.
   const cmd = json(s).hooks.UserPromptSubmit[0].hooks[0].command;
   let out = runPaste(H, cmd, 'deploy with ' + SYNTHETIC_KEY + ' please').stdout;
@@ -891,8 +896,10 @@ test('12. XDG_DATA_HOME is honoured: the paste filter and its data go there, and
   assert.equal(inst(h, [], { XDG_DATA_HOME: x }).code, 0);
   const xd = x + '/' + NAME;
   assert.ok(exists(xd + '/clipboard.conf') && !exists(data(h)));
+  // Two prompt entries read it: the paste filter and the fixed-pattern check (#588), whose script is there too.
   assert.equal(json(h + '/.claude/settings.json').hooks.UserPromptSubmit.flatMap((/** @type {any} */ g) => g.hooks)
-    .filter((/** @type {any} */ y) => String(y.command).includes(xd + '/clipboard.conf')).length, 1);
+    .filter((/** @type {any} */ y) => String(y.command).includes(xd + '/clipboard.conf')).length, 2);
+  assert.ok(exists(xd + '/pattern-check/src/hooks/pattern-check.js'));
   assert.ok(/** @type {string} */ (read(h + '/.codex/hooks.json')).includes(xd + '/clipboard.conf'));
   assert.equal(inst(h, ['--check'], { XDG_DATA_HOME: x }).code, 0);
   // CODEX_HOME is honoured the same way: the Codex brief, rules and hooks go there.
