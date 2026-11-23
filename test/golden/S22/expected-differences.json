@@ -245,5 +245,39 @@
     "head": " \\(the MCP connection test is now mhw mcp check \\[--timeout=SECONDS\\]\\)(?=\\n)",
     "replace": "",
     "why": "A break of the public interface (#595, v11, section 4 of the CLI native baseline PRD): `mhw status --mcp-connect[=SECONDS]` is removed, because the connection test starts processes and status never does; it is `mhw mcp check [--timeout=SECONDS]` now. workstation.py refused only a malformed value (0, 99999, x), with exit 2 and `mhw: unknown argument for status: <arg>`; the Node view refuses every --mcp-connect form the same way, exit 2 and the same words, and appends where the test went. The exit code and stdout are compared unchanged. The two connection steps of the mcp-active-set case, which ran the test, are gone with the option; test/mcp/check.test.js holds the moved behaviour."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "head": ", pattern-check\\.js(?=[,\\n])",
+    "replace": "",
+    "why": "#588: the admin layer's summary lines (ADMIN MISSING, DRIFT or STAMP <names>) name the fixed-pattern check's file among the others; that one name is taken out of the head side, so the line and its other names are still compared. Applied before the entry that drops whole lines naming the check's files."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "the admin layer differs from this checkout: \\d+ target\\(s\\)",
+    "head": "the admin layer differs from this checkout: \\d+ target\\(s\\)",
+    "replace": "the admin layer differs from this checkout: <N> target(s)",
+    "why": "#588: the admin layer's count of differing targets grows by the fixed-pattern check's file (bin/hook/src/hooks/pattern-check.js), so it is read as <N> on both sides; the names of the differing targets are still compared on the ADMIN lines that follow."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "head": "[^\\n]*pattern-check[^\\n]*\\n",
+    "replace": "",
+    "why": "#588 (the fixed-pattern check; ADR-0033 and ADR-0035 decision 7 amendments of 2026-11-23): mhw install also installs the check's script and core under <data dir>/pattern-check, its own Kiro hook file and, in the admin layer, bin/hook/src/hooks/pattern-check.js. Each line the head prints that names one of those files (an OK, MISSING, WROTE, REMOVED, SKIP or STAMP line of --check, install or uninstall) is taken out of the head side; nothing else in the line set changes, and every other line is still compared. test/hooks/pattern-check-install.test.js and test/install/admin.test.js hold those files and lines."
   }
 ]

@@ -29,7 +29,7 @@ import { parseToml } from '../lib/toml.js';
 import { dumps } from '../lib/py.js';
 import { nodeOwnership } from '../lib/readers/hooks.js';
 import { adminDoc, adminValidate, wantFromYaml } from '../render/kiro-permissions.js';
-import { nodeLookup, pasteWrap } from './install-user.js';
+import { nodeLookup, pasteWrap, toolWrap } from './install-user.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const MHW_JS = path.join(ROOT, 'bin', 'mhw.js');
@@ -39,7 +39,9 @@ const SOURCE = 'global/install-managed.sh';
 // The prompt hook in Node (#488, S17 of #470): a root-owned copy of the hook's own JavaScript, so no process
 // running as the owner can change THOSE files. It does NOT make the admin layer's hook root-owned end to end:
 // it runs the node `mhw install-user` found (see the header).
-export const HOOK_FILES = ['hook/package.json', 'hook/src/commands/hook-entry.js', 'hook/src/commands/hook-prompt.js', 'hook/src/lib/clean.js', 'hook/src/lib/clean-unicode.js'];
+// The fixed-pattern check (#588) is one more file there: it imports the same core copy (hook/src/lib).
+export const HOOK_FILES = ['hook/package.json', 'hook/src/commands/hook-entry.js', 'hook/src/commands/hook-prompt.js', 'hook/src/lib/clean.js',
+  'hook/src/lib/clean-unicode.js', 'hook/src/hooks/pattern-check.js'];
 export const FILES = ['clipboard.conf', ...HOOK_FILES];
 // Removed by ADR-0028 (restart guard, switches) and by ADR-0013's 2026-10-05 amendment (HITL picker guard),
 // and the Python hook core (#488); an earlier --apply installed them. Deleted by --apply and --remove,
@@ -352,6 +354,15 @@ export function render(ctx, st) {
   const nodecmd = PASTE_ENV + ' "' + hookNode + '" "' + t.bin + '/hook/src/commands/hook-entry.js"';
   const pasteClaude = pasteWrap('claude', nodecmd + ' --harness claude --config "' + t.bin + '/clipboard.conf"');
   const pasteCodex = pasteWrap('codex', nodecmd + ' --harness codex --config "' + t.bin + '/clipboard.conf"');
+  // The fixed-pattern check (#588): the root-owned copy, before the prompt and before a tool call.
+  const patcmd = (/** @type {string} */ h, /** @type {string} */ mode) => PASTE_ENV + ' "' + hookNode + '" "' + t.bin + '/hook/src/hooks/pattern-check.js" '
+    + mode + ' --harness ' + h + ' --config "' + t.bin + '/clipboard.conf"';
+  // --defer-to-paste-filter: one block message while the prompt hook above still runs (until #600).
+  const patPrompt = {
+    claude: pasteWrap('claude', patcmd('claude', 'prompt') + ' --defer-to-paste-filter'),
+    codex: pasteWrap('codex', patcmd('codex', 'prompt') + ' --defer-to-paste-filter'),
+  };
+  const patTool = { claude: toolWrap(patcmd('claude', 'pre-tool')), codex: toolWrap(patcmd('codex', 'pre-tool')) };
   // The deny floor exactly as install-user rendered it (global entries, then the overlay's), so the admin copy
   // cannot drift from the user copy: the throwaway home started empty, so its deny list is the floor plus the
   // allow list's own Edit protections (ADR-0031), which are user-level and named by their owner key.
@@ -365,10 +376,13 @@ export function render(ctx, st) {
   fs.writeFileSync(path.join(st, 'floor.json'), JSON.stringify(floor) + '\n');
   // JSON has no comment: one top-level key of ours carries the stamp. Claude Code ignores a key it does not
   // know (measured on 2.1.289 through --settings; see ADR-0029).
-  const hook = new Map(/** @type {Array<[string, any]>} */ ([['type', 'command'], ['command', pasteClaude], ['timeout', new JqNumber('30')]]));
+  const entry = (/** @type {string} */ cmd) => new Map(/** @type {Array<[string, any]>} */ ([['type', 'command'], ['command', cmd], ['timeout', new JqNumber('30')]]));
   const doc = new Map(/** @type {Array<[string, any]>} */ ([
     [NAME, MARKER_ID + '; source: ' + SOURCE + '; ' + stamp + '; do not edit, re-run the installer'],
-    ['hooks', new Map([['UserPromptSubmit', [new Map([['hooks', [hook]]])]]])],
+    ['hooks', new Map(/** @type {Array<[string, any]>} */ ([
+      ['UserPromptSubmit', [new Map([['hooks', [entry(pasteClaude), entry(patPrompt.claude)]]])]],
+      ['PreToolUse', [new Map(/** @type {Array<[string, any]>} */ ([['matcher', 'Bash'], ['hooks', [entry(patTool.claude)]]]))]],
+    ]))],
     ['permissions', new Map([['deny', floor]])],
   ]));
   fs.writeFileSync(path.join(st, 'claude.json'), jqStringify(/** @type {any} */ (doc)) + '\n');
@@ -376,8 +390,12 @@ export function render(ctx, st) {
     '# ' + MARKER_ID + '; source: ' + SOURCE + '; ' + stamp + '; do not edit, re-run the installer',
     '# ADR-0025. No allow_managed_hooks_only and no [features] pin: user and plugin hooks keep running.',
     '[hooks]', 'managed_dir = ' + jqQuote(t.bin),
-    // One hook since ADR-0028 removed the restart guard: the paste filter.
+    // Since ADR-0028 removed the restart guard: the paste filter, and the fixed-pattern check (#588).
     '', '[[hooks.UserPromptSubmit]]', '', '[[hooks.UserPromptSubmit.hooks]]', 'type = "command"', 'command = ' + jqQuote(pasteCodex), 'timeout = 30',
+    // The fixed-pattern check (#588): before the prompt, and before every tool call (no matcher: the script
+    // passes any call that is not a git push or gh pr create).
+    '', '[[hooks.UserPromptSubmit.hooks]]', 'type = "command"', 'command = ' + jqQuote(patPrompt.codex), 'timeout = 30',
+    '', '[[hooks.PreToolUse]]', '', '[[hooks.PreToolUse.hooks]]', 'type = "command"', 'command = ' + jqQuote(patTool.codex), 'timeout = 30',
     // The deny floor's command entries as admin prefix rules (ADR-0016, 2026-10-05 amendment). They merge
     // with every .rules file and the most restrictive decision wins, so "codex exec --ignore-rules" cannot
     // skip them. A file or glob entry has no Codex form (ADR-0016).
@@ -664,7 +682,7 @@ function removeMode(ctx) {
     return 2;
   }
   for (const f of [...FILES, ...LEGACY]) rmF(ctx, t.bin + '/' + f);
-  for (const d of ['hook/src/commands', 'hook/src/lib', 'hook/src', 'hook']) rmdirQuiet(t.bin + '/' + d);
+  for (const d of ['hook/src/commands', 'hook/src/lib', 'hook/src/hooks', 'hook/src', 'hook']) rmdirQuiet(t.bin + '/' + d);
   rmJson(ctx, t.switches);
   rmF(ctx, t.claude);
   if (exists(t.codex) && !codexForeign(t.codex)) rmF(ctx, t.codex);
