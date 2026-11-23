@@ -73,18 +73,20 @@ mode alone first and over relying on the native sandboxes only.
 - **The install sets the default mode; each session can switch** (owner, 2026-11-23, on
   [#79](https://github.com/tedeuxx/mhw/issues/79#issuecomment-7102638662)). `mhw install` asks host or
   container and records the answer as that workstation's default, in its overlay. The owner, on the
-  consequence: "this changes the harness configuration blueprint that mhw will manage" on each
+  consequence: "I think this changes the harness configuration blueprint that mhw will manage" on each
   workstation.
 - **The container runtime is the user's choice** (owner, 2026-11-23, on
   [#79](https://github.com/tedeuxx/mhw/issues/79#issuecomment-7102660246): "Podman, Docker or
   equivalents. It is the user's choice."). No single runtime is a prerequisite; the install records the
   chosen one in the overlay beside the default mode.
 - **A compatibility layer covers the commands that differ between runtimes** (owner, 2026-11-23, on
-  [#79](https://github.com/tedeuxx/mhw/issues/79#issuecomment-7102668595)). Native first: mhw drives the
+  [#79](https://github.com/tedeuxx/mhw/issues/79#issuecomment-7102668595): "you should have in mhw some
+  compatibility layer for the commands that differ between each container host distribution").
+  *Proposed shape, not yet ratified by the owner:* native first, mhw drives the
   command-line subset Podman and Docker share (`run`, `build`, `ps`, `stop`, `rm`, the Compose
   specification), and a small adapter per runtime covers only where they diverge (socket path, rootless
-  user mapping, the macOS virtual machine: `podman machine` or Docker Desktop). Each divergence is
-  listed with its evidence level. An equivalent runtime mhw has not mapped is reported as unsupported,
+  user mapping, the macOS virtual machine: `podman machine` or Docker Desktop). The build is to list
+  each divergence with its evidence level; none is measured yet. An equivalent runtime mhw has not mapped is reported as unsupported,
   never guessed.
 - **One runtime-neutral container definition** serves every supported runtime. Any difference between
   them is stated where it applies, never hidden.
@@ -245,7 +247,8 @@ flowchart LR
 
 ## 8. Open decisions
 
-Nothing in the numbered list is decided. Each is written as open rather than guessed.
+Nothing in the numbered list is decided for this document's runtime. Each is written as open rather
+than guessed. Item 1 is settled for Claude Code cloud environments only, by another document.
 
 1. **How the firewall layers reach a cloud runtime in phase 2.** Version 1 mounts them from the host,
    which a cloud host cannot do. Candidates (built into the image, fetched at start from a release,
@@ -255,8 +258,9 @@ Nothing in the numbered list is decided. Each is written as open rather than gue
 2. **Kiro CLI login inside a container.** To be measured: whether Kiro CLI can log in headless inside a
    Linux container, and whether that login survives in a mapped volume.
 3. **The console's technology stack.** *A recommendation from the tech lead, not the owner's decision:*
-   a small server in Python's standard library or in Node, talking to Podman and Docker through their
-   command-line tools rather than a runtime-specific API, so one code path serves both runtimes, with a
+   a small server in Python's standard library or in Node, talking to the container runtimes (Podman,
+   Docker or an equivalent) through their command-line tools rather than a runtime-specific API, so one
+   code path serves every runtime, with a
    browser terminal for the TTY. Reasons: this repository already ships Python scripts and an npm
    package, so no new language enters; the runtime CLIs are the runtime-neutral surface. Cost: a CLI
    wrapper is slower and less structured than an API client.
@@ -281,7 +285,7 @@ Three more were settled on 2026-11-23 (posted on [#79](https://github.com/tedeux
 | --- | --- | --- |
 | Where the host or container choice lives | The install sets the workstation's default mode; each session can switch | [4.1](#41-one-switch-per-session) |
 | Container runtime | The user's choice: Podman, Docker or an equivalent; none is a prerequisite | [4.1](#41-one-switch-per-session) |
-| Commands that differ between runtimes | A compatibility layer: the shared command subset, plus a small adapter per runtime for the divergences | [4.1](#41-one-switch-per-session) |
+| Commands that differ between runtimes | A compatibility layer (its shape, a shared command subset plus a small adapter per runtime, is proposed and not yet ratified) | [4.1](#41-one-switch-per-session) |
 
 ## 9. Decision records owed by the build
 
