@@ -237,6 +237,17 @@
   },
   {
     "case": [
+      "usage-errors"
+    ],
+    "stream": [
+      "stderr"
+    ],
+    "head": " \\(the MCP connection test is now mhw mcp check \\[--timeout=SECONDS\\]\\)(?=\\n)",
+    "replace": "",
+    "why": "A break of the public interface (#595, v11, section 4 of the CLI native baseline PRD): `mhw status --mcp-connect[=SECONDS]` is removed, because the connection test starts processes and status never does; it is `mhw mcp check [--timeout=SECONDS]` now. workstation.py refused only a malformed value (0, 99999, x), with exit 2 and `mhw: unknown argument for status: <arg>`; the Node view refuses every --mcp-connect form the same way, exit 2 and the same words, and appends where the test went. The exit code and stdout are compared unchanged. The two connection steps of the mcp-active-set case, which ran the test, are gone with the option; test/mcp/check.test.js holds the moved behaviour."
+  },
+  {
+    "case": [
       "*"
     ],
     "stream": [

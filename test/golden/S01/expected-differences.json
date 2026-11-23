@@ -98,6 +98,13 @@
     "why": "S17 (#488): the plan counts one file fewer, the Python prompt-hook core install no longer writes. Only while the base still ships clipboard_guard.py."
   },
   {
+    "case": "help",
+    "stream": "stdout",
+    "pattern": "^    \\./mhw status --mcp-connect\\[=SECONDS\\]  also start each MCP active-set server and say whether it answers\\n {40}\\(opt-in: it starts processes; exit 1 when one fails; #219\\)$",
+    "replace": "    ./mhw mcp check [--timeout=SECONDS] connection test: start each MCP active-set server and say whether\n                                          it answers (it starts processes; exit 1 when one fails; #219,\n                                          #595; it was status --mcp-connect until v11)\n    ./mhw mcp render --check            drift check: exit 1 when an installed MCP configuration differs\n                                          from the definition; it starts nothing (mhw mcp render --help)",
+    "why": "A break of the public interface (#595, v11, section 4 of the CLI native baseline PRD): `mhw status --mcp-connect[=SECONDS]` is removed, because the connection test starts processes and status never does. The usage text drops its two lines and names `mhw mcp check [--timeout=SECONDS]` (the connection test) and `mhw mcp render --check` (the drift check) in their place, so the help tells the two apart. Every other line is compared unchanged."
+  },
+  {
     "case": "install-user-layer",
     "stream": "tree-drop",
     "pattern": "pattern-check",
