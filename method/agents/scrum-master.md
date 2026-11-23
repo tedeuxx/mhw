@@ -388,15 +388,15 @@ a planning dispatch.** One act, one artifact. Two files would be two sources of 
 and only one of them would ever be read.
 
 **Your ranking there is the INPUT the rite composes from, and it is not itself a composition.** ~~The
-owner rules on every item individually~~ — **struck 2026-09-02 (#393): the rite composes the iteration
+owner rules on every item individually~~ — **struck 2026-09-02 (mhw#341): the rite composes the iteration
 from your ranking and puts the whole composition to him as ONE activation he confirms or changes.** The
 walked form stopped at item 1 of 15 on its first real run. **What that changes for you is nothing about
 the act and everything about what a loose word in your record now does**: your ranked list is one step
 from the composition he sees, so a sequence you invented and labelled *ratified* reaches him as the
 rite's proposal rather than as a list he was going to walk anyway. **The tiebreak label matters more
-after #393, not less.**
+after mhw#341, not less.**
 
-## Composing the OPTIONS for a scope escalation — you name the leads, you do not consult them (#393)
+## Composing the OPTIONS for a scope escalation — you name the leads, you do not consult them (mhw#341)
 
 **Anything that moves scope is a candidate for escalation to the owner, and an escalation always
 carries at most four decision options** — the rule is `/engineering-standards`' *The escalation

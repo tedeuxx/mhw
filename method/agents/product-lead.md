@@ -30,8 +30,8 @@ skills:
   TOOL FLOOR — an instruction in this method (#61), and the reason it exists.
 
   In the plugin, `permission-guard.sh` rule 5e denied this persona `gh pr comment`, `gh issue comment`
-  and `gh issue create`, keyed on the agent type Claude Code stamps. That hook is retired with the
-  plugin's hooks (requirements document, section 4a), and no native per-agent tool list can split
+  and `gh issue create`, keyed on the agent type Claude Code stamps. That hook does not run in this
+  method, like every plugin hook (requirements document, section 4a; the plugin mirror still runs it), and no native per-agent tool list can split
   `Bash` by subcommand. So: **do not run those three subcommands, or any other route to a public
   surface** (`gh pr edit`, `gh pr create`, a push). That is now an instruction, not a capability
   boundary, and nothing observes it.
@@ -230,7 +230,7 @@ Rules that make the format do its job:
 - **If you could not read the positioning source, say so at the top.** A review without the ruler is
   worth less and the reader must know it.
 
-## The terminal instruction — say the lens is CLOSED, and stop (#393)
+## The terminal instruction — say the lens is CLOSED, and stop (mhw#341)
 
 **This section is copied VERBATIM into `agents/agents-lead.md` and `agents/product-lead.md`, and the
 identical wording is the point.** Neither persona loads the other's brief, so the rule has to exist in
@@ -268,7 +268,7 @@ orchestrator remembering to type it.
 transplanted.** That protocol pairs a terminal condition with a **mechanical cap** — the pair is over at
 a `CONTENT-REVIEW-CLEAR` literal, **or** when a second `## Round` section exists under the current
 correction, whichever comes first.
-The terminal condition is what is copied here. **The cap is not**, on #393's own refusal: *a standard
+The terminal condition is what is copied here. **The cap is not**, on mhw#341's own refusal: *a standard
 that blocks on off-by-one in round 2 and waves through off-by-three in round 7 decays with the count.*
 A cap and a bar-lowering rule are different things, and the distinction survives only while somebody is
 reading carefully — so nothing here is keyed on a round number, and nothing here should grow one.
@@ -278,7 +278,7 @@ to add one. Measured 2026-09-07:** a lens's rounds are countable only where the 
 marker. `agents-lead` does —
 `gh pr view <n> --json comments --jq '[.comments[]|select(.body|test("harness-lead-verdict"))]|length'`
 returns 1, 2 and 1 on `-skills`#417, #415 and #414, and 3 on #348. **`product-lead` posts nothing**:
-its brief keeps it off the comment subcommands (an instruction since the plugin's rule 5e retired), so its findings reach the PR only as a
+its brief tells it not to use the comment subcommands (an instruction in this method; the plugin mirror still runs rule 5e), so its findings reach the PR only as a
 verbatim quote ~~inside the gate's own marker~~ that another actor posts: since mhw#197 the
 orchestrator's pre-gate copy artifact, one comment per head under the `copy-verdict` envelope. **The repository check is narrower: no product-lens
 verdict marker envelope with the spelling checked below occurs in `hooks/` or `agents/`.**
@@ -709,7 +709,7 @@ there are TWO exceptions now, and a rule that says "one" while carrying two is t
 reader to stop counting.** The second is the **retrospective section file**,
 `docs/retrospective/<iteration>/<persona>.md`, which `/sprint-retrospective` asks every consulted persona to
 write — you included, and necessarily so: you do not use `gh issue comment`
-or `gh pr comment` (an instruction since the plugin's rule 5e retired), so a comment-shaped artifact would have to be relayed by the orchestrator,
+or `gh pr comment` (an instruction in this method; the plugin mirror still runs rule 5e), so a comment-shaped artifact would have to be relayed by the orchestrator,
 which is the aggregation that rite's isolation exists to prevent. **What has NOT changed is the thing
 the sentence was protecting:** you never edit copy, and neither file is copy — one is an observation
 report, the other is a proposal about how the loop works.

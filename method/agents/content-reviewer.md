@@ -208,8 +208,8 @@ ordered: <what the owner asked to change, in one line, or a link to where he ask
 **Nothing checks any of this.** No layer reads the file name, the heading or the count. It is held by
 you, by `content-writer` reading the same file, and by whoever reads the diff.
 
-**Why a tracked file and not a PR comment.** You do not use any posting route (the plugin's retired
-rule 5e denied them; in this method it is an instruction), because you read the same private positioning layer
+**Why a tracked file and not a PR comment.** You do not use any posting route (the plugin mirror's
+rule 5e denies them; in this method it does not run, so it is an instruction), because you read the same private positioning layer
 `content-writer` and `product-lead` read, and a paraphrase of private material in a public comment is
 not revertible by deleting the comment. **A tracked file is not a workaround for that denial — it is a
 better artifact than the comment would have been**: it lands in the diff the owner already reads, it

@@ -1,7 +1,7 @@
 // The agent briefs name tadeumendonca-skills as the method's plugin-form mirror (Issue #579, ADR-0046).
 // mhw's method/ is the source; tadeumendonca-skills is a Claude Code plugin that mirrors it. This suite
 // fails when a brief in method/agents/ carries the old "text moved from the plugin" notice, describes the
-// mirror as retired, archived or deprecated, or keeps the evidence command that no longer runs. Each
+// mirror or its rules and hooks as retired, archived or deprecated, or keeps the evidence command that no longer runs. Each
 // pattern is calibrated against a known-present hit, so a dead pattern fails instead of passing quietly.
 // It checks wording, not truth: it cannot tell whether the mirror really carries what mhw maintains.
 import { test, describe } from 'node:test';
@@ -15,7 +15,7 @@ const AGENTS = methodFiles('.md', path.join(SOURCE, 'agents')).map((rel) => path
 const flat = (/** @type {string} */ text) => text.split('\n').map((l) => l.replace(/^>\s?/, '')).join(' ').replace(/\s+/g, ' ');
 
 const NAME = String.raw`\x60?(?:tedeuxx\/)?tadeumendonca-skills\x60?`;
-const RETIRED = String.raw`(?:retired|archived|deprecated|decommissioned|no longer maintained)`;
+const RETIRED = String.raw`(?:retired|archived|deprecated|decommissioned|defunct|dead|no longer maintained)`;
 /** @type {[string, RegExp, string][]} label, pattern, a known-present hit that must match */
 const FORBIDDEN = [
   ['the old notice', /text moved from the `tadeumendonca-skills` plugin/i,
@@ -28,6 +28,16 @@ const FORBIDDEN = [
     'The `tadeumendonca-skills` repository is retired'],
   ['retired, then the mirror named', new RegExp(String.raw`\b` + RETIRED + String.raw`\b[^.]{0,30}` + NAME, 'i'),
     'the retired tadeumendonca-skills plugin'],
+  // The plugin's rules and hooks did not retire: they do not run in this method, and the mirror still
+  // runs them (permission-guard.sh carries rule 5e at cd25a4df). These catch the sentences that said so.
+  ["the plugin's retired rule or guard", /\bplugin(?:'s)? (?:retired|dead|defunct)\b/i,
+    "a real downgrade from the plugin's retired rule 5e, stated plainly"],
+  ["the plugin's rule, then retired", /\bplugin(?:'s)? (?:rule|guard|hook)s?\b[^.]{0,20}\b(?:retired|dead|defunct)\b/i,
+    "(an instruction since the plugin's rule 5e retired), so its findings"],
+  ['retired with the plugin', /\b(?:retired|dead|defunct)\b[^.]{0,20}\bplugin\b/i,
+    "That hook is retired with the plugin's hooks (requirements document"],
+  ['the plugin, then retired, nearby', new RegExp(String.raw`\bplugin\b[^.]{0,25}\b` + RETIRED + String.raw`\b`, 'i'),
+    'the plugin, which is now archived'],
   ['the evidence command that no longer runs', /gh issue view 393 --repo tedeuxx\/tadeumendonca-skills/,
     'Read that report with `gh issue view 393 --repo tedeuxx/tadeumendonca-skills --json body --jq .body`.'],
 ];
