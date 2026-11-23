@@ -1035,6 +1035,50 @@ own Python stub `gh` (`test/golden/S30/`, one declared difference, the usage lin
 replayed against the Node script, and side by side with the original on CPython 3.14.6 while the base
 revision held it. The workflow change runs only from `main`; no canary has run it.
 
+## Amendment 2026-11-23: a project target beside the user level ([Issue #576](https://github.com/tedeuxx/mhw/issues/576))
+
+**Context.** A consuming project needs agents and skills that serve only it, on all three agent harnesses.
+The owner, 2026-11-23: *"temos que ter compatibilidade no nivel de projeto com codex e kiro tbm"* (we must
+have project-level compatibility with Codex and Kiro too). He ruled out carriers hand-written for Claude
+Code only. The renderer wrote the user level only. When an agent leaves `method/`, the installer removes its
+user copy, so a project copy written later leaves the agent undispatchable by name in between.
+
+**Decision.** `src/render/method.js --project=DIR` also renders the project's own source,
+`DIR/.mhw/method/{agents,skills}`. It is in the same format as `method/` and rendered by the same writers,
+into the project carriers the [native enforcement matrix](../native-enforcement-matrix.md) measured:
+`.claude/{agents,skills}`, `.codex/agents` and `.agents/skills`, `.kiro/{agents,skills}`.
+
+- **Order.** In one run, the project files are written and the project's stale files removed before any
+  user-level file is written or removed. If a project file is refused (an unmanaged file in the way),
+  every user-level removal in that run is held (`HELD`), so a moved agent keeps a dispatchable copy at
+  every step.
+- **Kiro references.** A project Kiro agent names a preloaded skill by a `skill://` path, never by the
+  absolute user-level `file://` URI the user carrier uses: a project skill as `skill://.kiro/skills/<n>/SKILL.md`,
+  a method skill as `skill://~/.kiro/skills/<n>/SKILL.md`. No home path lands in a tracked project file.
+- **Codex trust.** Codex reads a project's agents only in a trusted project (measured), so every run with a
+  project agent prints the project's trust: `CODEX` when `${CODEX_HOME:-~/.codex}/config.toml` trusts it,
+  `UNTRUSTED` otherwise, with the owner's act. The renderer reads that file and never writes it, and the
+  line does not change the exit code: the trust is the machine's state, not the project's.
+- **Bounds.** Commands stay user level; a project source holding `commands/` or `{{method-scripts}}` stops
+  the render. A project file's managed-by line says `source: .mhw/method/...`, so the user-level `STALE`
+  and uninstall passes never take it as theirs. `--project` may not be the home directory.
+
+**Considered and rejected.** Hand-written project carriers in each consumer: ruled out by the owner, and
+three formats would drift. A project target that copies the user-level Kiro `file://` URIs: it would put
+the owner's home path into a public project file, and it breaks on any other machine.
+
+**Consequences.** Good: one source in the project, three native carriers, and a move whose order the
+renderer keeps. Bad: the project files carry the release stamp, so a consumer commits a stamp-only diff on
+every release. `mhw install` does not pass `--project` yet, so the combined order holds only when the
+renderer runs with it; until then a move does it in two steps, project copy first. Kiro's resolution of
+either `skill://` form, Codex's same-name precedence, and dispatch as a subagent on all three are **not
+measured**. A trusted parent directory is not counted as trusting the project; whether Codex counts it is
+not measured.
+
+**Evidence level.** *Written and tested*: `test/render/method-project.test.js`. Each of its five guarded
+behaviours goes red when its source line is mutated (no project target, user removal first, absolute Kiro
+paths, no hold, trust always true) and green when restored. Not installed, and no canary has run.
+
 ## Links
 
 - [Requirements document, section 6](../mhw-product-requirements-document-project.md#6-working-method-user-layer)
