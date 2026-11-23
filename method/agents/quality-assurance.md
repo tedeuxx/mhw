@@ -1296,24 +1296,39 @@ not.
      **Struck 2026-11-23 (mhw#574): the method repository has no such manifest.** That file is the
      retired plugin's, so by this test a diff under `method/**`, `src/**` or `global/**` in the
      method's own source repository classified as a consuming repository and owed no marker here.
-     **"The plugin repository" below means the METHOD REPOSITORY: the repository that authors this
-     method (`mhw`), or the retired plugin's (`tadeumendonca-skills`).** The class it selects is
-     unchanged.
+     **"The plugin repository" below means the METHOD REPOSITORY, the repository that authors this
+     method.** The class it selects is unchanged. **The retired manifest is no longer a signal**
+     (owner ruling 2026-11-23, https://github.com/tedeuxx/mhw/pull/586#issuecomment-7108596788 —
+     *«Tirar agora»*): a repository whose only marker is a root `.claude-plugin/plugin.json` is a
+     consuming repository.
 
-     **How you tell the two apart: does the repository carry `method/agents/quality-assurance.md`
-     (this brief's own source) or the retired plugin's `.claude-plugin/plugin.json`?** Either path
-     makes it the method repository. The manifest stays in the test on purpose: the retired plugin's
-     repository still exists, and dropping it would move that repository to the narrower consuming
-     class, which loosens this hold. **Fetch FIRST**, then read both paths from the tree at BOTH the
-     trunk and the head you are merging, one call each:
+     **Read the PR's own base first, and compare against it everywhere in this hold** (owner ruling
+     2026-11-23, https://github.com/tedeuxx/mhw/pull/586#issuecomment-7108603542 — *«A base do
+     próprio PR»*). Until then every command of this hold read `origin/main`; in a repository whose
+     slices merge into an integration branch (`rc/next` in the method repository) that range carried
+     every unreleased integration-branch path into each slice's diff, and the carry-forward base
+     check could not see the integration branch move. `<base>`
+     below is the PR's `baseRefName`:
 
      ```
-     git -C <repo> fetch origin main "pull/<n>/head"
-     git -C <repo> ls-tree --name-only origin/main -- method/agents/quality-assurance.md .claude-plugin/plugin.json
-     git -C <repo> ls-tree --name-only <headRefOid> -- method/agents/quality-assurance.md .claude-plugin/plugin.json
+     gh pr view <n> --repo <owner/repo> --json baseRefName --jq .baseRefName
      ```
 
-     - **Either call prints a path** → the **plugin repository** (the method repository) → the
+     **If that call fails or prints nothing, or the fetch below fails, you cannot run any command of
+     this hold — so HOLD 2 APPLIES:** a marker whose `commit:` line names the `headRefOid` is
+     required, and nothing carries forward. Never substitute `main` for a base you could not read.
+
+     **How you tell the two apart: does the repository carry `method/agents/quality-assurance.md`,
+     this brief's own source, at its root?** **Fetch FIRST**, then read it from the tree at BOTH the
+     base and the head you are merging, one call each:
+
+     ```
+     git -C <repo> fetch origin <base> "pull/<n>/head"
+     git -C <repo> ls-tree --name-only origin/<base> -- method/agents/quality-assurance.md
+     git -C <repo> ls-tree --name-only <headRefOid> -- method/agents/quality-assurance.md
+     ```
+
+     - **Either call prints the path** → the **plugin repository** (the method repository) → the
        exclusion-list class.
      - **Both print nothing and both exit 0** → a **consuming repository** → the harness-path list.
      - **Either call fails** (a non-zero exit — an unreadable ref) → you have NOT classified the
@@ -1332,20 +1347,22 @@ not.
      *Why `ls-tree` and not `cat-file -e`:* `cat-file -e` exits 128 both when the file is absent and
      when the ref is unreadable, so it cannot tell "consuming repository" from "could not look".
      `ls-tree` exits 0 with no output for an absent path and 128 for a bad ref. *Why both refs:* a diff
-     that deletes the detection path (either of the two) is still judged as the plugin repository, and a diff that adds one to a
+     that deletes the detection path is still judged as the plugin repository, and a diff that adds one to a
      consuming repository is judged ~~by the wider class~~ **as the plugin repository too (struck
      2026-09-27, #522: the exclusion-list class is not wider than the harness-path list, only
-     different)** — so a diff that moves a detection path is judged by the class that fails closed on new
+     different)** — so a diff that moves the detection path is judged by the class that fails closed on new
      paths.
      **Measured 2026-09-27:** `tadeumendonca-skills` → prints `.claude-plugin/plugin.json`, exit 0;
      `tadeumendonca-io` → prints nothing, exit 0; either repository against `nosuchref` → exit 128.
-     **Re-measured 2026-11-23 with the two-path call above, against each local clone's `origin/main`:**
-     `mhw` (`e0a32b3a`) → prints `method/agents/quality-assurance.md`; `tadeumendonca-skills`
-     (`cd25a4df`) → prints `.claude-plugin/plugin.json`; `tadeumendonca-io` (`0c09f97f`) → prints
-     nothing; each exits 0, and each against `nosuchref` exits 128. **A consuming repository is
-     unchanged by mhw#574:** it carries neither path, so it stays in the harness-path class and owes
-     no marker it did not owe before. `test/render/hold2-detection.test.js` runs these two commands,
-     as written here, against throwaway repositories.
+     **Re-measured 2026-11-23 with the call above, against each local clone's `origin/main` (the
+     base of a consumer's PRs) and `origin/rc/next` (the base of a method slice):** `mhw` (`e0a32b3a` and `4bf6f36c`) → prints
+     `method/agents/quality-assurance.md`; `tadeumendonca-skills` (`cd25a4df`), which carries only the
+     retired manifest, → prints nothing; `tadeumendonca-io` (`01fa3072`), which tracks 10 nested
+     `.claude-plugin/plugin.json` fixtures below the root, → prints nothing; each exits 0, and each
+     against `nosuchref` exits 128. **A consuming repository is unchanged by mhw#574:** it does not
+     carry the path, so it stays in the harness-path class and owes no marker it did not owe before.
+     `test/render/hold2-detection.test.js` runs these commands, as written here, against throwaway
+     repositories.
 
      *Why the fetch comes before the test and not inside the selectors below:* a `<headRefOid>`
      your clone has never fetched is an unreadable ref, so without the fetch the head call exits 128
@@ -1363,7 +1380,7 @@ not.
      brief's reading (not measured), the project settings of a session started in that directory — and because it errs toward more markers. **Any output means hold 2 applies; no output means it does not:**
 
      ```
-     git -C <repo> diff --no-renames --name-only origin/main...<headRefOid> \
+     git -C <repo> diff --no-renames --name-only origin/<base>...<headRefOid> \
        | grep -E '(^|/)(\.claude|\.codex|\.github)/|(^|/)(AGENTS|CLAUDE)\.md$'
      ```
 
@@ -1397,7 +1414,7 @@ not.
      means it does not:**
 
      ```
-     git -C <repo> diff --no-renames --name-only origin/main...<headRefOid> \
+     git -C <repo> diff --no-renames --name-only origin/<base>...<headRefOid> \
        | grep -vE '^(docs/|powers/)|^(README\.md|VERSION|\.bumpversion\.toml|LICENSE)$'
      ```
 
@@ -1488,8 +1505,8 @@ not.
 
      ```
      git -C <repo> merge-base --is-ancestor <marker-sha> <headRefOid>          # must exit 0
-     git -C <repo> merge-base --all origin/main <marker-sha>                   # must exit 0 and print something
-     git -C <repo> merge-base --all origin/main <headRefOid>                   # must exit 0 and print THE SAME
+     git -C <repo> merge-base --all origin/<base> <marker-sha>                 # must exit 0 and print something
+     git -C <repo> merge-base --all origin/<base> <headRefOid>                 # must exit 0 and print THE SAME
      git -C <repo> diff --no-renames --name-only <marker-sha> <headRefOid>     # must exit 0, run ALONE
      git -C <repo> diff --no-renames --name-only <marker-sha> <headRefOid> | <the class filter above>
      ```
@@ -1547,7 +1564,7 @@ not.
        needs a fresh marker. Measured over the nine historical carrying pairs, each read against the
        trunk as it stood when that PR merged: none moved its base, so the rule refuses none of them
        (the command is in ADR-0002's #522 amendment). **Run it after the fetch above**, which
-       updates `origin/main`; against a stale local ref a trunk that moved past the ref is not seen
+       updates `origin/<base>`; against a stale local ref a trunk that moved past the ref is not seen
        to move. **`--all`** because a criss-cross history has more than one merge-base and the
        plain form prints only one of them; comparing the whole output can only refuse more.
        **`--all` is load-bearing, measured 2026-09-27:** in a criss-cross whose trunk merges C
@@ -1565,7 +1582,7 @@ not.
        command exits 128**~~ **— struck 2026-09-27 (#522 round 6), with the check they described.**
        It was added at round 5 for the gate's P-A — trunk X to M changes `hooks/a.sh`, the PR
        restores X's content, and a marker names X — and the base check covers every case it
-       refused that matters. A trunk commit is its own merge-base with `origin/main`, so a marker on
+       refused that matters. A trunk commit is its own merge-base with `origin/<base>`, so a marker on
        the trunk passes the base check only when it IS the head's merge-base with the trunk. Then the
        marker-to-head delta is the PR's whole diff against a base that has not moved, the class
        filter reads it, and the carry is correct. Every other trunk marker, P-A included, has a
@@ -1582,7 +1599,7 @@ not.
      - **the repository is unclassified** (either `ls-tree` call failed) — refuse, as above.
      - **the newest marker does not carry** — refuse, even when an older marker would.
 
-     **Why two commits and not `origin/main...<headRefOid>`.** The question is what changed since
+     **Why two commits and not `origin/<base>...<headRefOid>`.** The question is what changed since
      the reviewed commit, not since the branch was cut. With the ancestry check passed, `<marker-sha>
      <headRefOid>`, `<marker-sha>..<headRefOid>` and `<marker-sha>...<headRefOid>` return the same
      tree diff. ~~A merge from the trunk inside that range shows up as the paths it brought in. When
