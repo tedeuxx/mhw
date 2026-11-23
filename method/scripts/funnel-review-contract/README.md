@@ -118,6 +118,21 @@ locale-caveat: a link pinned to one language sets this value by the link, not by
 
 The sample size is mandatory on every figure, qualified or not, exactly as before.
 
+### The post spelling, and the format code it carries (mhw#564)
+
+A post figure, on surface `linkedin` or `x`, is spelled
+
+```
+<metric>.<format>.<post>
+```
+
+with `<format>` the post's code from the `published-voice` catalog (`F1`, `F2`, `F3a`, `F3b`, `F3c`),
+or `unlabelled` when the post record carries none, and `<post>` the key the consumer gives the post.
+No part may contain a space or a `:`. **It is deliberately not the qualified spelling:** a post figure
+has no language dimension, so it must not carry the locale caveat, and with no `:` it does not. The
+script treats it as any unqualified metric; grouping posts by format is the reader's work, not the
+script's.
+
 ### The prior-period lookup is literal
 
 The report compares each figure with the line of the **same surface and the same metric** in the
