@@ -481,6 +481,7 @@ const HEAD_CHECK_CLAUSES = [
   '**They differ, or the report names no head: do not dispatch the gate.**',
   '**The report does not declare that nothing it started is still running: do not dispatch the gate.**',
   'The SHA-pinned verdict and merge are unchanged',
+  'Run this first, before the reader-facing phase below, so no copy artifact is posted at a head that moves.',
 ];
 const BUILDER_CLAUSE = '**Your report of done names the full forty-character head your work is on, and declares that no background process you started is still running** (mhw#439).';
 const BUILDER_BRIEFS = ['agents/developer.md', 'agents/content-writer.md'];

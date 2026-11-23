@@ -40,6 +40,24 @@ The routing labels type an item by what it changes. Each type gets this chain:
   `product` by `product-lead` and `tech-lead` together. Who applies `ready`, and what records each
   transition, is the state table in `agents-configuration`. This list does not restate that table.
 
+### Before the gate: the head the builder reported is the head under review (#439)
+
+**Do not dispatch `quality-assurance` until the builder's reported head is the pull request's current
+head.** Run this first, before the reader-facing phase below, so no copy artifact is posted at a head that moves. A builder's report of done names the full forty-character head its work is on, and declares that no
+background process it started is still running (the `developer` and `content-writer` briefs require both).
+
+1. **Read the pull request's current head** with `gh pr view <n> --json headRefOid` (or the REST
+   `pulls/<n>` route where GraphQL is unavailable) and compare it with the head in the report.
+2. **They differ, or the report names no head: do not dispatch the gate.** Ask the builder what moved,
+   or read the commits between the two heads, and start the pre-gate phase again at the current head.
+3. **The report does not declare that nothing it started is still running: do not dispatch the gate.**
+   A process left running can push again after the verdict, and the review was then spent on a head
+   that no longer exists.
+
+**What holds this, at its real level: an instruction.** Nothing checks the report or the comparison.
+The SHA-pinned verdict and merge are unchanged, and they stay the backstop: a moved head still makes
+the merge refuse; this step only stops a review round being spent on it.
+
 ### Before the gate: the reader-facing lens leaves its artifact (#197)
 
 **The pre-gate phase is incomplete until the copy artifact the diff requires is on the pull request.
@@ -99,24 +117,6 @@ rather than hidden:** a relay by the orchestrator has failed before. The gate's 
 forgotten five times in one session, which is why the relay moved into the gate. This rule moves it
 back to the orchestrator and earlier; a forgotten relay now costs one gate round, not, as before
 2026-08-04, a silently unverified criterion.
-
-### Before the gate: the head the builder reported is the head under review (#439)
-
-**Do not dispatch `quality-assurance` until the builder's reported head is the pull request's current
-head.** A builder's report of done names the full forty-character head its work is on, and declares that no
-background process it started is still running (the `developer` and `content-writer` briefs require both).
-
-1. **Read the pull request's current head** with `gh pr view <n> --json headRefOid` (or the REST
-   `pulls/<n>` route where GraphQL is unavailable) and compare it with the head in the report.
-2. **They differ, or the report names no head: do not dispatch the gate.** Ask the builder what moved,
-   or read the commits between the two heads, and start the pre-gate phase again at the current head.
-3. **The report does not declare that nothing it started is still running: do not dispatch the gate.**
-   A process left running can push again after the verdict, and the review was then spent on a head
-   that no longer exists.
-
-**What holds this, at its real level: an instruction.** Nothing checks the report or the comparison.
-The SHA-pinned verdict and merge are unchanged, and they stay the backstop: a moved head still makes
-the merge refuse; this step only stops a review round being spent on it.
 
 ## The loop-mode contract
 
