@@ -1,6 +1,6 @@
 // The gate's hold 2 (mhw#574). The quality-assurance brief tells the gate which class of paths owes an
 // agents-lead marker by asking which kind of repository it is in, then selects the PR's paths of that
-// class. Until #574 the repository test looked only for the retired plugin's manifest, which the method
+// class. Until #574 the repository test looked only for the plugin mirror's manifest, which the method
 // repository does not have, and every command of the hold compared against origin/main, although slices
 // in the method repository merge into rc/next. Owner rulings on PR #586 (2026-11-23): a method repository
 // is one carrying, at its root, method/agents/quality-assurance.md (mhw) or .claude-plugin/plugin.json (the

@@ -1285,9 +1285,9 @@ not.
 
      **TWO CLASSES, ONE PER KIND OF REPOSITORY — decide which repository you are in FIRST.** Owner
      ruling 2026-09-27 on #521, answering the lens's `ESCALATE` on #541 — *«Só no -skills»*: the
-     exclusion-list class below applies to **the plugin repository only**. This brief ~~ships in the
-     plugin, so it reaches every repository that enables it~~ **is installed at user level by the
-     method, so it reaches every repository a session works in (mhw#574)**, and there the exclusion-list class would
+     exclusion-list class below applies to **the plugin repository only**. This brief is installed at
+     user level by the method, and its plugin mirror ships it too, so it reaches every repository a
+     session works in and every repository that enables the plugin, and there the exclusion-list class would
      hold nearly every product and content merge — measured on `tadeumendonca-io`'s 25 most recent merges, it
      matched 22, including 15 product/content merges carrying no marker, on lanes the routing table
      never dispatches the lens to.
