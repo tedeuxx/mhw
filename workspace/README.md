@@ -164,6 +164,20 @@ docker (`CONTAINER_RUNTIME`).
 
 ## Releasing the candidate (the owner's go)
 
+0. **Sync `main` into `rc/next` first, as a slice.** Each release leaves `main` one commit ahead of
+   `rc/next`: the version bump `version-main` pushes. The release candidate is then `BEHIND`, and the
+   `main` ruleset requires an up-to-date head. ~~Merge `origin/main` into `rc/next` and push it~~ (how
+   commits `61e53ec` and `30ec206` did it) is refused once the rulesets are applied: the `rc/next`
+   ruleset requires a pull request and has no bypass, and GitHub's *Update branch* button is a push to
+   `rc/next` too. `gh pr merge --admin` is not a route. The route is a slice like any other:
+   `git switch -c sync/main-vX.Y.Z origin/rc/next`, then `git merge origin/main` (a real merge commit, so
+   the branch is up to date with `rc/next` and contains `main`), push, and open a PR into `rc/next`
+   labelled `semver:patch` (the version lines in it are already `main`'s). Its body needs the line
+   `docs-baseline: none — a sync of main's version bump into rc/next; it changes no behaviour`:
+   measured on a bump-only diff against this repository's manifest, the `docs-baseline` check fails
+   the `workstation` capability without it and passes with it. It touches no harness path, so it needs
+   no lens; it needs the gate's verdict like every slice, and the executor merges it by the
+   `merge-pull-request` skill. Then the release candidate is up to date.
 1. Open or update the PR `rc/next` → `main` with one semver label.
 2. On the owner's go, the executor merges by the `merge-pull-request` skill (~~`./mhw delivery merge
    --pr NUMBER` from a checkout of `rc/next`~~, struck 2026-11-23, #591). His go is his own comment on

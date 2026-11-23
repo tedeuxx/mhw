@@ -59,6 +59,13 @@ its decision record (ADR-0045 there). They are not restated here.
 9. **The merge state is clean.** `mergeStateStatus` is `CLEAN` (or `HAS_HOOKS`); stop on `DIRTY`,
    `BEHIND`, `BLOCKED`, `UNSTABLE` or `UNKNOWN` and say which. A conflict and a stale head are also
    refused by GitHub (`strict` status checks). *Held by the ruleset, and read by you so you can say why.*
+   **A release candidate that is `BEHIND` `main`** (each release leaves `main` one version-bump commit
+   ahead of `rc/next`) is not updated by a push to `rc/next`, nor by GitHub's *Update branch* button,
+   nor by `--admin`: once the rulesets are applied, the `rc/next` ruleset refuses all three. Sync first,
+   as a slice: a branch cut from `origin/rc/next` with `origin/main` merged into it, a PR into `rc/next`
+   labelled `semver:patch`, merged by this skill like any slice. The repository's delivery route says
+   which escape line its documentation check needs (`workspace/README.md`, *Releasing the candidate*,
+   step 0, in this workstation's repository).
 10. **The gate verdict.** *Held by `review/quality-assurance`.* A later `REQUEST-CHANGES`, a malformed
     verdict or the retired boundary literal makes it red even after an approval.
 11. **The lens, on a harness diff into `rc/next`.** *Held by `review/agents-lead`.* The release

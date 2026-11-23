@@ -153,6 +153,10 @@ access who means to get past them: the same level the command had, now held wher
   Until then the executor re-runs the workflow or runs the evaluator's dry run.
 - Bad: *no other check failed* and the owner's go on the release candidate are instructions.
 - Bad: removing `mhw delivery` is a break of the public interface: `semver:major`.
+- Bad (QA B1 on PR #608): `main`'s version-bump commit can no longer be pushed into `rc/next`, and
+  the *Update branch* button is refused there too, so every release starts with a sync slice (a branch
+  from `rc/next` with `main` merged in, `semver:patch`, the docs-baseline escape line), or the release
+  candidate stays `BEHIND`. Step 0 of *Releasing the candidate* in `workspace/README.md`.
 
 ## Evidence level
 
