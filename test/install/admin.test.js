@@ -220,6 +220,47 @@ test('the installed admin hook blocks a finding, passes a clean prompt, and a pl
   assert.equal(clean.stdout, '');
 });
 
+// #588: the admin layer's copy of the fixed-pattern check, run as Claude Code and Codex run it from the drop-in
+// and the requirements: a push carrying a synthetic credential in an unpushed commit is blocked, a clean
+// one passes. The repository's remote-tracking ref is written with update-ref, so nothing is pushed.
+test('the admin layer\'s fixed-pattern check blocks a dirty push and passes a clean one (Claude Code and Codex)', { skip: SKIP || (!which('git') && 'git') }, () => {
+  const git = /** @type {string} */ (which('git'));
+  const token = 'gh' + 'p_' + 'Z9y8X7w6V5u4T3s2R1q0P9o8N7m6L5k4J3i2';
+  const genv = { PATH: '/usr/bin:/bin', HOME: base, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', GIT_AUTHOR_NAME: 'F',
+    GIT_AUTHOR_EMAIL: 'f' + '@' + 'example.com', GIT_COMMITTER_NAME: 'F', GIT_COMMITTER_EMAIL: 'f' + '@' + 'example.com' };
+  /** @param {string} name @param {string} text */
+  const repo = (name, text) => {
+    const d = path.join(base, 'repo-' + name);
+    fs.mkdirSync(d);
+    const g = (/** @type {string[]} */ a) => assert.equal(spawnSync(git, ['-C', d, ...a], { env: genv }).status, 0, a.join(' '));
+    g(['init', '-q', '-b', 'main']);
+    fs.writeFileSync(path.join(d, 'a.txt'), 'a\n');
+    g(['add', '.']);
+    g(['commit', '-q', '-m', 'a']);
+    g(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
+    fs.writeFileSync(path.join(d, 'b.txt'), text);
+    g(['add', '.']);
+    g(['commit', '-q', '-m', 'b']);
+    return d;
+  };
+  const dirty = repo('dirty', 'key ' + token + '\n');
+  const clean = repo('clean', 'clean\n');
+  const claude = JSON.parse(fs.readFileSync(t.claude, 'utf8')).hooks.PreToolUse[0].hooks[0].command;
+  const codex = parseToml(fs.readFileSync(t.codex, 'utf8')).hooks.PreToolUse[0].hooks[0].command;
+  for (const cmd of [claude, codex]) {
+    /** @param {string} cwd */
+    const run = (cwd) => spawnSync('/bin/sh', ['-c', cmd], { input: JSON.stringify({ hook_event_name: 'PreToolUse', cwd, tool_name: 'Bash', tool_input: { command: 'git push origin main' } }),
+      env: { PATH: '/usr/bin:/bin', HOME: base }, encoding: 'utf8', cwd });
+    const blocked = run(dirty);
+    assert.equal(blocked.status, 2, blocked.stderr);
+    assert.match(blocked.stderr, /b\.txt:1: credential/);
+    assert.ok(!blocked.stderr.includes(token));
+    const passed = run(clean);
+    assert.equal(passed.status, 0, passed.stderr);
+    assert.equal(passed.stdout + passed.stderr, '');
+  }
+});
+
 test('check after apply is clean, names each of the ten files with the source\'s stamp, and the stamp names HEAD', { skip: SKIP }, () => {
   const c = admin(['--check', '--root=' + r]);
   assert.equal(c.code, 0, c.out + c.err);
@@ -443,43 +484,3 @@ for (const mode of [[], ['--uninstall']]) {
   }
 }
 
-// #588: the admin layer's copy of the fixed-pattern check, run as Claude Code and Codex run it from the drop-in
-// and the requirements: a push carrying a synthetic credential in an unpushed commit is blocked, a clean
-// one passes. The repository's remote-tracking ref is written with update-ref, so nothing is pushed.
-test('the admin layer\'s fixed-pattern check blocks a dirty push and passes a clean one (Claude Code and Codex)', { skip: SKIP || (!which('git') && 'git') }, () => {
-  const git = /** @type {string} */ (which('git'));
-  const token = 'gh' + 'p_' + 'Z9y8X7w6V5u4T3s2R1q0P9o8N7m6L5k4J3i2';
-  const genv = { PATH: '/usr/bin:/bin', HOME: base, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', GIT_AUTHOR_NAME: 'F',
-    GIT_AUTHOR_EMAIL: 'f' + '@' + 'example.com', GIT_COMMITTER_NAME: 'F', GIT_COMMITTER_EMAIL: 'f' + '@' + 'example.com' };
-  /** @param {string} name @param {string} text */
-  const repo = (name, text) => {
-    const d = path.join(base, 'repo-' + name);
-    fs.mkdirSync(d);
-    const g = (/** @type {string[]} */ a) => assert.equal(spawnSync(git, ['-C', d, ...a], { env: genv }).status, 0, a.join(' '));
-    g(['init', '-q', '-b', 'main']);
-    fs.writeFileSync(path.join(d, 'a.txt'), 'a\n');
-    g(['add', '.']);
-    g(['commit', '-q', '-m', 'a']);
-    g(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
-    fs.writeFileSync(path.join(d, 'b.txt'), text);
-    g(['add', '.']);
-    g(['commit', '-q', '-m', 'b']);
-    return d;
-  };
-  const dirty = repo('dirty', 'key ' + token + '\n');
-  const clean = repo('clean', 'clean\n');
-  const claude = JSON.parse(fs.readFileSync(t.claude, 'utf8')).hooks.PreToolUse[0].hooks[0].command;
-  const codex = parseToml(fs.readFileSync(t.codex, 'utf8')).hooks.PreToolUse[0].hooks[0].command;
-  for (const cmd of [claude, codex]) {
-    /** @param {string} cwd */
-    const run = (cwd) => spawnSync('/bin/sh', ['-c', cmd], { input: JSON.stringify({ hook_event_name: 'PreToolUse', cwd, tool_name: 'Bash', tool_input: { command: 'git push origin main' } }),
-      env: { PATH: '/usr/bin:/bin', HOME: base }, encoding: 'utf8', cwd });
-    const blocked = run(dirty);
-    assert.equal(blocked.status, 2, blocked.stderr);
-    assert.match(blocked.stderr, /b\.txt:1: credential/);
-    assert.ok(!blocked.stderr.includes(token));
-    const passed = run(clean);
-    assert.equal(passed.status, 0, passed.stderr);
-    assert.equal(passed.stdout + passed.stderr, '');
-  }
-});

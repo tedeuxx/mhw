@@ -963,8 +963,10 @@ details below are the agents' and await his ratification at the release candidat
   scope, named in its pull request, rather than written unmeasured.
 - **Evidence level.** Written and tested (per harness payload shape, block and pass, `git -C <dir> push`
   included, each new assertion mutation-checked; the installed commands from a throwaway home). Not
-  installed on the reference machine and not measured in a live session of any harness. Codex asks to
-  trust the changed hooks again, which is the owner's act.
+  installed on the reference machine and not measured in a live session of any harness. The script reads
+  the payload's `tool_input.command` and `cwd`: the documented shape on Claude Code and Codex; on Kiro the
+  field names are read from the 3.1.0 bundle, not observed. Codex asks to trust the changed hooks again,
+  which is the owner's act.
 
 ## Links
 
