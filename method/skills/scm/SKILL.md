@@ -94,12 +94,9 @@ An operator identifying a running build, or a consumer adopting a published arti
 to `main` bumps **that** part (resetting lower parts), tags it and publishes a release. A pull request
 without exactly one label fails a check. The default is plain SemVer: **major** for a breaking
 change (something a consumer must change), **minor** for an incremental feature, **patch** for a bug
-fix or a change with no behaviour change (docs, tests, CI). Where a repository records its own cut policy (this workstation's is its ADR-0002, which ~~since
+fix or a change with no behaviour change (docs, tests, CI). Where a repository records its own cut policy (this workstation's is its ADR-0002, which since
 2026-10-10 reserves **minor** for a new functionality and counts an incremental change to something
-that already exists as **patch**, docs, tests and CI included~~ since 2026-11-23 cuts **major** only
-for a break of its public interface, the `mhw` CLI's commands and options and the overlay schema,
-**minor** for a new functionality and **patch** for a fix or an incremental change, method, skills,
-briefs, controls, docs, tests and CI included), that table decides which label applies. A pull request that bundles several
+that already exists as **patch**, docs, tests and CI included), that table decides which label applies. A pull request that bundles several
 changes, such as a release candidate, carries the largest part among them.
 
 ### `.bumpversion.toml` (same in every repo)
