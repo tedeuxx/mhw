@@ -504,6 +504,9 @@ const CATALOG_CLAUSES = [
 const CATALOG_POINTERS = [
   ['agents/content-writer.md', '**Pick its format code first, from `published-voice` rule 26\'s closed catalog**'],
   ['agents/content-reviewer.md', '**On any social post, check its format code against `published-voice` rule 26**'],
+  // The reviewer keeps the truth repair and the merit ban (agents-lead B2 and A5 on PR #573).
+  ['agents/content-reviewer.md', 'Repair the vehicle, and a claim false against the source under ground 2;'],
+  ['agents/content-reviewer.md', 'disagreeing with his idea is never a finding.'],
   ['skills/content-publishing/SKILL.md', '**Both posts of this pair are format `F1`, the article digest**'],
   ['skills/funnel-review/SKILL.md', '**never with a guessed code**'],
 ];

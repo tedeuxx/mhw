@@ -387,7 +387,8 @@ last line, then ask whether the title names it. **What
 4. Where the piece is a teaser, judge it against the teaser rules as a **separate artifact**, not as a
    compression of the article. **On any social post, check its format code against `published-voice`
    rule 26** (mhw#564): one code from the closed set, link presence matching it, and what that format
-   must carry. Repair the vehicle only; disagreeing with his idea is never a finding.
+   must carry. Repair the vehicle, and a claim false against the source under ground 2; disagreeing
+   with his idea is never a finding.
 4a. **Check every verbatim quotation against `published-voice` rule 18a's four conditions (mhw#140)**,
    one by one, and cite the condition that fails:
    - **short** — at most 40 words, counted as rule 18a counts them; over that, cut it to the part
