@@ -27,10 +27,15 @@ pending; a pause for questions publishes nothing.
 1. Run the relevant local checks, inspect the diff, and commit all intended non-secret changes on a
    feature branch cut from a fresh `origin/rc/next`. Do not sweep unrelated work into the commit.
 2. Push normally, open the PR with `--base rc/next`, and give it exactly one
-   `semver:major|minor|patch` label: **major** for a breaking change (something that worked stops
+   `semver:major|minor|patch` label: ~~**major** for a breaking change (something that worked stops
    working the same way for an existing user), **minor** for a new functionality, **patch** for a
    bug fix or an incremental change to something that already exists, docs, tests and CI included
-   (ADR-0002, 2026-10-10 amendment). The
+   (ADR-0002, 2026-10-10 amendment)~~ **major** only for a break of the public interface (a command
+   or option of the `mhw` CLI is removed or changes meaning, or the overlay schema the user writes
+   becomes incompatible), **minor** for a new functionality, including a new control, skill or
+   harness, **patch** for a fix or an incremental change to something that exists (method, skills,
+   briefs, controls, docs, tests, CI) (ADR-0002, 2026-11-23 amendment, awaiting the owner's
+   ratification). The
    release-candidate PR carries the largest part among the changes it contains.
 3. After CI and the review gate, run `./mhw delivery merge --pr NUMBER` from the
    slice branch checkout. For a PR into `rc/next` it requires every job that the `tests` workflow's
