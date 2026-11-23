@@ -7,7 +7,7 @@ pipeline.
 - **Status:** agreed with the owner in a command-by-command interview on 2026-11-23. Items under
   [Open questions](#10-open-questions) are facts to measure, not decisions.
 - **Source:** the owner's CLI review of 2026-11-23 (this session); the per-harness hook research of the
-  same day (section 5). The owner's words are quoted in English translation from Portuguese.
+  same day (section 6). The owner's words are quoted in English translation from Portuguese.
 - **Related:** [cloud environments](mhw-product-requirements-document-cloud-environments.md) (amended by
   section 7), [agent runtime](mhw-product-requirements-document-agent-runtime.md),
   [ADR-0033](adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md) (superseded in part, section 9).
@@ -15,7 +15,7 @@ pipeline.
 ## Evidence level
 
 Three levels are used. The target behaviour is *written*: nothing is built. The per-harness hook facts
-are *documented* (vendor pages, section 5), not measured. The inventory of today's commands is *read
+are *documented* (vendor pages, section 6), not measured. The inventory of today's commands is *read
 from the source* of `rc/next` at `d42a900`.
 
 ## 1. Goal and scope
@@ -136,12 +136,22 @@ The owner chose **native with fallback**:
 The owner: *"also make the normalisation of the semver standard part of this version"*; *"we were
 generating too many majors, it makes no sense. The current semver rule must have problems."*
 
-**What the record shows** (read from the tracker on 2026-11-23): of 160 slices merged into `rc/next`, 11
-carried `semver:major`, and the release candidate takes the largest label it contains, so one major slice
-made each release a major: v6 to v10 in about a month. Most of the 11 were not interface changes: method
-skill renames and alias removals, a verdict literal, internal control changes. Only three touched the
-command line. The rule in [ADR-0002](adr/0002-automatic-semver-cut-policy.md) (*"something that worked
-stops working the same way for an existing user"*) is still *proposed*, never ratified.
+**What the record shows** (read from the tracker on 2026-11-23): of 165 slices merged into `rc/next`, 11
+carried `semver:major` (#90, #92, #95, #114, #199, #208, #214, #237, #423, #445, #525), and the release
+candidate takes the largest label it contains, so one major slice made each release a major: v6.0.0 to
+v10.0.0 in 20 days (2026-10-18 to 2026-11-07). Counted with:
+
+```
+gh pr list --repo tedeuxx/mhw --state merged --base rc/next --limit 400 --json number -q 'length'
+gh pr list --repo tedeuxx/mhw --state merged --base rc/next --label semver:major --limit 400 --json number -q '[.[].number]'
+for v in $(git tag -l 'v*.0.0' | sort -V); do echo "$v $(git log -1 --format=%cs $v)"; done
+```
+
+Most of the 11 were not changes to what a user installs or types: method skill renames and alias
+removals (#199, #445, #525), a verdict literal (#423), internal control changes (#90, #92, #214, #237).
+Three changed the install surface or what it grants (#95, #114, #208). The cut rule in
+[ADR-0002](adr/0002-automatic-semver-cut-policy.md) (*"something that worked stops working the same way
+for an existing user"*) was accepted on 2026-11-17; this document asks the owner to amend it.
 
 **Decision (owner chose "public interface"):** mhw declares a public interface, and only a break of it is
 a major.
@@ -169,3 +179,7 @@ release that ships this document is the major (v11) that sets the new interface.
 2. Whether Kiro CLI's prompt-submit hook can block (the vendor pages conflict). To be measured.
 3. How the quality-assurance verdict becomes a GitHub status check that a ruleset can require.
 4. Which native carrier checks a publication made through the browser tool.
+5. How the cloud environments document's `mhw cloud setup-script` and `mhw install --cloud` fit the
+   six-command CLI of section 4. Both are distribution, so they fall inside the CLI's purpose; whether
+   the setup script becomes an option of `install` or its own command is to be settled before that
+   document's slices (#580, #581) are built.
