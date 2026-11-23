@@ -5,7 +5,10 @@
 // transcripts recorded from the Python original and expected-differences.json names what differs.
 //
 //   node src/render/method.js --mode=install|check|dry-run|uninstall [--stamp="release: R; commit: C"]
-//                             [--source=DIR] [--home=DIR] [--opt-in]
+//                             [--source=DIR] [--home=DIR] [--opt-in] [--project=DIR]
+//
+// --project=DIR also renders DIR/.mhw/method/{agents,skills} into DIR's project carriers, first: see
+// "The project target" below (#576).
 //
 // Off by default (#61, until the plugin cutover #63 and #64): without --opt-in, and with no rendered file
 // of the method present, it writes nothing and prints one METHOD line saying so. With --opt-in, or once a
@@ -99,7 +102,8 @@ export class SourceError extends Error {}
  * @typedef {{ description: string, purpose: Field, tools: string[], excluded: string[], skills: string[], body: string, where: string }} Agent
  * @typedef {{ claude: string, codex: string, agents: string, kiro: string, scripts: string }} Homes
  * @typedef {{ env: Record<string, string | undefined>, platform: string, cwd: string, home: string | null }} Ctx
- * @typedef {[string, string, string]} Target path, text, format
+ * @typedef {[string, string, string] | [string, string, string, string]} Target path, text, format, and the source tag
+ *   a project target carries (#576); a user-level target omits it
  */
 
 // --------------------------------------------------------------------------------------------------
@@ -412,9 +416,15 @@ export function mcpTool(t) {
  * @param {string} source the directory (a path the file system reads)
  * @param {string} shown the same path as str(Path(arg)), for the message
  * @param {string} platform
+ * @param {{ prefix?: string, external?: Map<string, Skill>, project?: boolean }} [opts] a project source (#576):
+ *   its own prefix for messages and markers, the user-level skills its agents may also preload, and the
+ *   project rules (agents and skills only, at least one of them, no {{method-scripts}})
  * @returns {{ skills: Map<string, Skill>, agents: Map<string, Agent>, commands: Map<string, Command> }}
  */
-export function load(source, shown, platform) {
+export function load(source, shown, platform, opts = {}) {
+  const prefix = opts.prefix ?? 'method/';
+  /** @type {Map<string, Skill>} */
+  const external = opts.external ?? new Map();
   if (!isDir(source)) throw new SourceError('source not found: ' + shown);
   /** @type {Map<string, Skill>} */
   const skills = new Map();
@@ -424,7 +434,7 @@ export function load(source, shown, platform) {
   const commands = new Map();
   for (const file of glob(join(platform, source, 'skills'), '*/SKILL.md', platform)) {
     const name = basename(parentOf(file, platform), platform);
-    const where = 'method/skills/' + name + '/SKILL.md';
+    const where = prefix + 'skills/' + name + '/SKILL.md';
     const { fields, body } = splitFrontMatter(readText(file), where);
     if (fields.get('name') !== name || !NAME_RE.test(name) || pyLen(name) > 64) {
       throw new SourceError(where + ': name must equal the directory name (lowercase, hyphens, 64 at most)');
@@ -435,7 +445,7 @@ export function load(source, shown, platform) {
   }
   for (const file of glob(join(platform, source, 'commands'), '*.md', platform)) {
     const name = stemOfMd(basename(file, platform));
-    const where = 'method/commands/' + name + '.md';
+    const where = prefix + 'commands/' + name + '.md';
     const { fields, body } = splitFrontMatter(readText(file), where);
     if (fields.get('name') !== name || !NAME_RE.test(name)) throw new SourceError(where + ': name must equal the file name');
     knownFields(fields, 'commands', where);
@@ -446,7 +456,7 @@ export function load(source, shown, platform) {
   }
   for (const file of glob(join(platform, source, 'agents'), '*.md', platform)) {
     const name = stemOfMd(basename(file, platform));
-    const where = 'method/agents/' + name + '.md';
+    const where = prefix + 'agents/' + name + '.md';
     const { fields, body } = splitFrontMatter(readText(file), where);
     if (fields.get('name') !== name || !NAME_RE.test(name)) throw new SourceError(where + ': name must equal the file name');
     knownFields(fields, 'agents', where);
@@ -469,7 +479,7 @@ export function load(source, shown, platform) {
     }
     const preload = fields.get('skills') ?? [];
     if (!Array.isArray(preload)) throw new SourceError(where + ': skills must be a list');
-    for (const s of preload) if (!skills.has(s)) throw new SourceError(where + ': preloads unknown skill ' + s);
+    for (const s of preload) if (!skills.has(s) && !external.has(s)) throw new SourceError(where + ': preloads unknown skill ' + s);
     agents.set(name, {
       description: need(fields, 'description', where), purpose: fields.get('purpose') ?? '',
       tools, excluded, skills: preload, body, where,
@@ -477,6 +487,17 @@ export function load(source, shown, platform) {
   }
   const clash = [...skills.keys()].filter((s) => commands.has(s)).sort(cmpStr);
   if (clash.length) throw new SourceError('a skill and a command share a name: ' + clash.join(', '));
+  if (opts.project) {
+    // A project source renders agents and skills only (#576); commands stay user level.
+    if (commands.size || isDir(join(platform, source, 'commands'))) throw new SourceError(prefix + 'commands/: the project target renders agents and skills only');
+    if (!skills.size && !agents.size) throw new SourceError(prefix + ' must hold agents or skills');
+    for (const group of [skills, agents]) {
+      for (const item of group.values()) {
+        if (item.body.includes(SCRIPTS_TOKEN)) throw new SourceError(item.where + ': ' + SCRIPTS_TOKEN + ' is for the user-level method only');
+      }
+    }
+    return { skills, agents, commands };
+  }
   if (!skills.size || !agents.size || !commands.size) throw new SourceError('method/ must hold agents, skills and commands');
   return { skills, agents, commands };
 }
@@ -629,15 +650,19 @@ function kiroTools(tools) {
   return out;
 }
 
-/** @param {Agent} a @param {string} name @param {string} stamp @param {string} kiroSkills @param {string} platform */
-export function kiroAgent(a, name, stamp, kiroSkills, platform) {
+/**
+ * @param {Agent} a @param {string} name @param {string} stamp @param {string} kiroSkills @param {string} platform
+ * @param {((skill: string) => string) | null} [resource] how a preloaded skill is referenced; the default is
+ *   the user-level file:// URI of kiroSkills/<skill>/SKILL.md
+ */
+export function kiroAgent(a, name, stamp, kiroSkills, platform, resource = null) {
   /** @type {Map<string, unknown>} */
   const doc = new Map();
   doc.set('name', name);
   doc.set('description', a.description);
   doc.set('prompt', '<!-- ' + marker(a.where, stamp) + ' -->\n\n' + lstripNl(a.body));
   doc.set('tools', kiroTools(a.tools));
-  doc.set('resources', a.skills.map((s) => asUri(join(platform, kiroSkills, s, 'SKILL.md'), platform)));
+  doc.set('resources', a.skills.map((s) => (resource ? resource(s) : asUri(join(platform, kiroSkills, s, 'SKILL.md'), platform))));
   if (a.excluded.length) {
     // mcp__<server>__<tool> -> @<server>/<tool>; documented for Kiro IDE 1.x and CLI V3.
     doc.set('excludedTools', a.excluded.map((t) => {
@@ -743,6 +768,111 @@ export function candidateFiles(ctx) {
 }
 
 // --------------------------------------------------------------------------------------------------
+// The project target (#576): a consuming project's own agents and skills, from one source in the project,
+// <project>/.mhw/method/{agents,skills}, in the same format as method/, rendered into the project carriers
+// of all three agent harnesses. Loading was measured on each harness in a throwaway project (#576):
+//     Claude Code  <project>/.claude/agents/<n>.md, <project>/.claude/skills/<n>/SKILL.md (listed, 2.1.330)
+//     Codex        <project>/.codex/agents/<n>.toml, read ONLY in a trusted project (0.163.0), and
+//                  <project>/.agents/skills/<n>/SKILL.md (model-visible, trusted or not)
+//     Kiro         <project>/.kiro/agents/<n>.json (listed as Workspace, CLI 3.1.0) and
+//                  <project>/.kiro/skills/<n>/SKILL.md (read from binary strings, not measured)
+// A Kiro project agent references a preloaded skill by a skill:// path, never by the absolute user-level
+// file:// URI the user carrier uses, so no home path lands in a tracked project file: a project skill as
+// skill://.kiro/skills/<n>/SKILL.md (relative to the project), a user-level method skill as
+// skill://~/.kiro/skills/<n>/SKILL.md. Whether Kiro resolves either form was not measured (it needs a
+// logged-in session); the post-install canary settles it. Dispatch as a subagent is not measured on any
+// harness. Commands stay user level. A project file carries "source: .mhw/method/..." in its managed-by
+// line, so the user-level STALE and uninstall passes never treat it as theirs, and the reverse.
+
+export const PROJECT_PREFIX = '.mhw/method/';
+const PROJECT_TAG = 'source: ' + PROJECT_PREFIX;
+
+/** @param {string} project @param {string} platform */
+export function projectCarriers(project, platform) {
+  return {
+    claude: join(platform, project, '.claude'),
+    codex: join(platform, project, '.codex'),
+    agents: join(platform, project, '.agents'),
+    kiro: join(platform, project, '.kiro'),
+  };
+}
+
+/**
+ * Every file the project target renders, each tagged with the project source tag.
+ * @param {ReturnType<typeof load>} src the project source @param {Map<string, Skill>} userSkills
+ * @param {string} stamp @param {string} project @param {string} platform
+ * @returns {Target[]}
+ */
+export function projectTargets(src, userSkills, stamp, project, platform) {
+  const c = projectCarriers(project, platform);
+  /** @param {string} s */
+  const resource = (s) => (src.skills.has(s) ? 'skill://.kiro/skills/' : 'skill://~/.kiro/skills/') + s + '/SKILL.md';
+  /** @type {Target[]} */
+  const out = [];
+  for (const [name, s] of src.skills) {
+    const text = skillMd(name, s.description, s.purpose, s.body, s.where, stamp);
+    out.push(
+      [join(platform, c.claude, 'skills', name, 'SKILL.md'), text, 'md', PROJECT_TAG],
+      [join(platform, c.agents, 'skills', name, 'SKILL.md'), text, 'md', PROJECT_TAG],
+      [join(platform, c.kiro, 'skills', name, 'SKILL.md'), text, 'md', PROJECT_TAG],
+    );
+  }
+  for (const [name, a] of src.agents) {
+    for (const s of a.skills) if (!src.skills.has(s) && !userSkills.has(s)) throw new SourceError(a.where + ': preloads unknown skill ' + s);
+    out.push(
+      [join(platform, c.claude, 'agents', name + '.md'), claudeAgent(a, name, stamp), 'md', PROJECT_TAG],
+      [join(platform, c.codex, 'agents', name + '.toml'), codexAgent(a, name, stamp), 'md', PROJECT_TAG],
+      [join(platform, c.kiro, 'agents', name + '.json'), kiroAgent(a, name, stamp, '', platform, resource), 'json', PROJECT_TAG],
+    );
+  }
+  return out;
+}
+
+/** Every file in the project carriers that could be one of the project target's. @param {string} project @param {string} platform */
+export function projectCandidates(project, platform) {
+  const c = projectCarriers(project, platform);
+  /** @type {Array<[string, string]>} */
+  const patterns = [
+    [join(platform, c.claude, 'agents'), '*.md'], [join(platform, c.claude, 'skills'), '*/SKILL.md'],
+    [join(platform, c.agents, 'skills'), '*/SKILL.md'], [join(platform, c.codex, 'agents'), '*.toml'],
+    [join(platform, c.kiro, 'agents'), '*.json'], [join(platform, c.kiro, 'skills'), '*/SKILL.md'],
+  ];
+  /** @type {string[]} */
+  const found = [];
+  for (const [base, pattern] of patterns) {
+    if (!isDir(base)) continue;
+    for (const p of glob(base, pattern, platform)) if (isFile(p) && !isLink(p) && ours(p, null, PROJECT_TAG)) found.push(p);
+  }
+  return found;
+}
+
+/**
+ * Codex reads a project's .codex/agents only when the project is trusted (measured on 0.163.0, #576), and
+ * says nothing when it is not. This reads the trust entry from ${CODEX_HOME:-~/.codex}/config.toml and
+ * never writes it: trusting a project is the owner's act. It matches the project's path as given and its
+ * real path, not a trusted parent directory (whether Codex lets a parent's trust cover it was not measured).
+ * @param {string} project @param {Ctx} ctx
+ * @returns {{ trusted: boolean, config: string, why: string }}
+ */
+export function codexTrust(project, ctx) {
+  const config = join(ctx.platform, homes(ctx).codex, 'config.toml');
+  let doc;
+  try {
+    doc = /** @type {Record<string, unknown>} */ (parseToml(readText(config)));
+  } catch (e) {
+    return { trusted: false, config, why: lexists(config) ? 'unreadable (' + /** @type {Error} */ (e).message.split('\n', 1)[0] + ')' : 'absent' };
+  }
+  const projects = isDict(doc.projects) ? /** @type {Record<string, unknown>} */ (doc.projects) : {};
+  // Both spellings, with and without a trailing separator: how Codex writes the key was not measured.
+  const names = new Set([project, real(project)].flatMap((n) => [n, n.replace(/[\\/]+$/, ''), n.replace(/[\\/]*$/, sepOf(ctx.platform))]));
+  for (const n of names) {
+    const entry = projects[n];
+    if (isDict(entry) && /** @type {Record<string, unknown>} */ (entry).trust_level === 'trusted') return { trusted: true, config, why: 'trusted' };
+  }
+  return { trusted: false, config, why: 'no trusted entry' };
+}
+
+// --------------------------------------------------------------------------------------------------
 // Managed detection and stamp comparison.
 
 /**
@@ -772,10 +902,10 @@ export function markerLine(file, fmt) {
   return null;
 }
 
-/** @param {string} file @param {string | null} fmt */
-export function ours(file, fmt) {
+/** @param {string} file @param {string | null} fmt @param {string} [tag] the source tag of the target's kind */
+export function ours(file, fmt, tag = SOURCE_TAG) {
   const line = markerLine(file, fmt);
-  return line !== null && line.includes(SOURCE_TAG);
+  return line !== null && line.includes(tag);
 }
 
 /** @param {string} text */
@@ -811,10 +941,10 @@ function sourceOf(text) {
  * @param {{ status: number }} st @param {string} mode @param {Target} target @param {string} stamp
  * @param {(s: string) => void} say @param {(s: string) => void} warn @param {string} platform
  */
-function processTarget(st, mode, [file, text, fmt], stamp, say, warn, platform) {
+function processTarget(st, mode, [file, text, fmt, tag = SOURCE_TAG], stamp, say, warn, platform) {
   const link = isLink(file);
   const exists = fs.existsSync(file) || link;
-  if (exists && (link || !ours(file, fmt))) {
+  if (exists && (link || !ours(file, fmt, tag))) {
     warn('REFUSE  ' + file + ': exists and is NOT managed by this project\'s method step; move it aside or merge it by hand');
     st.status = Math.max(st.status, 3);
     return;
@@ -857,11 +987,11 @@ function prune(file, stop, platform) {
   }
 }
 
-/** @param {string} file @param {Ctx} ctx */
-function remove(file, ctx) {
+/** @param {string} file @param {Ctx} ctx @param {string[] | null} [stops] the carrier roots to prune up to */
+function remove(file, ctx, stops = null) {
   fs.unlinkSync(file);
   const h = homes(ctx);
-  for (const stop of [h.claude, h.codex, h.agents, h.kiro, h.scripts]) {
+  for (const stop of stops ?? [h.claude, h.codex, h.agents, h.kiro, h.scripts]) {
     if (isUnder(stop, file, ctx.platform)) {
       prune(file, stop, ctx.platform);
       return;
@@ -888,12 +1018,15 @@ export function run(argv, opts = {}) {
   /** @type {string | null} */
   let stamp = null;
   let sourceArg = null;
+  /** @type {string | null} */
+  let projectArg = null;
   let optIn = false;
   for (const arg of argv) {
     if (arg.startsWith('--mode=')) mode = arg.slice(7);
     else if (arg.startsWith('--stamp=')) stamp = arg.slice(8);
     else if (arg.startsWith('--source=')) sourceArg = arg.slice(9);
     else if (arg.startsWith('--home=')) ctx.home = arg.slice(7);
+    else if (arg.startsWith('--project=')) projectArg = arg.slice(10);
     else if (arg === '--opt-in') optIn = true;
     else {
       warn('method_render: unknown argument ' + arg);
@@ -904,13 +1037,58 @@ export function run(argv, opts = {}) {
     warn('method_render: --mode must be install, check, dry-run or uninstall');
     return 2;
   }
+  /** @type {string | null} */
+  let project = null;
+  if (projectArg !== null) {
+    project = pyAbsolute(projectArg, ctx);
+    if (!projectArg || !isDir(project)) {
+      warn('method_render: --project must name an existing directory');
+      return 2;
+    }
+    // Real paths, not text (lens on PR #602): HOME/sub/.., a symbolic link to HOME, or a carrier that is a
+    // link out of the project would otherwise write project files into the user carriers.
+    const h = homes(ctx);
+    const rp = real(project);
+    const rh = real(parentOf(h.claude, platform));
+    if (within(rp, rh)) {
+      warn('method_render: --project must not be the home directory or contain it: its carriers would be the user-level ones');
+      return 2;
+    }
+    const userRoots = [h.claude, h.codex, h.agents, h.kiro].map(real);
+    const projectRoots = Object.values(projectCarriers(project, platform)).map(real);
+    if (projectRoots.some((r) => userRoots.includes(r))) {
+      warn('method_render: --project carriers resolve to the user-level ones');
+      return 2;
+    }
+  }
   const st = { status: 0 };
+  if (project !== null) {
+    const c = projectCarriers(project, platform);
+    const dirs = [c.claude, c.codex, c.agents, c.kiro].flatMap((d) => [d, join(platform, d, 'agents'), join(platform, d, 'skills')]);
+    const out = escapes(project, [...dirs, ...projectCandidates(project, platform)]);
+    if (out !== null) {
+      warn('REFUSE  ' + out + ': resolves outside the project ' + project + '; nothing of the project was written');
+      return 2;
+    }
+  }
+  if (mode === 'uninstall' && project !== null) {
+    const stops = Object.values(projectCarriers(project, platform));
+    for (const file of projectCandidates(project, platform)) {
+      remove(file, ctx, stops);
+      say('REMOVED ' + file);
+    }
+  }
   if (mode === 'uninstall') {
     for (const file of candidateFiles(ctx)) {
       if (ours(file, null)) {
         remove(file, ctx);
         say('REMOVED ' + file);
       }
+    }
+    const record = holdsFile(ctx);
+    if (lexists(record)) {
+      fs.unlinkSync(record);
+      say('REMOVED ' + record);
     }
     return st.status;
   }
@@ -930,20 +1108,104 @@ export function run(argv, opts = {}) {
   const source = sourceArg === null ? DEFAULT_SOURCE : path.resolve(ctx.cwd, sourceArg);
   /** @type {Target[]} */
   let wanted;
+  /** @type {Target[]} */
+  let projectWanted = [];
   const counts = { agents: 0, skills: 0, commands: 0 };
+  const projectCounts = { agents: 0, skills: 0 };
+  /** @type {Set<string>} */
+  let projectAgents = new Set();
   try {
     const src = load(source, shown, platform);
     Object.assign(counts, { agents: src.agents.size, skills: src.skills.size, commands: src.commands.size });
+    if (project !== null) {
+      // Loaded before anything is written, so a bad project source writes nothing at either level.
+      const psrc = load(join(platform, project, ...PROJECT_PREFIX.slice(0, -1).split('/')), PROJECT_PREFIX.slice(0, -1), platform,
+        { prefix: PROJECT_PREFIX, external: src.skills, project: true });
+      Object.assign(projectCounts, { agents: psrc.agents.size, skills: psrc.skills.size });
+      projectWanted = projectTargets(psrc, src.skills, stamp, project, platform);
+      projectAgents = new Set(psrc.agents.keys());
+    }
     wanted = targets(src, loadDocuments(source, platform), stamp, ctx);
   } catch (e) {
     if (!(e instanceof SourceError)) throw e;
     warn('REFUSE  the working method: ' + e.message + '; nothing of it was written');
     return 2;
   }
+  if (project !== null) {
+    const out = escapes(project, projectWanted.map((t) => t[0]));
+    if (out !== null) {
+      warn('REFUSE  ' + out + ': resolves outside the project ' + project + '; nothing of it was written');
+      return 2;
+    }
+  }
+  // The order a moved agent needs (#576): the project copies are in place, and the project's own stale
+  // files gone, before any user-level copy is removed. A refused project file holds every user-level removal.
+  let holdRemovals = false;
+  // Held Codex user copies outlive this run (lens on PR #602): a later run without --project reads them from
+  // the record a project run wrote, so it needs no list of projects.
+  const holds = readHolds(ctx);
+  const holdsBefore = JSON.stringify(holds);
+  if (project !== null) {
+    const pst = { status: 0 };
+    for (const t of projectWanted) processTarget(pst, mode, t, stamp, say, warn, platform);
+    const pkeep = new Set(projectWanted.map((t) => key(t[0], platform)));
+    const stops = Object.values(projectCarriers(project, platform));
+    for (const file of projectCandidates(project, platform)) {
+      if (pkeep.has(key(file, platform))) continue;
+      if (mode === 'check') {
+        say('STALE   ' + file + ': rendered by an earlier project source; install removes it');
+        pst.status = Math.max(pst.status, 1);
+      } else if (mode === 'dry-run') {
+        say('WOULD REMOVE ' + file + ' (no longer in ' + PROJECT_PREFIX + ')');
+      } else {
+        remove(file, ctx, stops);
+        say('REMOVED ' + file + ' (no longer in ' + PROJECT_PREFIX + ')');
+      }
+    }
+    holdRemovals = pst.status >= 3;
+    st.status = Math.max(st.status, pst.status);
+    if (projectCounts.agents) {
+      const t = codexTrust(project, ctx);
+      if (t.trusted) {
+        for (let i = holds.length - 1; i >= 0; i--) if (holds[i].project === project) holds.splice(i, 1);
+        say('CODEX   ' + project + ' is trusted in ' + t.config + ': Codex reads its project agents');
+      }
+      else {
+        // Codex skips an untrusted project's agents (measured), so the user copy of each agent the project
+        // defines is its only Codex copy: keep it until the owner trusts the project.
+        for (const n of projectAgents) {
+          const file = join(platform, homes(ctx).codex, 'agents', n + '.toml');
+          if (!holds.some((e) => e.file === file && e.project === project)) holds.push({ file, project });
+        }
+        say('UNTRUSTED ' + project + ' is not trusted by Codex (' + t.config + ': ' + t.why + '): Codex skips its '
+          + '.codex/agents without a word, while its .agents/skills still load. The owner trusts it: open codex in it and '
+          + 'accept, or add [projects."' + project + '"] trust_level = "trusted" to that file');
+      }
+    }
+  }
+  // An entry still holds while its project is untrusted and its project copy is there (or is written in
+  // this run); any other entry is dropped, so the next run removes that user copy as usual.
+  for (let i = holds.length - 1; i >= 0; i--) {
+    const e = holds[i];
+    const copy = join(platform, e.project, '.codex', 'agents', basename(e.file, platform));
+    const present = e.project === project ? projectWanted.some((t) => t[0] === copy) : lexists(copy) && ours(copy, null, PROJECT_TAG);
+    if (!present || codexTrust(e.project, ctx).trusted) holds.splice(i, 1);
+  }
+  const codexHeld = new Set(holds.map((e) => key(e.file, platform)));
+  if (mode === 'install' && JSON.stringify(holds) !== holdsBefore) writeHolds(ctx, holds, say);
   for (const t of wanted) processTarget(st, mode, t, stamp, say, warn, platform);
   const keep = new Set(wanted.map((t) => key(t[0], platform)));
   for (const file of candidateFiles(ctx)) {
     if (keep.has(key(file, platform)) || !ours(file, null)) continue;
+    if (holdRemovals && mode !== 'check' && mode !== 'dry-run') {
+      say('HELD    ' + file + ': a project file was refused, so this user-level copy stays until the project copy is in place');
+      continue;
+    }
+    if (codexHeld.has(key(file, platform))) {
+      say('HELD    ' + file + ': Codex does not trust the project, so it would not read the project copy; this user-level copy '
+        + 'stays until the owner trusts the project');
+      continue;
+    }
     if (mode === 'check') {
       say('STALE   ' + file + ': rendered by an earlier method; install removes it');
       st.status = Math.max(st.status, 1);
@@ -959,6 +1221,10 @@ export function run(argv, opts = {}) {
     + 'Codex (custom agents without a tool list, skills; commands as skills with implicit invocation off) '
     + 'and Kiro (agents, skills; commands as skills); the documents its rites name in ' + homes(ctx).scripts
     + ' (no scripts: the rites run mhw commands)');
+  if (project !== null) {
+    say('PROJECT installed: ' + projectCounts.agents + ' agents, ' + projectCounts.skills + ' skills from ' + PROJECT_PREFIX + ' into '
+      + project + ' (.claude, .codex and .agents, .kiro); commands stay user level');
+  }
   return st.status;
 }
 
@@ -976,6 +1242,60 @@ const real = (p) => {
     return path.resolve(p);
   }
 };
+/** Is r the directory d or under it, by real path. @param {string} d @param {string} r */
+const within = (d, r) => {
+  const rel = path.relative(d, r);
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+};
+
+/** The record of held Codex user copies, beside the documents directory. @param {Ctx} ctx */
+const holdsFile = (ctx) => join(ctx.platform, parentOf(homes(ctx).scripts, ctx.platform), 'project-holds.json');
+
+/**
+ * The held entries, [{file, project}]; an absent or unreadable record holds nothing.
+ * @param {Ctx} ctx @returns {Array<{ file: string, project: string }>}
+ */
+function readHolds(ctx) {
+  try {
+    const doc = /** @type {unknown} */ (JSON.parse(readText(holdsFile(ctx))));
+    const list = isDict(doc) ? /** @type {Record<string, unknown>} */ (doc).holds : null;
+    if (!Array.isArray(list)) return [];
+    return list.filter((e) => isDict(e) && typeof e.file === 'string' && typeof e.project === 'string')
+      .map((e) => ({ file: String(e.file), project: String(e.project) }));
+  } catch {
+    return [];
+  }
+}
+
+/** @param {Ctx} ctx @param {Array<{ file: string, project: string }>} holds @param {(s: string) => void} say */
+function writeHolds(ctx, holds, say) {
+  const file = holdsFile(ctx);
+  if (!holds.length) {
+    if (lexists(file)) fs.unlinkSync(file);
+    say('HOLDS   ' + file + ': no Codex user copy is held');
+    return;
+  }
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = file + '.new.' + process.pid;
+  writeText(tmp, JSON.stringify({ holds }, null, 2) + '\n', ctx.platform);
+  fs.renameSync(tmp, file);
+  say('HOLDS   ' + file + ': ' + holds.length + ' Codex user copies held until their project is trusted');
+}
+
+/**
+ * The first path whose nearest existing part (itself or an ancestor) resolves outside the project, or null.
+ * @param {string} project @param {string[]} paths
+ */
+function escapes(project, paths) {
+  const rp = real(project);
+  for (const p of paths) {
+    let q = path.resolve(p);
+    while (!lexists(q) && path.dirname(q) !== q) q = path.dirname(q);
+    if (!within(rp, real(q))) return p;
+  }
+  return null;
+}
+
 if (process.argv[1] && real(process.argv[1]) === real(fileURLToPath(import.meta.url))) {
   process.exitCode = run(process.argv.slice(2));
 }

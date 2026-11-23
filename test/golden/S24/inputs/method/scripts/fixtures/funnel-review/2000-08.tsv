@@ -1,0 +1,11 @@
+# FIXTURE — synthetic. Every number is invented and names no real property, post or reader.
+#
+# The `active` state of the internal-traffic declaration (#181). Once the filter is active, the
+# property drops marked sessions before any query sees them, so no calibration count is collected.
+#
+# See method/scripts/funnel-review-contract/README.md for the parsing contract.
+
+collected: yes 2000-08-31 synthetic fixture — do not read as a measurement of anything
+internal-traffic: active 2000-08-15 the property's data filter excludes marked sessions (synthetic)
+
+figure: ga4 sessions 18 18

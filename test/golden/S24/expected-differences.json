@@ -195,5 +195,86 @@
     "head": "(?!)",
     "replace": "    ./mhw mcp check [--timeout=SECONDS] connection test: start each MCP active-set server and say whether\n                                          it answers (it starts processes; exit 1 when one fails; #219,\n                                          #595; it was status --mcp-connect until v11)\n    ./mhw mcp render --check            drift check: exit 1 when an installed MCP configuration differs\n                                          from the definition; it starts nothing (mhw mcp render --help)",
     "why": "A break of the public interface (#595, v11, section 4 of the CLI native baseline PRD): `mhw status --mcp-connect[=SECONDS]` is removed, because the connection test starts processes and status never does. The usage text drops its two lines and names `mhw mcp check [--timeout=SECONDS]` (the connection test) and `mhw mcp render --check` (the drift check) in their place, so the help tells the two apart. Every other line is compared unchanged. Steps 0 to 3 (--help, -h, help and no argument) all print it."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "head": ", pattern-check\\.js(?=[,\\n])",
+    "replace": "",
+    "why": "#588: the admin layer's summary lines (ADMIN MISSING, DRIFT or STAMP <names>) name the fixed-pattern check's file among the others; that one name is taken out of the head side, so the line and its other names are still compared. Applied before the entry that drops whole lines naming the check's files."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "the admin layer differs from this checkout: \\d+ target\\(s\\)",
+    "head": "the admin layer differs from this checkout: \\d+ target\\(s\\)",
+    "replace": "the admin layer differs from this checkout: <N> target(s)",
+    "why": "#588: the admin layer's count of differing targets grows by the fixed-pattern check's file (bin/hook/src/hooks/pattern-check.js), so it is read as <N> on both sides; the names of the differing targets are still compared on the ADMIN lines that follow."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "head": "[^\\n]*pattern-check[^\\n]*\\n",
+    "replace": "",
+    "why": "#588 (the fixed-pattern check; ADR-0033 and ADR-0035 decision 7 amendments of 2026-11-23): mhw install also installs the check's script and core under <data dir>/pattern-check, its own Kiro hook file and, in the admin layer, bin/hook/src/hooks/pattern-check.js. Each line the head prints that names one of those files (an OK, MISSING, WROTE, REMOVED, SKIP or STAMP line of --check, install or uninstall) is taken out of the head side; nothing else in the line set changes, and every other line is still compared. test/hooks/pattern-check-install.test.js and test/install/admin.test.js hold those files and lines."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "file home/.kiro/hooks/personal-multi-harness-workstation-configuration-pattern-check.json",
+      "file home/.local/share/personal-multi-harness-workstation-configuration/pattern-check",
+      "file home/.local/share/personal-multi-harness-workstation-configuration/pattern-check/package.json",
+      "file home/.local/share/personal-multi-harness-workstation-configuration/pattern-check/src",
+      "file home/.local/share/personal-multi-harness-workstation-configuration/pattern-check/src/hooks",
+      "file home/.local/share/personal-multi-harness-workstation-configuration/pattern-check/src/hooks/pattern-check.js",
+      "file home/.local/share/personal-multi-harness-workstation-configuration/pattern-check/src/lib",
+      "file home/.local/share/personal-multi-harness-workstation-configuration/pattern-check/src/lib/clean.js",
+      "file home/.local/share/personal-multi-harness-workstation-configuration/pattern-check/src/lib/clean-unicode.js",
+      "file admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/hook/src/hooks",
+      "file admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/hook/src/hooks/pattern-check.js",
+      "file admin/etc/personal-multi-harness-workstation-configuration/bin/hook/src/hooks",
+      "file admin/etc/personal-multi-harness-workstation-configuration/bin/hook/src/hooks/pattern-check.js"
+    ],
+    "head": "^(file|dir) [0-7]{3}$",
+    "replace": "<absent>",
+    "why": "#588: the fixed-pattern check's own files, which the head installs and the base did not: each is read as absent on the head side, so the golden keeps its tree of every other file. Their content and modes are held by test/hooks/pattern-check-install.test.js and test/install/admin.test.js."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "\\d+ file\\(s\\) to write",
+    "head": "\\d+ file\\(s\\) to write",
+    "replace": "<N> file(s) to write",
+    "why": "#588: the install plan's count of the files it writes grows by the fixed-pattern check's files (its script, its two core files, its package.json and its Kiro hook file), so the count is read as <N> on both sides; the plan's other words are still compared. The new files themselves are named in the entry above."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "System-wide protections: \\d+ file\\(s\\) to update",
+    "head": "System-wide protections: \\d+ file\\(s\\) to update",
+    "replace": "System-wide protections: <N> file(s) to update",
+    "why": "#588: the install plan's count of admin-layer files to update grows by the fixed-pattern check's root-owned copy (bin/hook/src/hooks/pattern-check.js), so the count is read as <N> on both sides; the rest of the plan line, and every other line, is still compared."
   }
 ]

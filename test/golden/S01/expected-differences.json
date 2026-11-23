@@ -103,5 +103,26 @@
     "pattern": "^    \\./mhw status --mcp-connect\\[=SECONDS\\]  also start each MCP active-set server and say whether it answers\\n {40}\\(opt-in: it starts processes; exit 1 when one fails; #219\\)$",
     "replace": "    ./mhw mcp check [--timeout=SECONDS] connection test: start each MCP active-set server and say whether\n                                          it answers (it starts processes; exit 1 when one fails; #219,\n                                          #595; it was status --mcp-connect until v11)\n    ./mhw mcp render --check            drift check: exit 1 when an installed MCP configuration differs\n                                          from the definition; it starts nothing (mhw mcp render --help)",
     "why": "A break of the public interface (#595, v11, section 4 of the CLI native baseline PRD): `mhw status --mcp-connect[=SECONDS]` is removed, because the connection test starts processes and status never does. The usage text drops its two lines and names `mhw mcp check [--timeout=SECONDS]` (the connection test) and `mhw mcp render --check` (the drift check) in their place, so the help tells the two apart. Every other line is compared unchanged."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree-drop",
+    "pattern": "pattern-check",
+    "whenBaseLacks": "src/hooks/pattern-check.js",
+    "why": "#588: the head installs the fixed-pattern check (its script and core under <data dir>/pattern-check, its Kiro hook file); a base without src/hooks/pattern-check.js does not. Left out of the comparison on both sides until the base holds it; test/hooks/pattern-check-install.test.js holds those files."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree",
+    "pattern": "^\\.claude/settings\\.json$|^\\.codex/hooks\\.json$",
+    "whenBaseLacks": "src/hooks/pattern-check.js",
+    "why": "#588: the head merges the fixed-pattern check's hook entries into these two files (a second UserPromptSubmit entry and a PreToolUse group), so their content is compared by kind and mode only while the base lacks the check; test/hooks/pattern-check-install.test.js holds the entries."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "stdout",
+    "pattern": "file\\(s\\) to write \\(no password needed\\)$",
+    "whenBaseLacks": "src/hooks/pattern-check.js",
+    "why": "#588: the install plan counts the files it writes, which grows by the fixed-pattern check's five; the line is left out on both sides while the base lacks the check, and every other line is compared."
   }
 ]

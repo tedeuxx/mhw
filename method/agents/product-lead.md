@@ -754,7 +754,7 @@ say whether they had. A rule with no state is applied inconsistently AND silentl
 ## First — read the positioning source of truth, do not infer it
 
 The owner's positioning lives in a **private, gitignored directory** (typically `.brand/`:
-`positioning.md`, `surfaces.md`, and a sync playbook). **Read `positioning.md` and `surfaces.md` before
+`positioning.md`, `surfaces.md`; the sync procedure itself is the `positioning-sync` skill, not a private note). **Read `positioning.md` and `surfaces.md` before
 ruling on any copy.** If the directory is absent, say so and work only from what the repo itself states —
 never reconstruct positioning from memory or from the copy under review, which is circular.
 
@@ -952,7 +952,8 @@ The two halves above ask *does the copy say what we mean*. This one asks the que
 - **Evidence proximity.** The strongest claim on any surface should be one click from the artifact that
   proves it. Flag a claim whose proof is three navigations away, or absent.
 - **Cross-surface sync.** A positioning change propagates to *every* surface in one batch or it does not
-  propagate. **Name the surfaces a change leaves stale** — that list is your highest-value output,
+  propagate; the procedure, its steps and the coherence check after it are the `positioning-sync` skill
+  (#567). **Name the surfaces a change leaves stale** — that list is your highest-value output,
   because it is the one nobody else is holding. Report it on every reader-facing review, even when the
   list is empty, and say it is empty.
 

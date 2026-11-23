@@ -19,7 +19,7 @@ const NAME = 'personal-multi-harness-workstation-configuration';
 /** The digest --apply checks (the algorithm both installers implement): name, length and bytes per file. @param {string} dir */
 export function stageDigest(dir) {
   const names = ['clipboard.conf', 'hook/package.json', 'hook/src/commands/hook-entry.js', 'hook/src/commands/hook-prompt.js',
-    'hook/src/lib/clean.js', 'hook/src/lib/clean-unicode.js', '../claude.json', '../requirements.toml', '../kiro.json'];
+    'hook/src/lib/clean.js', 'hook/src/lib/clean-unicode.js', 'hook/src/hooks/pattern-check.js', '../claude.json', '../requirements.toml', '../kiro.json'];
   const h = crypto.createHash('sha256');
   for (const n of names) {
     const data = fs.readFileSync(path.normalize(path.join(dir, 'bin', n)));

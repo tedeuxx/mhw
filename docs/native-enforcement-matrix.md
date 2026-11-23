@@ -104,6 +104,24 @@ on in 0.160.0, documented on CLI, IDE extension and desktop app), Kiro CLI (docu
   machine, measured by the 2026-10-04 canary), so #78 must render the admin layer into
   the image or state the gap.
 
+### Project-level agents and skills, for [#576](https://github.com/tedeuxx/mhw/issues/576)
+
+Measured on 2026-11-23 in a throwaway project and a throwaway home, on Claude Code `2.1.330`, Codex
+`0.163.0` and Kiro CLI `3.1.0`. The commands and the calibrations are in
+[the phase 1 comment](https://github.com/tedeuxx/mhw/issues/576#issuecomment-7108706945) and
+[the Kiro listing](https://github.com/tedeuxx/mhw/issues/576#issuecomment-7108754013).
+
+| | Claude Code | Codex | Kiro CLI |
+| --- | --- | --- | --- |
+| Project agent | **measured**: `.claude/agents/<n>.md` is listed in `agents` | **measured**: `.codex/agents/<n>.toml` is read **only in a trusted project**; an untrusted project's agents are skipped with no warning | **measured**: `.kiro/agents/<n>.json` is listed as `Workspace` by `kiro-cli agent list` (owner's logged-in session, no model call) |
+| Project skill | **measured**: `.claude/skills/<n>/SKILL.md` is listed in `skills` | **measured**: `.agents/skills/<n>/SKILL.md` is in the model-visible input, trusted or not | **read from binary strings**: `**/.kiro/skills/`; not measured |
+| Kiro agent's `skill://` resource, relative to the project | | | **not measured**: it needs a logged-in session |
+| Dispatch as a subagent | **not measured** | **not measured** | **not measured** |
+| Same name as a user-level agent | **measured** (#571 audit, `--agent`): the project copy replaces it | **measured, partly**: no warning; which copy runs is not measured | **not measured** |
+
+The renderer's project target (`--project=DIR`, ADR-0032, 2026-11-23 amendment) is built on this row. What
+is not measured is settled by the post-install canary that #576's last acceptance criterion names.
+
 ## Findings that change the requirements document
 
 These contradict or sharpen statements in the requirements document. They are findings for the

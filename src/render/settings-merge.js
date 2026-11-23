@@ -4,13 +4,14 @@
 // Issue #67 (the ownership record).
 //
 //   node src/render/settings-merge.js --phase=merge --mode=install|check|dry-run --settings=FILE
-//        --floor-claude=FILE --stamp=STAMP [--paste-cmd=COMMAND]
+//        --floor-claude=FILE --stamp=STAMP [--paste-cmd=COMMAND] [--pattern-prompt-cmd=COMMAND --pattern-tool-cmd=COMMAND]
 //   node src/render/settings-merge.js --phase=uninstall --settings=FILE --floor-claude=FILE
 //
 // --floor-claude is the rendered floor, one Claude Code rule per line (install.sh's $floor_claude).
 // --paste-cmd is the paste filter's hook command; without it the entry of ours is removed instead of
 // written (paste filter refused, or --hooks=managed). An entry of a removed hook (the HITL picker guard,
-// the restart guard) is always removed.
+// the restart guard) is always removed. --pattern-prompt-cmd and --pattern-tool-cmd are the fixed-pattern
+// check's two entries (#588): UserPromptSubmit, and PreToolUse on the Bash tool; without them they are removed.
 //
 // The file is never replaced: every other key, hook and permission rule is kept in its place, no existing
 // deny entry is removed, a missing floor rule is appended, and a 0600 backup is left beside it. It is read
@@ -43,6 +44,8 @@ export const STAMP_KEY = NAME;
 export const OWN_KEY = NAME + '-owned-deny';
 /** The prompt hook's command carries this (`mhw hook prompt`, Node since #488). */
 export const PASTE_ID = '/bin/mhw.js" hook prompt --harness ';
+/** The fixed-pattern check's commands carry this (src/hooks/pattern-check.js, installed by #588). */
+export const PATTERN_ID = '/pattern-check.js" ';
 /** The Python core an earlier install merged (before #488): always removed. */
 export const OLD_PASTE_ID = NAME + '/clipboard_guard.py';
 /** Removed hooks (ADR-0028; ADR-0013 2026-10-05): kept so an entry an earlier version merged is deleted. */
@@ -187,6 +190,37 @@ export function pasteGroup(cmd) {
   return new Map(/** @type {Array<[string, JqValue]>} */ ([['hooks', [hook]]]));
 }
 
+/**
+ * The fixed-pattern check's PreToolUse group (#588): on the Bash tool only, the one that runs git push and
+ * gh pr create. @param {string} cmd
+ */
+export function toolGroup(cmd) {
+  const hook = new Map(/** @type {Array<[string, JqValue]>} */ ([['type', 'command'], ['command', cmd], ['timeout', new JqNumber('30')]]));
+  return new Map(/** @type {Array<[string, JqValue]>} */ ([['matcher', 'Bash'], ['hooks', [hook]]]));
+}
+
+/**
+ * #588: when the fixed-pattern check's entry is removed (the check refused, or --hooks=managed) from a
+ * PreToolUse list that held nothing else, the emptied list goes too, so the file reads as it did before the
+ * check was ever merged. A list that held an entry of anyone else is left as place() leaves it.
+ * @param {JqObject} before @param {JqObject} after
+ * @returns {JqObject}
+ */
+function withoutEmptiedPreToolUse(before, after) {
+  const was = index(index(before, 'hooks'), 'PreToolUse');
+  if (!Array.isArray(was) || !was.length) return after;
+  const onlyOurs = was.every((g) => {
+    const hs = index(g, 'hooks');
+    return Array.isArray(hs) && hs.length > 0 && hs.every((h) => ours(h, PATTERN_ID));
+  });
+  const hooks = index(after, 'hooks');
+  const now = index(hooks, 'PreToolUse');
+  if (!onlyOurs || !Array.isArray(now) || now.length || !(hooks instanceof Map)) return after;
+  const h2 = new Map(hooks);
+  h2.delete('PreToolUse');
+  return withKey(after, 'hooks', h2);
+}
+
 /** The stamp key's value. @param {string} stamp */
 export function stampValue(stamp) {
   return MARKER_ID + '; source: global/install.sh (only the hook entries and deny-floor rules merged into this file; every other key is yours); '
@@ -199,9 +233,10 @@ export function stampValue(stamp) {
  * @param {string[]} floor the floor rules, deduplicated in file order
  * @param {JqValue} paste the paste filter's group, or null
  * @param {string} stamp
+ * @param {{ prompt: JqValue, tool: JqValue }} [pattern] the fixed-pattern check's two groups (#588), or nulls
  * @returns {JqObject}
  */
-export function merged(doc, floor, paste, stamp) {
+export function merged(doc, floor, paste, stamp, pattern = { prompt: null, tool: null }) {
   const perms = doc.get('permissions') ?? null;
   const dRaw = perms instanceof Map ? alt(perms.get('deny') ?? null, []) : [];
   const d0 = Array.isArray(dRaw) ? dRaw : [];
@@ -220,6 +255,9 @@ export function merged(doc, floor, paste, stamp) {
   let out = place(doc, 'PreToolUse', HOOK_ID, null);
   out = withoutOldPaste(out);
   out = place(out, 'UserPromptSubmit', PASTE_ID, paste);
+  out = place(out, 'UserPromptSubmit', PATTERN_ID, pattern.prompt);
+  out = place(out, 'PreToolUse', PATTERN_ID, pattern.tool);
+  out = withoutEmptiedPreToolUse(doc, out);
   out = place(out, 'SessionStart', RESTART_ID, null);
   out = place(out, 'PreToolUse', RESTART_ID, null);
   const p = out.get('permissions') ?? null;
@@ -263,6 +301,8 @@ export function unmerged(doc, floor) {
   let out = drop(doc, 'PreToolUse', HOOK_ID);
   out = drop(out, 'UserPromptSubmit', PASTE_ID);
   out = drop(out, 'UserPromptSubmit', OLD_PASTE_ID);
+  out = drop(out, 'UserPromptSubmit', PATTERN_ID);
+  out = drop(out, 'PreToolUse', PATTERN_ID);
   out = drop(out, 'SessionStart', RESTART_ID);
   out = drop(out, 'PreToolUse', RESTART_ID);
   if (equal(out.get('hooks') ?? null, new Map())) {
@@ -440,12 +480,16 @@ export function mergeStep(ctx) {
   const stamp = ctx.opts['--stamp'];
   const floor = dedupe(floorRules(ctx.opts['--floor-claude']));
   const paste = ctx.opts['--paste-cmd'] ? pasteGroup(ctx.opts['--paste-cmd']) : null;
+  const pattern = {
+    prompt: ctx.opts['--pattern-prompt-cmd'] ? pasteGroup(ctx.opts['--pattern-prompt-cmd']) : null,
+    tool: ctx.opts['--pattern-tool-cmd'] ? toolGroup(ctx.opts['--pattern-tool-cmd']) : null,
+  };
   const has = exists(settings);
   const cur = current(ctx, settings, has);
   if (cur === null) return;
   let want;
   try {
-    want = merged(cur, floor, paste, stamp);
+    want = merged(cur, floor, paste, stamp, pattern);
   } catch (e) {
     if (!(e instanceof JqError)) throw e;
     ctx.err('REFUSE  ' + settings + ': its hooks or permissions section has an unexpected shape; left untouched\n');
@@ -509,7 +553,7 @@ export function uninstallStep(ctx) {
 
 // ---- The command line ----------------------------------------------------------------------------------
 
-const OPTIONS = new Set(['--phase', '--mode', '--settings', '--floor-claude', '--stamp', '--paste-cmd']);
+const OPTIONS = new Set(['--phase', '--mode', '--settings', '--floor-claude', '--stamp', '--paste-cmd', '--pattern-prompt-cmd', '--pattern-tool-cmd']);
 const USAGE = 'usage: ' + PROG + ' --phase=merge --mode=install|check|dry-run --settings=FILE --floor-claude=FILE --stamp=STAMP [--paste-cmd=COMMAND]\n'
   + '       ' + PROG + ' --phase=uninstall --settings=FILE --floor-claude=FILE\n';
 
