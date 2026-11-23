@@ -128,6 +128,20 @@ test('carry-forward: a CLOSED lens at an earlier commit is success only when (a)
     /does not name the current head/);
 });
 
+test('the merge-base sets are compared as sets: git\'s order never decides limb (b)', () => {
+  const one = '1'.repeat(40);
+  const two = '2'.repeat(40);
+  const three = '3'.repeat(40);
+  /** @type {Record<string, string>} */
+  const printed = { [OLD]: [three, one, two].join('\n') + '\n', [HEAD]: [two, three, one].join('\r\n') + '\r\n' };
+  /** @type {import('../../src/lib/gh.js').ToolRunner} */
+  const exec = (_tool, args) => ({ code: 0, stdout: printed[args[args.length - 1]] ?? '', stderr: '' });
+  const h = r.gitHistory(exec, 'rc/next');
+  assert.equal(h.mergeBase(OLD), [one, two, three].join(' '));
+  assert.equal(h.mergeBase(OLD), h.mergeBase(HEAD));
+  assert.throws(() => h.mergeBase('c'.repeat(40)), /cannot read the merge-base/);
+});
+
 test('the route status: slices into rc/next from their own branch, main only from rc/next', () => {
   const pr = (/** @type {string} */ baseRefName, /** @type {string} */ headRefName, isCrossRepository = false) => ({ baseRefName, headRefName, isCrossRepository });
   assert.ok(r.routeDecision(pr('rc/next', 'loop/1-x')));
@@ -251,7 +265,8 @@ test('the dry run judges from a checkout and posts nothing', () => {
 });
 
 test('the workflow runs the base or default branch copy of the evaluator, never the pull request\'s', () => {
-  const wf = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'review-status.yml'), 'utf8');
+  // The Windows runners check out with core.autocrlf=true, so the file may carry CRLF; read it as LF.
+  const wf = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'review-status.yml'), 'utf8').replaceAll('\r\n', '\n');
   const live = wf.split('\n').filter((l) => !l.trimStart().startsWith('#')).join('\n');
   assert.match(live, /^on:\n {2}pull_request_target:\n {4}branches: \[main, rc\/next\]\n/m);
   assert.match(live, /^ {2}issue_comment:\n {4}types: \[created, edited, deleted\]$/m);

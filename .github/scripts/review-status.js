@@ -285,7 +285,10 @@ export function gitHistory(exec, base) {
       return r.error ? 2 : r.code;
     },
     mergeBase: (ref) => {
-      const set = run(exec, 'git', ['merge-base', '--all', 'origin/' + base, ref]).split('\n').map((s) => s.trim()).filter(Boolean).sort();
+      // A criss-cross history has several best ancestors and git prints them in no promised order, so the
+      // set is sorted before two of them are compared.
+      const set = run(exec, 'git', ['merge-base', '--all', 'origin/' + base, ref]).split('\n').map((s) => s.trim()).filter(Boolean)
+        .sort((a, b) => a.localeCompare(b));
       if (!set.length) throw new Refusal('cannot read the merge-base with ' + base);
       return set.join(' ');
     },

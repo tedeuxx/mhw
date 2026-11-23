@@ -13,7 +13,8 @@ import { CONTEXT } from '../../.github/scripts/review-status.js';
 import { repoStandard } from '../../src/lib/prerequisites.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const read = (/** @type {string} */ rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+// LF whatever the checkout: the Windows runners check out with core.autocrlf=true.
+const read = (/** @type {string} */ rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replaceAll('\r\n', '\n');
 const DECLARATION = 'global/github-repo-settings.json';
 const SCHEMA = strictLoads(read('global/github-repo-settings.schema.json'));
 // GitHub Actions' app id, documented by GitHub; the review statuses are posted by its GITHUB_TOKEN.
