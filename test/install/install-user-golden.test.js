@@ -7,10 +7,10 @@
 //           <scenario>.node.json, and the difference is named in expected-differences.json.
 //   live:   while the base revision still holds install.sh (until this slice merges), both run on the same
 //           inputs. MHW_UPDATE_GOLDEN=1 rewrites the goldens from the base side (and the declared Node ones).
-// Both sides run a tree assembled in the scenario's directory from their own src/, bin/ and method/ and the
+// Both sides run a tree assembled in the scenario's directory from their own src/ and bin/ and the
 // frozen inputs of test/golden/S25/inputs (the global brief, the floor, the allow list, the clipboard
-// defaults, the policy MCP servers and an owner overlay), so a later change to those sources does not move
-// the goldens. POSIX only: the user layer is macOS and Linux (mhw install-windows on Windows, test/install/windows.test.js; #497).
+// defaults, the policy MCP servers, an owner overlay and the method), so a later change to those sources
+// does not move the goldens. POSIX only: the user layer is macOS and Linux (mhw install-windows on Windows, test/install/windows.test.js; #497).
 // Normalised: the scenario's directory (<T>), the node (<NODE>), the stamp, Chrome's Local State path (it is
 // per OS) and the byte counts of WOULD WRITE lines (they carry the stamp).
 import { test, after } from 'node:test';
@@ -45,8 +45,12 @@ function freshDir(label) {
  * @param {string} source a checkout or an extracted revision @param {string} dest @param {boolean} shell
  */
 export function assemble(source, dest, shell) {
-  for (const p of ['src', 'bin', 'method', 'package.json', '.bumpversion.toml']) fs.cpSync(path.join(source, p), path.join(dest, p), { recursive: true });
+  for (const p of ['src', 'bin', 'package.json', '.bumpversion.toml']) fs.cpSync(path.join(source, p), path.join(dest, p), { recursive: true });
   fs.cpSync(path.join(INPUTS, 'global'), path.join(dest, 'global'), { recursive: true });
+  // The method is a frozen input too: hooks-managed-and-method installs it and the tree pins each file's sha256,
+  // so the checkout's own method/ would move the golden on every method change, and with install.sh retired
+  // the golden can no longer be re-recorded. Copied from origin/rc/next at 7cfb551, the method the goldens hold.
+  fs.cpSync(path.join(INPUTS, 'method'), path.join(dest, 'method'), { recursive: true });
   fs.cpSync(path.join(INPUTS, 'overlay'), path.join(dest, 'overlay'), { recursive: true });
   if (shell) fs.copyFileSync(path.join(source, 'global', 'install.sh'), path.join(dest, 'global', 'install.sh'));
 }

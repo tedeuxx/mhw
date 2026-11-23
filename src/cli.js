@@ -39,6 +39,7 @@ import { main as chromeDebuggingMain } from './render/chrome-debugging.js';
 import { main as installUserMain } from './commands/install-user.js';
 import { main as installWindowsMain } from './commands/install-windows.js';
 import { main as mcpLaunchMain } from './commands/mcp-launch.js';
+import { main as mcpCheckMain } from './commands/mcp-check.js';
 import { main as scanMain } from './commands/scan.js';
 import { main as pasteWrapperMain, statusLine as pasteStatusLine } from './commands/paste-wrapper.js';
 import { checkMain as docsBaselineMain, onboardMain } from './commands/docs-baseline.js';
@@ -150,7 +151,8 @@ const MOVED = {
   // import: it loads the vendored TOML parser, which must stay off the import graph of `mhw hook prompt`
   // (convention 5 of #470, test/deps-graph.test.js).
   'install-admin': (argv, env) => exitWith(runAbsolute(process.execPath, [path.join(ROOT, 'src', 'commands', 'install-admin.js'), ...argv], { stdio: 'inherit', env })),
-  // #483, S12: `mhw mcp launch`, the MCP launcher the renderer installs a copy of; #484, S13: `mhw mcp render`.
+  // #483, S12: `mhw mcp launch`, the MCP launcher the renderer installs a copy of; #484, S13: `mhw mcp render`;
+  // #595: `mhw mcp check`, the connection test (`mhw status --mcp-connect` until v11).
   mcp: mcpMain,
   scan: scanMain, // #486, S15: the outbound scan, on the cleaning core (src/lib/clean.js)
   // #487, S16: the paste wrapper the shell functions run. A relayed session resolves later and exits
@@ -198,8 +200,17 @@ function hookMain(argv, env) {
   return 2;
 }
 
+// `mcp check` tests connections (it starts processes); `mcp render --check` checks drift (it starts none).
+export const MCP_USAGE = 'usage: mhw mcp check [--timeout=SECONDS]   connection test: start each MCP active-set server and say\n'
+  + '                                          whether it answers (default 30 seconds per server; exit 1 when one fails)\n'
+  + '       mhw mcp render --check             drift check: exit 1 when an installed MCP configuration differs from the\n'
+  + '                                          definition; it starts nothing (mhw mcp render --help)\n'
+  + '       mhw mcp render [--dry-run | --scan | --policy ... | --active ...]\n'
+  + '       mhw mcp launch [--keychain PATH] [--secret NAME=SOURCE]... -- command [args...]';
+
 /**
- * `mhw mcp launch ...` (#483) and `mhw mcp render ...` (#484); anything else is a usage error.
+ * `mhw mcp launch ...` (#483), `mhw mcp render ...` (#484) and `mhw mcp check ...` (#595); anything else is a
+ * usage error.
  * @param {string[]} argv
  * @param {Record<string, string | undefined>} env
  */
@@ -210,8 +221,8 @@ function mcpMain(argv, env) {
   if (argv[0] === 'render') {
     return exitWith(runAbsolute(process.execPath, [path.join(ROOT, 'src', 'render', 'mcp.js'), ...argv.slice(1)], { stdio: 'inherit', env }));
   }
-  console.error('usage: mhw mcp launch [--keychain PATH] [--secret NAME=SOURCE]... -- command [args...]\n'
-    + '       mhw mcp render [--dry-run | --check | --scan | --policy ... | --active ...] (mhw mcp render --help)');
+  if (argv[0] === 'check') return mcpCheckMain(argv.slice(1), env);
+  console.error(MCP_USAGE);
   return 2;
 }
 

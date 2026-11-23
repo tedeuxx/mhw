@@ -1,0 +1,199 @@
+---
+name: "handoff"
+description: "Print one block the owner pastes into a new terminal to open a fresh session continuing this one: one command that changes into the checkout and runs the target agent harness's start command with the continuation prompt inline (objective, anchored Issue, revision, state and next act re-derived from the tracker). The target defaults to the current agent harness. With no argument, when this session's last message asks the owner to do something in another agent harness, the block targets that harness with the ask inline instead, and this session keeps running. Use when the context is heavy, the owner wants to resume in a clean session, or he must act in another agent harness. Prints only; posts nothing. Not for asking what is left (see what-else)."
+argument-hint: "[claude-code|claude|codex|kiro|kiro-cli] [objective, used only when none is anchored]"
+purpose: "a session can be continued in a fresh one without losing its anchor or publishing anything"
+---
+
+Print one block that opens a fresh session continuing this one, or, in the one case *Continuation or
+ask* names, a session in another agent harness that carries out an ask of this one. The block is exactly one command: `cd`
+into the checkout the work stands in, then the launch environment and the target agent harness's own
+start command with the prompt inline as its argument. Pasted into any terminal, it starts
+the right session; nothing else is typed.
+This copy is rendered for the agent harness `{{agent-harness}}`.
+
+## Continuation or ask
+
+Decide this first, before *The arguments*. The prompt is an **ask** only when all of these hold;
+otherwise it is a **continuation**, exactly as below, and nothing in this section applies:
+
+1. `$ARGUMENTS` is empty. Any argument gives a continuation, and `/handoff {{agent-harness}}` (this
+   agent harness named as the target) forces one.
+2. Your own last message to the owner carries an ask he has not answered yet, and the ask is an act he
+   must carry out in another agent harness (for example: open Codex and approve its prompt hook with
+   `/hooks`). Read only that message and only its most recent unanswered ask; an ask from earlier in
+   the session, or one you would infer from the work, does not count.
+3. That ask names exactly one agent harness, and the script resolves it to a target other than this
+   one: run `mhw launch-line --resolve {{agent-harness}} <its id>`, with the
+   id written as one of `claude-code`, `codex` or `kiro`. The second output line must be `consumed` and
+   the first line, the target, must differ from `{{agent-harness}}`. A harness the script cannot target
+   (the Kiro IDE, a desktop app) or an ask naming two harnesses fails this.
+4. The ask is tied to an Issue, so the result has somewhere to go back to.
+
+When any of these is in doubt, it is a continuation. This is a judgement you make from your own last
+message, not a check: nothing stores a pending ask, and nothing verifies that you read it right.
+
+## The arguments
+
+`$ARGUMENTS` is `[target] [objective]`. Only its first word can name the target, and only when it is
+exactly one of `claude-code`, `claude`, `codex`, `kiro` or `kiro-cli`. Decide it with the script, not by
+eye: run `mhw launch-line --resolve {{agent-harness}} <the first word>` (with
+no argument at all, omit the word; a first word carrying anything but letters and hyphens cannot name
+a target, so omit it too). Its first output line is the target; its second is `consumed` when
+the word named the target, so the objective is the rest of `$ARGUMENTS`, or `kept` when it did not, so
+the target is this agent harness and the objective is the whole of `$ARGUMENTS`. To give an objective
+that starts with one of those words, name the target first: `/handoff claude-code codex settings fix`.
+The objective from the arguments is used only when none was anchored.
+For an ask, there are no arguments: the target is the one *Continuation or ask* resolved.
+
+## When to use
+
+- The context is heavy, or the owner wants to resume the same work in a clean session.
+- The owner must do something in another agent harness that this session asked of him: he types
+  `/handoff` alone and gets that harness's start command with the ask inline (*Continuation or ask*).
+- Not to ask what is left: that is `what-else`. Not to branch a second, parallel session: a
+  continuation replaces this one. An ask is the one exception, and it changes no file in the checkout.
+
+## Build the prompt
+
+Re-derive every field from the tracker, not from memory of this conversation:
+
+1. **Objective.** The native goal where the agent harness has one (`/goal`) and it is set; otherwise
+   the objective agreed at session start; otherwise the objective from the arguments. If there is none
+   at all, say so in one line and stop: a prompt with no objective cannot be continued.
+2. **Anchored Issue.** The Issue the objective names, read with `gh issue view <n> --repo <owner/repo>
+   --comments`. With no Issue anchored, the prompt still prints, built from the objective alone, and
+   says that no Issue is anchored.
+3. **Revision.** The repository, branch and commit the work stands at (`git -C <repo> rev-parse HEAD`
+   and the branch name). `unknown` when there is none.
+4. **Checkout.** The top of the work tree the work stands in (`git -C <repo> rev-parse
+   --show-toplevel`), a worktree included. It goes to the script as `--cd`, never into the prompt. With
+   no repository at all there is nothing to change into: say so in one line and stop.
+5. **Handoff state and next act.** The latest effective `handoff` or `checkpoint` worklog event's
+   `handoff.state` and `next_act`, read as the worklog contract's *Resuming* section reads them. If no
+   event carries one, compose both from the tracker: the open pull request, its head, its checks and the
+   verdict naming that head. The next act is one act, stated as an act.
+6. **Evidence.** Public references only: a pull request, a check run, a verdict comment, a path inside
+   the repository.
+
+The worklog continuity contract bounds every field: **one line each, at most 280 characters**, facts and
+the next act and nothing else. No reasoning, drafts or notes for next time. Sanitise it under the
+workstation brief: no secret, no personal data, no employer or client material, and no machine-local
+path (`/Users/`, `/tmp/`, `~/`, `/home/`, `/private/`, `/var/folders/`, `file://`, a drive path,
+`.brand`). Name a file by its path inside the repository.
+
+## The prompt
+
+Fill this template. Drop a line whose field is empty; keep the first line and the last two. Nothing is
+typed in the new session before it starts working: the prompt is its first message.
+~~The prompt carries its own `/goal` line~~ *(struck 2026-11-01, #198: the owner ruled that a fresh
+session does not start with `/goal`, and «o handoff tem que sempre ser um comando de inicio da sessao de
+harness com prompt inline». The prompt opens with the objective as plain text, and the script refuses a
+prompt whose first line opens with `/goal`.)*
+
+```
+Objective: <the objective, one line>
+Continue <owner/repo>#<n> in this fresh session; the session that printed this prompt stops now.
+Revision: <owner/repo> <branch> <commit>
+State: <handoff state>
+Next act: <the one act to perform first>
+Evidence: <one public reference>
+Before acting, re-derive the state from the tracker: gh issue view <n> --repo <owner/repo> --comments.
+This prompt says where the work was; the tracker says where it is.
+```
+
+~~`Do not work in the same checkout as the old session.`~~ *(struck 2026-11-01, #198: the command now
+changes into the checkout itself, and the session that printed it stops, so the two never share it.)*
+
+With no Issue anchored, the second line reads `No Issue is anchored; continue the objective above in
+this fresh session; the session that printed this prompt stops now.`, and the tracker line names the
+open pull requests and Issues the objective mentions instead.
+
+## The ask prompt
+
+For an ask, fill this template instead of the continuation one. Every line stays: write `none` in the
+`Owner-only:` field when the ask holds no act reserved to the owner. The `Objective:`, `Revision:` and
+Issue fields come from *Build the prompt*, with the ask as the objective.
+
+```
+Objective: <the ask, one act, one line>
+Carry out this one ask for <owner/repo>#<n>; the session that printed this prompt keeps running and waits for the result.
+Revision: <owner/repo> <branch> <commit>
+Ask: <the act the printing session asked the owner to carry out in this agent harness, one line>
+Owner-only: <the acts in the ask only the owner may perform, or none>; guide the owner to each one and never perform it yourself.
+Change no file in this checkout: the session that printed this prompt works in it.
+Return: post the result on <owner/repo>#<n> with gh issue comment <n> --repo <owner/repo> --body-file <a file>, then tell the owner it is posted.
+Before acting, read the Issue: gh issue view <n> --repo <owner/repo> --comments.
+```
+
+Owner-only acts include granting hook trust (the workstation brief: never grant hook trust yourself),
+a merge he holds, a credential and an act on an external surface only he can reach. The prompt routes them to the owner;
+it never asks the new session to perform them.
+
+The template opens with `Objective:` and never with a slash command. *Hypothesis, not measured:* a
+prompt passed as the start command's argument that opens with `/` (such as `/hooks`) may run as that
+agent harness's own command instead of reaching it as a message. Do not put a slash command first.
+
+## Print it
+
+1. **Launch environment.** Name every environment variable the next act reads only at launch. Only
+   the launch variables the method declares are accepted (`LAUNCH_ENV` in mhw's `src/commands/launch-line.js`), and today
+   it declares **none**, so every `--env` is refused. ~~today `HARNESS_SWEEP_ORIGIN`, the origin (or
+   space-separated origins, mhw#220 D7) the chrome-devtools server is bounded to~~ *(struck 2026-10-29,
+   mhw#224 decision D8: the chrome-devtools server has no origin bound, so nothing reads that variable.)*
+   A name, once declared, becomes `--env NAME=VALUE`. Any other name is refused; if the next act needs one, say so to the owner instead of
+   working around it, since adding a name is a reviewed change to that list. A value is public: no
+   secret, no personal data, no machine-local path. A secret the next act needs stays where it lives
+   and is named in the prompt by its name only. With none, pass no `--env`.
+2. Write the filled prompt to a file outside every repository (the session scratchpad, or the system
+   temporary directory).
+3. Run `mhw launch-line <target> <that file> --cd <the checkout>
+   [--env NAME=VALUE]...` (until mhw#476 the script `method/scripts/launch-line.py`; same output), with the target from *The arguments* and the checkout from *Build the
+   prompt*. It quotes the checkout, the environment and the prompt for a POSIX shell (zsh, bash),
+   deterministically, so `'`, `$`, backticks and newlines reach the new session intact, and prints one
+   fenced block holding one command: `cd '<checkout>' && <the start command> '<prompt>'`. It refuses a
+   prompt whose first line opens with `/goal` ~~does not open with `/goal`~~ (struck 2026-11-01, #198),
+   a line over 280 characters, a machine-local path, a control character (a terminal control such as
+   `^C`, ESC or TAB, or a bidirectional control), an `--env` whose name is not a declared launch
+   variable or whose value is unsafe, and a `--cd` that is not an absolute path to a git checkout; fix
+   it and run it again. It reads the file only when it resolves under the
+   system temporary directory or the current work tree, is a regular file and holds at most 64 KiB.
+   Never quote the prompt by hand.
+4. End your reply with the script's output, exactly as printed, and nothing after it. Do not print the
+   prompt separately, do not refer to it from another line and add no instruction around the block:
+   the prompt is inside it. The output is the block alone, for every target, Kiro included.
+   ~~For the Kiro target the output opens with one line for the Kiro IDE: the block is for Kiro CLI,
+   and the IDE takes the same block with `kiro chat` in place of `kiro-cli chat`.~~ *(Struck
+   2026-11-01, #198: that line was text around the command. The Kiro IDE is named below instead.)*
+   **On Windows, end your reply instead with the filled prompt in one fenced block, and nothing after
+   it.** The script's block is for a POSIX shell: PowerShell reads its `'\''` differently, so an
+   apostrophe in the prompt would arrive corrupted. Run step 3 anyway so the prompt is checked, but do
+   not print its output. Fence the prompt with more backticks than any run of backticks inside it. The
+   owner opens a new session and pastes the prompt as its first message.
+5. Then stop working in this session, for a continuation. Two sessions on one checkout overwrite each
+   other's work. **For an ask, do not stop:** keep working and wait for the result on the Issue. The
+   ask prompt tells the new session to change no file in the checkout; that is an instruction to
+   it, and nothing enforces it.
+
+The block names the target's start command and its documented argument for an initial prompt: `claude
+'<prompt>'` (the `[prompt]` argument of `claude --help` 2.1.311), `codex '<prompt>'` (the `[PROMPT]`
+argument of `codex --help` 0.163.0) and `kiro-cli chat '<prompt>'` (the `[INPUT]` argument of
+`kiro-cli chat --help` 2.34.1, "the first question to ask"); for the Kiro IDE, `kiro chat [prompt]`
+from `kiro chat --help` 1.3.11, which takes the same prompt in place of `kiro-cli chat`; the block does
+not print it. Each is read from `--help`; none was run. ~~The block runs in the terminal's current
+directory; open the terminal in a different checkout from the old session's.~~ *(Struck 2026-11-01,
+#198: that was a second step handed to the owner. The block now starts with `cd` into the checkout, so
+it runs the same from any directory.)* The launch environment is a prefix on the start command, after
+the `cd`, so it reaches the agent harness and not the shell. Where the workstation's paste wrapper is installed, those names reach it and an environment prefix
+reaches the agent harness through it; a prompt passed as an argument is not cleaned by the wrapper, so
+the sanitising above is the clean-up. On Windows the block does not apply: step 4 prints the prompt
+instead.
+
+## What this command never does
+
+- It posts nothing: no comment, worklog event, label, Issue or pull request. It prints only (owner,
+  2026-10-18).
+- It never launches the new session itself; the owner opens it.
+- It never merges, publishes or releases anything, and it never adds a hook.
+- It never widens the objective; new work goes to the owner as a proposal.
+- It never performs an ask's owner-only act, and its ask prompt never hands one to the new session.

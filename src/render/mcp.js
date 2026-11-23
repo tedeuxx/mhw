@@ -19,7 +19,8 @@
 //   mhw mcp render --active --mode=install|check|dry-run|uninstall|connect [--stamp=S] [--source=FILE]
 //                  [--timeout=SECONDS, connect only]
 //                                  the MCP active set (Issue #219, ADR-0041), src/commands/mcp-active.js, and
-//                                  its connection check, src/commands/mcp-connect.js (Node since #485, S14)
+//                                  its connection check, src/commands/mcp-connect.js (Node since #485, S14),
+//                                  which `mhw mcp check` runs (#595)
 //
 // `node src/render/mcp.js` takes the same arguments (global/install.sh runs it that way).
 //
