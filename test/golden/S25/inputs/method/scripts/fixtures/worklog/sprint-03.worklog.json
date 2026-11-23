@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "sprint": "sprint-03",
+  "timezone": "America/Sao_Paulo",
+  "starts_at": null,
+  "ends_at": null,
+  "repositories": [
+    {
+      "repository": "tedeuxx/tadeumendonca-skills",
+      "milestone_number": 5
+    }
+  ],
+  "counting_units": [
+    {
+      "issue": "tedeuxx/tadeumendonca-skills#499",
+      "planned_points": 8,
+      "work_type": "loop",
+      "parent": null,
+      "estimate_provenance": {
+        "agents-lead": 8,
+        "quality-assurance": 8,
+        "median": 8,
+        "owner_commitment": "confirmed in sprint-03 planning"
+      },
+      "source_revision": "6cfe93c1f26564f703c39a14c8aa8c366635f448"
+    }
+  ]
+}
