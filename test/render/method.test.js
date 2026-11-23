@@ -57,6 +57,8 @@ describe('the source shape', () => {
       'content-publishing', 'orchestration',
       // #195: the canonical merge-authority contract.
       'merge-authority',
+      // #567: the positioning-sync procedure, moved out of a private note.
+      'positioning-sync',
       // The four rites moved at #130 (owner, 2026-10-12) and became skills on 2026-10-26 (owner: "para mim sao skills").
       'sprint-planning', 'sprint-review', 'sprint-retrospective', 'funnel-review'].sort(byCode));
     // #198 added /handoff; #522 added /backlog-grooming.
@@ -155,7 +157,7 @@ describe('capability skills', () => {
 // rules live in the method's `orchestration` skill, not in a project's root brief.
 const ORCHESTRATION = src('skills/orchestration/SKILL.md');
 const ROOT_BRIEF_BLOCKS = /loop-mode-contract|hitl-escalation-format|review-chain-routing/;
-const CONSUMER_WORDS = /tadeumendonca|tedeuxx|apps\/fed|\.brand\/|-io\b/gi;
+const CONSUMER_WORDS = /tadeumendonca|tedeuxx|apps\/fed|\.brand\b|-io\b/gi;
 // The prose forms the pointers took before #176, when they sent a reader to a project's root brief.
 const ROOT_BRIEF_PROSE = /root brief's \(`AGENTS\.md`\)|each repository's root brief \(`AGENTS\.md`\)|the root brief \(`AGENTS\.md`\), or the record|`AGENTS\.md`'s escalation section|`AGENTS\.md` wins|The root brief is where those rules bind/g;
 // Every pointer site #176 wrote: ten repointed from a root brief, one added (new-issue.md).
@@ -1027,5 +1029,66 @@ describe('through the installer', { skip: !POSIX && 'the user-layer installer is
     const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'install-user', '--method', '--overlay=none', '--managed-root=' + path.join(root, 'admin')], { env, encoding: 'utf8' });
     assert.ok(p.stdout.includes('REFUSE  the working method (method/): MHW_NODE (' + env.MHW_NODE + ') is not an executable file; nothing written'), p.stdout + p.stderr);
     assert.ok(!fs.existsSync(path.join(home, '.claude', 'agents')));
+  });
+});
+
+// Issue #567: the positioning-sync procedure is a method skill, so every agent harness runs the same steps.
+// A rule that lived only in a consumer's private, untracked note reached no agent. These are drift checks
+// over the skill's STRINGS: they assert the procedure is written, never that a session followed it.
+describe('the positioning-sync skill', () => {
+  const POSITIONING_SYNC = src('skills/positioning-sync/SKILL.md');
+  test('it carries the procedure and its key clauses', () => {
+    const text = flatten(read(POSITIONING_SYNC));
+    for (const clause of [
+      'a positioning change propagates to every public surface in one batch, or it does not propagate.',
+      'a read-only connector cannot write a profile',
+      'Nothing is typed or saved on any surface before his ok.',
+      '**Headline coherent across surfaces**',
+      '**Years of experience consistent**',
+      '**Contact address consistent**',
+      '**The portfolio points at existing, non-empty repositories**',
+      '**No client name on any surface**',
+      '## Choices and their trade-offs',
+      '**All of this is an instruction.**',
+      // The lens on PR #575: order, the single ask, the relay, the record step and the consumer's surface list.
+      '**No browser write starts until every gated change in the batch has merged.**',
+      'a held site merge holds the whole batch.',
+      '**Put the whole batch to the owner as one activation**',
+      '**His ok on the text is not merge authorisation**',
+      '**it posts nothing. The main session relays that result verbatim onto the Issue**',
+      '**The batch is every surface the consuming project\'s surfaces list in `<private-dir>` names**',
+      // The owner's ruling on #567: no record of what shipped; the live surfaces are the truth.
+      '**There is no record of what shipped (owner\'s ruling on #567).**',
+      'the coherence check below reads them live.',
+      // The lens at 29c3475 (A7, A8): the drafts are not a record, and step 4's prose carries the order.
+      'The drafts in `<private-dir>` are a working location for his read, not a record; they are not updated to match what shipped.',
+      'The main session writes the drafts, in an attended session, in `<private-dir>`',
+      '**The professional-network profile.** Once steps 1 to 3 have merged,',
+    ]) assert.ok(text.includes(clause), clause);
+    // A9: a blank line keeps the no-record ruling out of step 6's list item.
+    assert.ok(read(POSITIONING_SYNC).includes('with the new positioning.\n\n**There is no record of what shipped'), 'the ruling renders inside step 6');
+    const rows = read(POSITIONING_SYNC).split('\n').filter((l) => /^\| \d+ \|/.test(l));
+    assert.deepEqual(rows.map((l) => l.split('|')[2].trim()), ['gated', 'gated', 'gated', 'browser', 'browser', 'browser'],
+      'gated steps come before browser writes, and no record step follows them');
+    // A record of what shipped, by any of its likely wordings: a copy step, a write-back to what shipped,
+    // or live text written into the private directory. The one negated sentence above is removed first.
+    const negated = 'they are not updated to match what shipped.';
+    assert.deepEqual(text.replace(negated, '').match(
+      /canonical[- ]copy|record step|update the record|(?:updated?|copied|written|brought) (?:back )?to (?:match )?what (?:actually )?shipped|to what (?:actually )?shipped|(?:update|write|copy)[^.]*<private-dir>[^.]*live text|live text[^.]*into[^.]*<private-dir>/gi) || [], [],
+      'a step that keeps a record of what shipped is back');
+  });
+  test('it points at the skills that own the rest instead of restating them', () => {
+    const text = read(POSITIONING_SYNC);
+    for (const skill of ['published-voice', 'content-publishing', 'orchestration', 'merge-authority']) {
+      assert.ok(text.includes('the `' + skill + '` skill'), skill);
+    }
+  });
+  test('it names no consumer', () => {
+    assert.deepEqual(read(POSITIONING_SYNC).split('\n').filter((l) => new RegExp(CONSUMER_WORDS.source, 'i').test(l)), []);
+  });
+  test('product-lead points at it', () => {
+    const text = read(src('agents/product-lead.md'));
+    assert.equal(count(text, /the `positioning-sync` skill/g), 2);
+    assert.ok(!text.includes('and a sync playbook'));
   });
 });

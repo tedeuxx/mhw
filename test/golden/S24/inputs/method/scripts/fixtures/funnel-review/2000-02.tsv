@@ -1,0 +1,20 @@
+# FIXTURE — synthetic, the period AFTER 2000-01, so the prior-period comparison has something to
+# compare against. Every number is invented. See 2000-01.tsv for the parsing contract.
+#
+# `ga4 outbound-clicks` appears HERE and not in 2000-01, on purpose: it is what lets the test assert
+# that a metric with no baseline is reported as having none, rather than printed bare, which a reader
+# takes for a trend.
+#
+# The last two lines are deliberately malformed, one way each, so the test can assert that an
+# unusable line is reported as unusable rather than printed as a figure:
+#   * a line with no sample size at all;
+#   * a line whose sample size is not a number.
+
+collected: yes 2000-02-28 read by hand from the owner's authenticated browser (synthetic fixture)
+
+figure: ga4 sessions 150 150
+figure: ga4 article-reads 30 150
+figure: linkedin impressions 400 4
+figure: ga4 outbound-clicks 12 150
+figure: ga4 share-opens 5
+figure: linkedin reactions 0 several
