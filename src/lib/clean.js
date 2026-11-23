@@ -34,6 +34,11 @@ export const CATEGORY_ORDER = Object.freeze(['employer-client-term', 'credential
 /** The two categories seeded by a private term list of the owner's (Issue #36): category -> config key. */
 export const TERM_LISTS = Object.freeze({ health: 'health_terms_file', 'colleague-name': 'colleague_terms_file' });
 export const LIST_FILES = Object.freeze({ health: 'clipboard-terms-health', 'colleague-name': 'clipboard-terms-colleague' });
+/**
+ * The fixed-format categories (#588, CLI native baseline PRD section 6): found by a pattern alone, no term
+ * list and no judgement. src/hooks/pattern-check.js checks these; the term categories stay with the model.
+ */
+export const FIXED_CATEGORIES = Object.freeze(['credential', 'email', 'payment-card', 'cpf', 'cnpj', 'phone']);
 const REPORT_ONLY_DEFAULT = ['postal-address', 'contract-value'];
 
 /**

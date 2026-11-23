@@ -25,6 +25,7 @@ import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { readGolden, writeGolden, goldenPath, UPDATE } from '../helpers/golden.js';
+import { patternPath, stripFile, stripOutput } from '../helpers/s588.js';
 import { baseRevision, assertTranscriptInventory } from '../helpers/install-golden.js';
 import { extractRevision, normalise } from '../helpers/parity.js';
 import { which } from '../helpers/home.js';
@@ -70,6 +71,7 @@ function adminTree(t, treeDir, norm) {
     for (const name of fs.readdirSync(dir).sort((a, b) => (a < b ? -1 : Number(a > b)))) {
       const p = path.join(dir, name);
       const r = label + '/' + name;
+      if (patternPath(r)) continue; // #588's own file: test/install/admin.test.js holds it
       const st = fs.lstatSync(p);
       const mode = (st.mode & 0o777).toString(8);
       if (st.isSymbolicLink()) out.push({ path: r, kind: 'link', mode: '-', data: norm(fs.readlinkSync(p)) });
@@ -77,7 +79,7 @@ function adminTree(t, treeDir, norm) {
         out.push({ path: r, kind: 'dir', mode, data: '' });
         walk(p, r);
       } else {
-        const text = fs.readFileSync(p, 'utf8');
+        const text = stripFile(r, fs.readFileSync(p, 'utf8'));
         const m = /^<BASE>\/bin\/hook\/(src\/.+\.js)$/.exec(r);
         const nl = text.indexOf('\n');
         if (m && nl > 0 && text.slice(nl + 1) === fs.readFileSync(path.join(treeDir, m[1]), 'utf8')) {
@@ -150,7 +152,7 @@ export function runScenario(sc, source, side) {
       p.sha = m[2];
       digests.push(stageDigest(m[1]) === m[2]);
     }
-    runs.push({ run: r.label || r.args.join(' '), code: c.status, stdout: norm(c.stdout), stderr: norm(c.stderr), tree: adminTree(t, treeDir, norm) });
+    runs.push({ run: r.label || r.args.join(' '), code: c.status, stdout: stripOutput(norm(c.stdout)), stderr: stripOutput(norm(c.stderr)), tree: adminTree(t, treeDir, norm) });
   }
   return { runs, digests };
 }

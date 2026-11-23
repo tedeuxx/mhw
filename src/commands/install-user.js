@@ -29,6 +29,13 @@ const NAME = 'personal-multi-harness-workstation-configuration';
 const CLIP_LABEL = 'local.' + NAME + '.clipboard-guard';
 const ALLOW_OWN_KEY = NAME + '-owned-allow';
 export const PASTE_START_NOTICE = 'Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.';
+/** The pre-tool hook's start fallback (#588): the outbound act is blocked, as the script itself fails closed. */
+export const OUTBOUND_START_NOTICE = 'Outbound check (ADR-0035 decision 7): internal error (HookStartError); this command was NOT run.';
+/**
+ * The fixed-pattern check's files (#588), as they sit in the source and under <data dir>/pattern-check, so the
+ * script's relative import of the core resolves in both. No hook command names mhw.
+ */
+export const PATTERN_FILES = Object.freeze(['src/hooks/pattern-check.js', 'src/lib/clean.js', 'src/lib/clean-unicode.js']);
 
 export const USAGE = `Render the global brief to each harness, install the user-level deny floor (Kiro's too, ADR-0036), and
 install the paste filter at the harness-CLI prompt (ADR-0010, ADR-0016, ADR-0033), render the inner-loop
@@ -225,6 +232,27 @@ export function pasteWrap(harness, cmd) {
 }
 
 /**
+ * The pre-tool hook's start fallback (#588): on every harness a hook that does not start blocks the call
+ * (exit 2, the notice on stderr), and the script's own exit 2 passes through. @param {string} cmd
+ */
+export function toolWrap(cmd) {
+  return "/bin/sh -c '" + cmd + ' || { [ $? -eq 2 ] && exit 2; printf "%s\\n" "' + OUTBOUND_START_NOTICE + '" >&2; exit 2; }\'';
+}
+
+/**
+ * The fixed-pattern check's hook command (#588): the installed script by absolute path, run by node with the
+ * same environment cleared as the prompt hook; never `mhw`.
+ * @param {string} harness @param {'prompt' | 'pre-tool'} mode @param {string} node @param {string} script @param {string} conf
+ */
+export function patternCmd(harness, mode, node, script, conf) {
+  const cmd = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + node + '" "' + script + '" ' + mode
+    + ' --harness ' + harness + ' --config "' + conf + '"';
+  // While `mhw hook prompt` is registered beside it (until #600), the prompt half leaves to it what it blocks
+  // itself, so one prompt yields one block message (#588).
+  return mode === 'prompt' ? pasteWrap(harness, cmd + ' --defer-to-paste-filter') : toolWrap(cmd);
+}
+
+/**
  * The paste filter's hook command (ADR-0033; Node since #488): `mhw hook prompt`, by absolute paths, with
  * NODE_OPTIONS, NODE_ICU_DATA, NODE_PATH and NODE_COMPILE_CACHE cleared by /usr/bin/env.
  * @param {string} harness @param {string} node @param {string} mhw @param {string} conf
@@ -247,7 +275,7 @@ export const jsonBody = (s) => s.replaceAll('\\', '\\\\').replaceAll('"', '\\"')
  *   floor: string, floorFrom: string, floorClaude: string, floorCodex: string, floorCodexWords: string[],
  *   clipConf: Buffer, allowNode: string | null, allowWhy: string, settingsWhy: string, mergeRefused: boolean,
  *   codexFloorRefused: boolean, kiroFloorRefused: boolean, pasteOk: boolean, wrapNode: string, wrapRefused: boolean,
- *   wrapMhw: string, startupBody: string, processRefused: boolean, cmd: string, uname?: string
+ *   wrapMhw: string, startupBody: string, processRefused: boolean, cmd: string, uname?: string, patternOff?: boolean
  * }} Ctx
  */
 
@@ -292,6 +320,10 @@ export function pathsOf(home, env) {
     codexHooks: codex + '/hooks.json',
     // Kiro CLI V3's user-level hook file (Issue #455); the name is KIRO_HOOK_FILE in paste-wrapper.js.
     kiroHook: home + '/.kiro/hooks/' + NAME + '-paste-filter.json',
+    // The fixed-pattern check (#588): its script and core under the data directory, and its own Kiro hook file.
+    patternDir: dataDir + '/pattern-check',
+    patternScript: dataDir + '/pattern-check/src/hooks/pattern-check.js',
+    kiroPattern: home + '/.kiro/hooks/' + NAME + '-pattern-check.json',
     claudeBrief: home + '/.claude/CLAUDE.md',
     codexBrief: codex + '/AGENTS.md',
     kiroBrief: home + '/.kiro/steering/workstation-global-brief.md',
@@ -562,8 +594,38 @@ export function render(ctx, kind) {
     // hook's currentHash unchanged, so a new stamp does not ask for re-trust.
     return Buffer.from('{\n  "description": "' + MARKER_ID + '; source: global/install.sh (paste filter, ADR-0011); ' + stamp + '; do not edit, re-run the installer",\n'
       + '  "hooks": {\n    "UserPromptSubmit": [\n      {\n        "hooks": [\n'
-      + '          {"type": "command", "command": "' + jsonBody(pasteCmd('codex', ctx.wrapNode, ctx.wrapMhw, conf)) + '", "timeout": 30}\n'
+      + '          {"type": "command", "command": "' + jsonBody(pasteCmd('codex', ctx.wrapNode, ctx.wrapMhw, conf)) + '", "timeout": 30},\n'
+      + '          {"type": "command", "command": "' + jsonBody(patternCmd('codex', 'prompt', ctx.wrapNode, ctx.paths.patternScript, conf)) + '", "timeout": 30}\n'
+      + '        ]\n      }\n    ],\n'
+      // The fixed-pattern check before a tool call (#588). No matcher: the script passes any call that is not
+      // a git push or gh pr create, so the name Codex gives its shell tool does not decide what is checked.
+      + '    "PreToolUse": [\n      {\n        "hooks": [\n'
+      + '          {"type": "command", "command": "' + jsonBody(patternCmd('codex', 'pre-tool', ctx.wrapNode, ctx.paths.patternScript, conf)) + '", "timeout": 30}\n'
       + '        ]\n      }\n    ]\n  }\n}\n', 'utf8');
+  }
+  if (kind === 'patpkg') {
+    // The module type for the script's import; the marker in a key of ours (JSON has no comment).
+    return Buffer.from('{"type": "module", "' + NAME + '": "' + MARKER_ID + '; source: src/hooks/pattern-check.js (#588); ' + stamp
+      + '; do not edit, re-run the installer"}\n', 'utf8');
+  }
+  if (kind.startsWith('patfile:')) {
+    const rel = kind.slice('patfile:'.length);
+    return Buffer.concat([Buffer.from('// ' + MARKER_ID + '; source: ' + rel + '; ' + stamp + '; do not edit, re-run the installer\n', 'utf8'),
+      fs.readFileSync(ctx.repoRoot + '/' + rel)]);
+  }
+  if (kind === 'kiropattern') {
+    // Kiro CLI V3's hook file format (as the paste filter's, kas 2.35.2): before each prompt, and before every
+    // tool call (no matcher: the script passes any call that is not a git push or gh pr create).
+    const script = ctx.paths.patternScript;
+    /** @param {string} name @param {string} trigger @param {'prompt' | 'pre-tool'} mode */
+    const hook = (name, trigger, mode) => '    {\n'
+      + '      "description": "' + MARKER_ID + '; source: src/hooks/pattern-check.js (#588); ' + stamp + '; do not edit, re-run the installer",\n'
+      + '      "name": "' + name + ' (' + NAME + ')",\n'
+      + '      "trigger": "' + trigger + '",\n'
+      + '      "action": {"type": "command", "command": "' + jsonBody(patternCmd('kiro', mode, ctx.wrapNode, script, conf)) + '"},\n'
+      + '      "timeout": 30\n    }';
+    return Buffer.from('{\n  "version": "v1",\n  "hooks": [\n' + hook('fixed-pattern check, prompt', 'UserPromptSubmit', 'prompt') + ',\n'
+      + hook('fixed-pattern check, outbound', 'PreToolUse', 'pre-tool') + '\n  ]\n}\n', 'utf8');
   }
   if (kind === 'kirohook') {
     // Kiro CLI V3's hook file format, read from the bundle (kas 2.35.2). The marker and the stamp sit in
@@ -747,7 +809,15 @@ export function mergeSettings(ctx) {
   }
   const args = [ctx.scriptDir + '/../src/render/settings-merge.js', '--phase=merge', '--mode=' + ctx.mode, '--settings=' + settings,
     '--floor-claude=' + ctx.floorClaude, '--stamp=' + ctx.stamp];
-  if (ctx.pasteOk && ctx.hooksMode !== 'managed') args.push('--paste-cmd=' + pasteCmd('claude', ctx.wrapNode, ctx.wrapMhw, ctx.paths.clipConfDest));
+  if (ctx.pasteOk && ctx.hooksMode !== 'managed') {
+    args.push('--paste-cmd=' + pasteCmd('claude', ctx.wrapNode, ctx.wrapMhw, ctx.paths.clipConfDest));
+    // patternOff is a step driver's switch (test/helpers/install-step-driver.js), never set by prepare(): the S20
+    // goldens of this step predate #588, which test/hooks/ and settings-merge.test.js hold instead.
+    if (!ctx.patternOff) {
+      args.push('--pattern-prompt-cmd=' + patternCmd('claude', 'prompt', ctx.wrapNode, ctx.paths.patternScript, ctx.paths.clipConfDest));
+      args.push('--pattern-tool-cmd=' + patternCmd('claude', 'pre-tool', ctx.wrapNode, ctx.paths.patternScript, ctx.paths.clipConfDest));
+    }
+  }
   const rc = runNode(ctx, /** @type {string} */ (ctx.allowNode), args);
   if (rc === 0) return;
   if (ctx.mode === 'check' && rc === 1) raise(ctx, 1);
@@ -767,7 +837,8 @@ export function mergeSettings(ctx) {
 export function uninstallUser(ctx) {
   const p = ctx.paths;
   for (const dest of [p.claudeBrief, p.codexBrief, p.kiroBrief, p.hookDest, p.hookConfDest, p.codexRules, p.clipDest, p.clipConfDest,
-    p.codexHooks, p.kiroHook, p.wrapDest, p.snippetDest, p.restartDest, p.glassDest, p.glasscmdDest, p.clipPlist]) {
+    p.codexHooks, p.kiroHook, p.kiroPattern, ...patternDests(p), p.wrapDest, p.snippetDest, p.restartDest, p.glassDest, p.glasscmdDest,
+    p.clipPlist]) {
     if (isFile(dest) && isManaged(dest)) {
       rmF(dest);
       say(ctx, 'REMOVED ' + dest);
@@ -777,6 +848,9 @@ export function uninstallUser(ctx) {
   if (isDir(state) && !isLink(state)) {
     removeJson(state);
     if (rmdir(state)) say(ctx, 'REMOVED ' + state);
+  }
+  for (const d of ['/src/hooks', '/src/lib', '/src', '']) {
+    if (rmdir(p.patternDir + d) && d === '') say(ctx, 'REMOVED ' + p.patternDir + ' (empty)');
   }
   if (rmdir(ctx.dataDir)) say(ctx, 'REMOVED ' + ctx.dataDir + ' (empty)');
   if (isFile(p.kiroHook + '.pmhwc-backup')) {
@@ -1002,6 +1076,24 @@ function saltNotice(ctx) {
   }
 }
 
+/** The fixed-pattern check's installed files (#588), package.json first. @param {Record<string, string>} p */
+export function patternDests(p) {
+  return [p.patternDir + '/package.json', ...PATTERN_FILES.map((f) => p.patternDir + '/' + f)];
+}
+
+/**
+ * The fixed-pattern check (#588): its script and the core it imports, copied under the data directory (each
+ * stamped), and its Kiro hook file. Claude Code's entries go into settings.json (mergeSettings) and Codex's
+ * into hooks.json; under --hooks=managed those two come from the admin layer, which carries its own copy.
+ * @param {Ctx} ctx
+ */
+function patternFiles(ctx) {
+  const p = ctx.paths;
+  processTarget(ctx, 'patpkg', p.patternDir + '/package.json');
+  for (const f of PATTERN_FILES) processTarget(ctx, 'patfile:' + f, p.patternDir + '/' + f);
+  processTarget(ctx, 'kiropattern', p.kiroPattern);
+}
+
 /**
  * The paste filter's files: the Codex hooks (user mode only), the Kiro hook, the snippet and the start-up block.
  * @param {Ctx} ctx
@@ -1012,12 +1104,14 @@ function pasteFiles(ctx) {
     raise(ctx, 2);
     say(ctx, 'SKIP    ' + p.codexHooks + ': the paste filter cannot run here (see the REFUSE line above)');
     say(ctx, 'SKIP    ' + p.kiroHook + ': the paste filter cannot run here either');
+    say(ctx, 'SKIP    ' + p.patternDir + ' and ' + p.kiroPattern + ': the fixed-pattern check cannot run here either (#588)');
     say(ctx, 'SKIP    ' + p.wrapDest + ' and ' + p.snippetDest + ': the paste wrapper cannot run here either');
     return;
   }
   if (ctx.hooksMode === 'user') processTarget(ctx, 'codexhooks', p.codexHooks);
   else retire(ctx, p.codexHooks, 'the user-level Codex hooks, now registered in the admin layer (ADR-0025)');
   processTarget(ctx, 'kirohook', p.kiroHook, true);
+  patternFiles(ctx);
   retire(ctx, p.wrapDest, 'the Python paste wrapper, replaced by mhw paste-wrapper (Node, #487)');
   // pasteOk holds only with an absolute wrap node, so the snippet and its start-up block always follow.
   processTarget(ctx, 'snippet', p.snippetDest);
