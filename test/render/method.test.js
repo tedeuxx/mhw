@@ -157,7 +157,7 @@ describe('capability skills', () => {
 // rules live in the method's `orchestration` skill, not in a project's root brief.
 const ORCHESTRATION = src('skills/orchestration/SKILL.md');
 const ROOT_BRIEF_BLOCKS = /loop-mode-contract|hitl-escalation-format|review-chain-routing/;
-const CONSUMER_WORDS = /tadeumendonca|tedeuxx|apps\/fed|\.brand\/|-io\b/gi;
+const CONSUMER_WORDS = /tadeumendonca|tedeuxx|apps\/fed|\.brand\b|-io\b/gi;
 // The prose forms the pointers took before #176, when they sent a reader to a project's root brief.
 const ROOT_BRIEF_PROSE = /root brief's \(`AGENTS\.md`\)|each repository's root brief \(`AGENTS\.md`\)|the root brief \(`AGENTS\.md`\), or the record|`AGENTS\.md`'s escalation section|`AGENTS\.md` wins|The root brief is where those rules bind/g;
 // Every pointer site #176 wrote: ten repointed from a root brief, one added (new-issue.md).
@@ -934,7 +934,19 @@ describe('the positioning-sync skill', () => {
       '**No client name on any surface**',
       '## Choices and their trade-offs',
       '**All of this is an instruction.**',
+      // The lens on PR #575: order, the single ask, the relay, the record step and the consumer's surface list.
+      '**No browser write starts until every gated change in the batch has merged.**',
+      'a held site merge holds the whole batch.',
+      '**Put the whole batch to the owner as one activation**',
+      '**His ok on the text is not merge authorisation**',
+      '**it posts nothing. The main session relays that result verbatim onto the Issue**',
+      '**The batch is every surface the consuming project\'s surfaces record in `<private-dir>` lists**',
+      '**Who performs this write awaits the owner\'s ruling (#567).**',
     ]) assert.ok(text.includes(clause), clause);
+    const rows = read(POSITIONING_SYNC).split('\n').filter((l) => /^\| \d+ \|/.test(l));
+    assert.deepEqual(rows.map((l) => l.split('|')[2].trim()), ['gated', 'gated', 'gated', 'browser', 'browser', 'browser', 'record'],
+      'gated steps come before browser writes, the record last');
+    assert.ok(rows[6].includes('**awaits the owner\'s ruling; no actor is named yet**'), 'the record row names no actor');
   });
   test('it points at the skills that own the rest instead of restating them', () => {
     const text = read(POSITIONING_SYNC);
