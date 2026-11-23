@@ -926,7 +926,6 @@ describe('the positioning-sync skill', () => {
       'a positioning change propagates to every public surface in one batch, or it does not propagate.',
       'a read-only connector cannot write a profile',
       'Nothing is typed or saved on any surface before his ok.',
-      'to what actually shipped, never to what was intended.',
       '**Headline coherent across surfaces**',
       '**Years of experience consistent**',
       '**Contact address consistent**',
@@ -940,13 +939,16 @@ describe('the positioning-sync skill', () => {
       '**Put the whole batch to the owner as one activation**',
       '**His ok on the text is not merge authorisation**',
       '**it posts nothing. The main session relays that result verbatim onto the Issue**',
-      '**The batch is every surface the consuming project\'s surfaces record in `<private-dir>` lists**',
-      '**Who performs this write awaits the owner\'s ruling (#567).**',
+      '**The batch is every surface the consuming project\'s surfaces list in `<private-dir>` names**',
+      // The owner's ruling on #567: no record of what shipped; the live surfaces are the truth.
+      '**There is no record of what shipped (owner\'s ruling on #567).**',
+      'the coherence check below reads them live.',
     ]) assert.ok(text.includes(clause), clause);
     const rows = read(POSITIONING_SYNC).split('\n').filter((l) => /^\| \d+ \|/.test(l));
-    assert.deepEqual(rows.map((l) => l.split('|')[2].trim()), ['gated', 'gated', 'gated', 'browser', 'browser', 'browser', 'record'],
-      'gated steps come before browser writes, the record last');
-    assert.ok(rows[6].includes('**awaits the owner\'s ruling; no actor is named yet**'), 'the record row names no actor');
+    assert.deepEqual(rows.map((l) => l.split('|')[2].trim()), ['gated', 'gated', 'gated', 'browser', 'browser', 'browser'],
+      'gated steps come before browser writes, and no record step follows them');
+    assert.deepEqual(text.match(/canonical[- ]copy|record step|update the record|to what (actually )?shipped/gi) || [], [],
+      'a step that updates a record of what shipped is back');
   });
   test('it points at the skills that own the rest instead of restating them', () => {
     const text = read(POSITIONING_SYNC);
