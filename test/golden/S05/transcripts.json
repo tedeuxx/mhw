@@ -107,7 +107,7 @@
   "validate-not-utf8": {
     "code": 1,
     "stdout": "",
-    "stderr": "Traceback (most recent call last):\n  File \"<SCRIPTS>/worklog.py\", line 839, in <module>\n    raise SystemExit(main())\n                     ~~~~^^\n  File \"<SCRIPTS>/worklog.py\", line 820, in main\n    event = validate_event(load(args.event))\n                           ~~~~^^^^^^^^^^^^\n  File \"<SCRIPTS>/worklog.py\", line 78, in load\n    return json.loads(Path(real).read_text(encoding=\"utf-8\"))\n                      ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py\", line 788, in read_text\n    return f.read()\n           ~~~~~~^^\n  File \"<frozen codecs>\", line 325, in decode\nUnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 1: invalid start byte\n"
+    "stderr": "Traceback (most recent call last):\n  File \"<SCRIPTS>/worklog.py\", line 839, in <module>\n    raise SystemExit(main())\n                     ~~~~^^\n  File \"<SCRIPTS>/worklog.py\", line 820, in main\n    event = validate_event(load(args.event))\n                           ~~~~^^^^^^^^^^^^\n  File \"<SCRIPTS>/worklog.py\", line 78, in load\n    return json.loads(Path(real).read_text(encoding=\"utf-8\"))\n                      ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^\n  File \"<PY>/lib/python3.14/pathlib/__init__.py\", line 788, in read_text\n    return f.read()\n           ~~~~~~^^\n  File \"<frozen codecs>\", line 325, in decode\nUnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 1: invalid start byte\n"
   },
   "validate-missing-file": {
     "code": 2,

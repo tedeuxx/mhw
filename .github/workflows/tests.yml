@@ -13,7 +13,7 @@ jobs:
   # Stable mechanical gate for the workspace's checked merge command.
   delivery-ci:
     if: always()
-    needs: [shellcheck, profiles, suites, node, git-route, windows, isolation-smoke, prod-canary-installed-not-enforced]
+    needs: [shellcheck, runtime-guard, profiles, suites, node, git-route, windows, isolation-smoke, prod-canary-installed-not-enforced]
     runs-on: ubuntu-latest
     steps:
       - name: Require every suite to pass
@@ -22,6 +22,10 @@ jobs:
         run: |
           jq -e 'all(.[]; .result == "success")' <<< "$RESULTS"
 
+  # The job keeps its name because the delivery route reads the job list (src/commands/delivery.js) and the
+  # branch's history names it; it no longer runs shellcheck. #502 (S32 of #470, ADR-0045) removed that step
+  # and the Python compile check: runtime-guard below fails on any tracked shell, PowerShell or Python file,
+  # so there is nothing left for either to check.
   shellcheck:
     runs-on: ubuntu-latest
     permissions:
@@ -31,15 +35,6 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
-      # #496 (S26 of #470) deleted global/install-managed.sh, the last tracked shell script: the step checks
-      # every tracked *.sh, so a new one is linted, and says so when there is none.
-      - name: shellcheck every tracked shell script (preinstalled on the runner image)
-        run: |
-          shellcheck --version
-          files=$(git ls-files '*.sh')
-          if [ -z "$files" ]; then echo "no tracked shell script (#496 deleted the last one)"; exit 0; fi
-          # shellcheck disable=SC2086
-          shellcheck -s sh $files
       # A workflow that is not valid YAML never loads: GitHub reports a "workflow file issue" on push
       # and no job runs, so nothing else in this file would notice (PR #141). Ruby and its bundled
       # YAML parser (Psych) are preinstalled on the runner image; nothing is fetched.
@@ -59,17 +54,6 @@ jobs:
             end
           end
           exit(bad.zero? ? 0 : 1)'
-      - name: python compile check, warnings as errors (the runner's python3; no third-party linter)
-        run: |
-          python3 --version
-          python3 -W error -c 'import sys
-          for f in sys.argv[1:]:
-              with open(f, encoding="utf-8") as fh:
-                  compile(fh.read(), f, "exec")' \
-            global/project-policy/reference/fixture/container_tests.py global/project-policy/reference/fixture/stg_stand_in_tests.py \
-            global/project-policy/reference/fixture/fixture_app.py \
-            test/helpers/s15-record.py test/helpers/s17-record.py test/helpers/s23-prose.py \
-            test/helpers/s24-admin-line.py
       # #495 (S24 of #470): the checkout's ./mhw is a Node file too (an ES module with no extension, under
       # package.json's "type": "module"), so it is checked here rather than by shellcheck.
       - name: node syntax check of the npm launcher, the checkout launcher and postinstall (Issue #68)
@@ -79,6 +63,33 @@ jobs:
           node --check bin/postinstall.js
           node --check mhw
           node --check .github/scripts/prod-canary.js
+
+  # #502 (S32 of #470, ADR-0045): mhw runs one runtime, Node. runtime-guard fails on any tracked *.py, *.sh or
+  # *.ps1 (and *.bash, *.zsh, *.psm1, *.psd1), on any tracked file whose #! line names sh, bash, dash, zsh,
+  # ksh, python, pwsh or powershell (directly or through env), and on any workflow line that names python,
+  # pip, pwsh, powershell or bump-my-version or uses setup-python, outside the explicit list
+  # .github/runtime-guard-allowance.json; a stale entry there is red too. A `shell:` key is the runner's own
+  # shell and is not flagged. Its suite plants a file and a workflow line of each kind in throwaway git
+  # repositories and requires each to turn the check red. Node 26, the engines.node floor (#472).
+  runtime-guard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 26.13.1
+      - name: no tracked program or workflow step of another runtime (outside the declared allowance)
+        run: |
+          node --version
+          node .github/scripts/runtime-guard.js
+      - name: the guard's suite (planted files of each kind turn it red; a stale allowance entry is red)
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: node --test test/ci/runtime-guard.test.js
 
   # Issue #472 (S01 of #470): the Node CLI base. On the Active LTS line engines.node names (D11; 26 since
   # 2026-10-28, read from nodejs.org's release index on 2026-11-17), on all three operating systems:
@@ -121,62 +132,6 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: npm test
-      # #481 (S10 of #470): the live arm of test/render/model-defaults.test.js compares the Node renderer
-      # with the base revision's model_defaults.py, and only on the CPython its goldens were recorded from
-      # (test/golden/S10/recorded-from.json). The runners carry other patch releases, so that CPython is
-      # installed here, after npm test, for this step alone. MHW_S10_LIVE_REQUIRED=1 turns the version skip
-      # into a failure while the base still holds model_defaults.py. POSIX only: the arm runs the base's
-      # Python there.
-      # actions/setup-python v6.3.0 (verified with git ls-remote 2026-11-19: refs/tags/v6.3.0).
-      - if: runner.os != 'Windows'
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
-        with:
-          python-version: 3.14.6
-      - name: S10 live parity against the recorded CPython
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S10_LIVE_REQUIRED: "1"
-        run: |
-          python3 --version
-          node --test --test-name-pattern="^live|tomllib" test/render/model-defaults.test.js
-      # #484 (S13 of #470): the live arm of test/render/mcp-golden.test.js runs the base revision's
-      # mcp_render.py beside src/render/mcp.js on every case, on the same CPython (its json messages are in
-      # the transcripts). MHW_S13_LIVE_REQUIRED=1 turns a skip into a failure while the base still holds it.
-      - name: S13 live parity against the recorded CPython
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S13_LIVE_REQUIRED: "1"
-        run: |
-          python3 --version
-          node --test --test-name-pattern="^live" test/render/mcp-golden.test.js
-      # #485 (S14 of #470): the live arm of test/mcp/active-golden.test.js runs the base revision's
-      # mcp_active.py and mcp_connect.py (through its src/render/mcp.js --active) beside the Node active set
-      # and connection check on every case, on the same CPython. MHW_S14_LIVE_REQUIRED=1 turns a skip into a
-      # failure while the base still holds mcp_active.py. The node:test files are named one by one: a
-      # directory argument does not load them. The base is found as the test finds it (MHW_PARITY_BASE, else
-      # the merge-base with origin/<base branch>); no base fails. While that base holds mcp_active.py the
-      # live line must be reported and not as SKIP; once it does not, the live arm has retired and passes.
-      - name: S14 live parity against the recorded CPython
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S14_LIVE_REQUIRED: "1"
-        run: |
-          python3 --version
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/mcp/active-golden.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          if ! git cat-file -e "$base:global/mcp/mcp_active.py" 2>/dev/null; then
-            echo "S14 live arm retired: base $base no longer holds global/mcp/mcp_active.py"
-            exit 0
-          fi
-          echo "$out" | grep -E '^ *ok [0-9]+ - live: mcp_active\.py' | grep -vq SKIP
       # ADR-0017, 2026-10-05 amendment (restored by #484 after the agents-lead lens on PR #520): the one test
       # that runs the production MCP launcher against the real /usr/bin/security, on this ephemeral macOS
       # runner only, in a throwaway keychain the test creates and deletes under RUNNER_TEMP with a throwaway
@@ -191,31 +146,6 @@ jobs:
           out=$(node --test --test-reporter=tap --test-name-pattern="real security binary" test/render/mcp.test.js) || { echo "$out"; exit 1; }
           echo "$out"
           echo "$out" | grep -E '^ *ok [0-9]+ - a keychain secret reaches only the server' | grep -vq SKIP
-      # #486 (S15 of #470): the live arms of the cleaning core and mhw scan against the same CPython:
-      # the shared corpus answered by clipboard_guard.py (the base revision's copy since #488 deleted it), the base revision's
-      # scan.py on the same repositories, and a fresh recording of every Unicode table clean.js pins
-      # (about two minutes). MHW_S15_LIVE_REQUIRED=1 turns any skip of the three into a failure.
-      - name: S15 live parity against the recorded CPython
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S15_LIVE_REQUIRED: "1"
-        run: |
-          python3 --version
-          node --test --test-name-pattern="^live" test/clean/clean.test.js test/clean/unicode.test.js test/scan/scan.test.js
-      # #487 (S16 of #470): the live arm of the paste wrapper's parity test plays the recorded cases on the
-      # base revision's paste_wrapper.py with the same CPython. MHW_S16_LIVE_REQUIRED=1 turns a skip into a
-      # failure while the base still holds it.
-      - name: S16 live parity against the recorded CPython
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S16_LIVE_REQUIRED: "1"
-        run: |
-          python3 --version
-          node --test --test-name-pattern="^live" test/clipboard/paste-wrapper-golden.test.js
       # #487: the live relay tests run a real wrapper between a pty the suite owns and a fake CLI, through
       # the vendored node-pty: its macOS prebuilds from npm, and on Linux the pty.node node-pty-linux.yml
       # built from the pinned source (ADR-0042). MHW_S16_LIVE_REQUIRED=1 turns a pty that does not load
@@ -229,314 +159,22 @@ jobs:
         run: |
           node --test --test-name-pattern="^live" test/clipboard/paste-wrapper.test.js
           node bin/mhw.js paste-wrapper check
-      # #488 (S17 of #470): the prompt hook's parity golden played live on the base revision's
-      # clipboard_guard.py with the same CPython while the base still holds it, and add-term on a real pty
-      # (echo off, Ctrl+C, Ctrl+D, terminal modes restored). MHW_S17_LIVE_REQUIRED=1 turns a skip into a
-      # failure: a missing base or interpreter while the base holds the original, or a pty that does not load.
-      - name: S17 live parity and add-term on a pty
+      # #488 (S17 of #470): add-term on a real pty (echo off, Ctrl+C, Ctrl+D, terminal modes restored).
+      # MHW_S17_LIVE_REQUIRED=1 turns a pty that does not load into a failure. The golden arm against the
+      # base revision's clipboard_guard.py retired when #488 merged and was deleted by #502 (S32 of #470).
+      - name: S17 add-term on a pty
         if: runner.os != 'Windows'
         shell: bash
         env:
           TMPDIR: ${{ runner.temp }}
           MHW_S17_LIVE_REQUIRED: "1"
         run: |
-          python3 --version
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/clipboard/hook-golden.test.js test/clipboard/hook.test.js) || { echo "$out"; exit 1; }
+          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/clipboard/hook.test.js) || { echo "$out"; exit 1; }
           echo "$out"
-          # The two pty arms must have run (the golden arm may skip once the base no longer holds the original).
+          # The two pty arms must have run.
           for name in "live: add-term reads the term twice with nothing echoed" "live: Ctrl+C and Ctrl+D cancel add-term cleanly"; do
             echo "$out" | grep -F "ok " | grep -F "$name" | grep -vq SKIP || { echo "SKIPPED or missing: $name"; exit 1; }
           done
-      # #493 (S22 of #470): the live arm of test/status/status-golden.test.js runs the base revision's
-      # status view (global/workstation.py and owner_actions.py) beside src/commands/status.js on every case,
-      # in throwaway HOMEs and admin roots with a stand-in gh, on the same CPython. MHW_S22_LIVE_REQUIRED=1
-      # turns a skip into a failure while the base still holds owner_actions.py; once it does not (this slice
-      # has merged), the step says the arm retired and passes, as the S14 step does (#534). A missing base
-      # fails. The golden arm runs in npm test, on macOS, where its transcripts were recorded.
-      - name: S22 live parity against the recorded CPython
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S22_LIVE_REQUIRED: "1"
-        run: |
-          python3 --version
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/status/status-golden.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          if ! git cat-file -e "$base:global/owner_actions.py" 2>/dev/null; then
-            echo "S22 live arm retired: base $base no longer holds global/owner_actions.py"
-            exit 0
-          fi
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: the status view" | grep -vq SKIP
-      # #494 (S23 of #470): the live arms of test/check/check-golden.test.js and test/check/prose-corpus.test.js
-      # run the base revision's mhw check (global/workstation.py, prerequisites.py and merge_authority.py)
-      # beside src/commands/check.js on every case, in throwaway HOMEs and admin roots with a stand-in gh and a
-      # loopback stand-in service, and the base's merge_authority.py over the live-prose corpus, on the same
-      # CPython. MHW_S23_LIVE_REQUIRED=1 turns a skip into a failure while the base still holds
-      # merge_authority.py; once it does not (this slice has merged), the step says the arm retired and
-      # passes, as the S14 and S22 steps do (#534). A missing base fails. The golden arms run in npm test.
-      - name: S23 live parity against the recorded CPython
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S23_LIVE_REQUIRED: "1"
-        run: |
-          python3 --version
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/check/check-golden.test.js test/check/prose-corpus.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          if ! git cat-file -e "$base:global/merge_authority.py" 2>/dev/null; then
-            echo "S23 live arm retired: base $base no longer holds global/merge_authority.py"
-            exit 0
-          fi
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: the check of the base revision" | grep -vq SKIP
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: the base revision" | grep -vq SKIP
-      # #495 (S24 of #470): the live arms of test/lifecycle/lifecycle-golden.test.js and admin-line.test.js run
-      # the base revision's mhw install, update, uninstall and postinstall (global/workstation.py, through its
-      # shell ./mhw) beside the Node commands on every case, in throwaway HOMEs and admin roots with a stand-in
-      # npm, and record the base's admin-layer root command line with no process started, on the same CPython.
-      # MHW_S24_LIVE_REQUIRED=1 turns a skip into a failure while the base still holds workstation.py; once it
-      # does not (this slice has merged), the step says the arm retired and passes, as the S14, S22 and S23
-      # steps do (#534). A missing base fails. The golden arms run in npm test.
-      - name: S24 live parity against the recorded CPython
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S24_LIVE_REQUIRED: "1"
-        run: |
-          python3 --version
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/lifecycle/lifecycle-golden.test.js test/lifecycle/admin-line.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          if ! git cat-file -e "$base:global/workstation.py" 2>/dev/null; then
-            echo "S24 live arm retired: base $base no longer holds global/workstation.py"
-            exit 0
-          fi
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: the lifecycle commands of the base revision" | grep -vq SKIP
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: the base revision's workstation.py records" | grep -vq SKIP
-
-      # #489 (S18 of #470): the two live arms of test/render/method-golden.test.js run the base revision's
-      # method_render.py beside src/render/method.js, on every golden case and on this repository's own
-      # method/, in throwaway HOMEs, on the same CPython. MHW_S18_LIVE_REQUIRED=1 turns a skip into a failure
-      # while the base still holds method_render.py; once it does not (this slice has merged), the step says
-      # the arm retired and passes, as the S14 step does (#534). A missing base fails. The golden arm runs in
-      # npm test on every OS.
-      - name: S18 live parity against the recorded CPython
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S18_LIVE_REQUIRED: "1"
-        run: |
-          python3 --version
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/render/method-golden.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          if ! git cat-file -e "$base:global/method/method_render.py" 2>/dev/null; then
-            echo "S18 live arm retired: base $base no longer holds global/method/method_render.py"
-            exit 0
-          fi
-          [ "$(echo "$out" | grep -E "^ *ok [0-9]+ - live: " | grep -vc SKIP)" = 2 ]
-      # #498 (S28 of #470): the live arm of test/project-policy/project-policy-golden.test.js runs the base
-      # revision's `./mhw policy` (global/workstation.py and project_policy.py) beside the Node command on every
-      # case, in throwaway directories, on the same CPython (its json messages are in the transcripts).
-      # MHW_S28_LIVE_REQUIRED=1 turns a skip into a failure while the base still holds project_policy.py; once
-      # it does not (this slice has merged), the step says the arm retired and passes, as the S14 step does
-      # (#534). A missing base fails. The golden arm runs in npm test on every OS.
-      - name: S28 live parity against the recorded CPython
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S28_LIVE_REQUIRED: "1"
-        run: |
-          python3 --version
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/project-policy/project-policy-golden.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          if ! git cat-file -e "$base:global/project-policy/project_policy.py" 2>/dev/null; then
-            echo "S28 live arm retired: base $base no longer holds global/project-policy/project_policy.py"
-            exit 0
-          fi
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: the Python original and the Node command" | grep -vq SKIP
-      # #500 (S30 of #470): the live arm of test/ci/method-issue-sync-golden.test.js runs the base revision's
-      # method_issue_sync.py with its own suite's Python stub gh beside .github/scripts/method-issue-sync.js
-      # with the JavaScript stub, on every case, on the same CPython. MHW_S30_LIVE_REQUIRED=1 turns a skip
-      # into a failure while the base still holds method_issue_sync.py; once it does not (this slice has
-      # merged), the step says the arm retired and passes, as the S14 step does (#534). A missing base fails.
-      # The golden arm runs in npm test on macOS and Linux (the stub gh is a POSIX executable).
-      - name: S30 live parity against the recorded CPython
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S30_LIVE_REQUIRED: "1"
-        run: |
-          python3 --version
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/ci/method-issue-sync-golden.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          if ! git cat-file -e "$base:.github/scripts/method_issue_sync.py" 2>/dev/null; then
-            echo "S30 live arm retired: base $base no longer holds .github/scripts/method_issue_sync.py"
-            exit 0
-          fi
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: the original" | grep -vq SKIP
-
-      # #501 (S31 of #470): the live arm of test/ci/prod-canary-golden.test.js runs the base revision's
-      # .github/scripts/prod_canary.py beside .github/scripts/prod-canary.js on every case, each in a fresh
-      # fixture repository whose package is a fake mhw (test/helpers/s31-fixture/), installed with npm into
-      # throwaway prefixes, HOMEs and admin roots, on the same CPython. MHW_S31_LIVE_REQUIRED=1 turns a skip
-      # into a failure while the base still holds prod_canary.py; once it does not (this slice has merged),
-      # the step says the arm retired and passes, as the S14 step does (#534). A missing base fails. The
-      # golden arm runs in npm test on macOS and Linux (hooks run through /bin/sh).
-      - name: S31 live parity against the recorded CPython
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S31_LIVE_REQUIRED: "1"
-        run: |
-          python3 --version
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/ci/prod-canary-golden.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          if ! git cat-file -e "$base:.github/scripts/prod_canary.py" 2>/dev/null; then
-            echo "S31 live arm retired: base $base no longer holds .github/scripts/prod_canary.py"
-            exit 0
-          fi
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: the original" | grep -vq SKIP
-
-      # #499 (S29 of #470): the live arm of test/project-policy/delivery-gate-golden.test.js runs the base
-      # revision's global/project-policy/delivery_gate.py (which runs the base's `node bin/mhw.js policy
-      # check` with PATH's node) beside `mhw delivery-gate` on every case, in throwaway directories, on the
-      # same CPython (its json and UTF-8 messages are in the transcripts). MHW_S29_LIVE_REQUIRED=1 turns a
-      # skip into a failure while the base still holds delivery_gate.py; once it does not (this slice has
-      # merged), the step says the arm retired and passes, as the S14 step does (#534). A missing base
-      # fails. The golden arm runs in npm test on every OS.
-      - name: S29 live parity against the recorded CPython
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S29_LIVE_REQUIRED: "1"
-        run: |
-          python3 --version
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/project-policy/delivery-gate-golden.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          if ! git cat-file -e "$base:global/project-policy/delivery_gate.py" 2>/dev/null; then
-            echo "S29 live arm retired: base $base no longer holds global/project-policy/delivery_gate.py"
-            exit 0
-          fi
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: the Python original and the Node command" | grep -vq SKIP
-
-      # #491 (S20 of #470): the live arm of test/render/settings-merge-golden.test.js runs the base revision's
-      # merge_settings, uninstall_user and report_floor (jq programs) beside the head's, which run
-      # src/render/settings-merge.js and src/render/floor-report.js, on every case, in throwaway HOMEs and admin
-      # roots. MHW_S20_LIVE_REQUIRED=1 is the requirement: while the base's install.sh still merges with jq
-      # the live line must be reported and not as SKIP; once it does not (this slice has merged), the step
-      # says the arm retired and passes, as the S14 step does (#534). A missing base fails. The golden arm
-      # runs in npm test on macOS and Linux.
-      - name: S20 live parity against the jq programs
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S20_LIVE_REQUIRED: "1"
-        run: |
-          jq --version
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/render/settings-merge-golden.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          if ! git show "$base:global/install.sh" 2>/dev/null | grep -qF 'jq is required to merge the hook entry and the deny floor'; then
-            echo "S20 live arm retired: base $base no longer merges settings.json with jq"
-            exit 0
-          fi
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: the Node steps match" | grep -vq SKIP
-
-      # #492 (S21 of #470): the live arm of test/render/shell-rc-golden.test.js runs the base revision's
-      # rc_* and shell_rc_* functions (shell and awk) beside the head's startup_step, which runs
-      # src/render/shell-rc.js, on every case, in throwaway HOMEs. MHW_S21_LIVE_REQUIRED=1 is the
-      # requirement: while the base's install.sh still holds rc_scan the live line must be reported and not
-      # as SKIP; once it does not (this slice has merged), the step says the arm retired and passes, as the
-      # S14 step does (#534). A missing base fails. The golden arm runs in npm test on macOS and Linux.
-      - name: S21 live parity against the shell functions
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S21_LIVE_REQUIRED: "1"
-        run: |
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/render/shell-rc-golden.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          if ! git show "$base:global/install.sh" 2>/dev/null | grep -qF 'rc_scan() {'; then
-            echo "S21 live arm retired: base $base no longer holds the shell functions"
-            exit 0
-          fi
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: the Node step matches" | grep -vq SKIP
-
-      # #503 (S25 of #470): the live arm of test/install/install-user-golden.test.js runs the base revision's
-      # global/install.sh beside this tree's `mhw install-user` on every scenario (install, check, dry run,
-      # uninstall), in throwaway HOMEs and admin roots, on frozen inputs. MHW_S25_LIVE_REQUIRED=1 is the
-      # requirement: while the base still holds global/install.sh the live line must be reported and not as
-      # SKIP; once it does not (this slice has merged), the step says the arm retired and passes, as the S14
-      # step does (#534). A missing base fails. The original is shell and Node, so no CPython is pinned for
-      # it. The golden arm runs in npm test on macOS and Linux.
-      - name: S25 live parity against install.sh
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S25_LIVE_REQUIRED: "1"
-        run: |
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/install/install-user-golden.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          if ! git cat-file -e "$base:global/install.sh" 2>/dev/null; then
-            echo "S25 live arm retired: base $base no longer holds global/install.sh"
-            exit 0
-          fi
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: install.sh at the base revision" | grep -vq SKIP
-
-      # #496 (S26 of #470): the live arm of test/install/admin-golden.test.js runs the base revision's
-      # global/install-managed.sh beside this tree's `mhw install-admin` on every scenario (render, check,
-      # apply, uninstall, remove), in throwaway HOMEs and admin roots (--root, never a system path, never root),
-      # on frozen inputs. MHW_S26_LIVE_REQUIRED=1 is the requirement: while the base still holds
-      # global/install-managed.sh the live line must be reported and not as SKIP; once it does not (this slice
-      # has merged), the step says the arm retired and passes, as the S14 step does (#534). A missing base
-      # fails. The original is shell, with /usr/bin/python3 and jq, both on the runner image, so no CPython is
-      # pinned for it. The golden arm runs in npm test on macOS and Linux.
-      - name: S26 live parity against install-managed.sh
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S26_LIVE_REQUIRED: "1"
-        run: |
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/install/admin-golden.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          if ! git cat-file -e "$base:global/install-managed.sh" 2>/dev/null; then
-            echo "S26 live arm retired: base $base no longer holds global/install-managed.sh"
-            exit 0
-          fi
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: install-managed.sh at the base revision" | grep -vq SKIP
 
   # Issue #472: the git install route of ADR-0034 (`npm install -g github:...` is a git dependency to
   # npm), through git+file:// of a commit made from this checkout, into a throwaway prefix, cache and
@@ -660,8 +298,8 @@ jobs:
       # Issue #224: Chrome's remote-debugging key in Local State is Node since #480 (mhw chrome-debugging);
       # its suite, on fixture files only, runs in the node job (npm test, test/render/chrome-debugging.test.js).
       # ADR-0035 decision 7: mhw scan, the outbound scan, is Node since #486 (S15 of #470); its suites
-      # (test/scan/, test/clean/) run in the node job (npm test) on all three OSes, and their live arms
-      # against the recorded CPython in that job's S15 step.
+      # (test/scan/, test/clean/) run in the node job (npm test) on all three OSes, on frozen goldens (#502
+      # deleted their live arms and the CPython recorder).
       # Issue #61, ADR-0032: the working-method renderer is Node since #489 (S18 of #470); its suite,
       # test/render/method.test.js (every rendered agent keeps its tool list and every rendered file its
       # provenance stamp, in throwaway HOMEs only), runs in the node job (npm test) on all three OSes.
@@ -828,15 +466,16 @@ jobs:
   # The Windows user layer on a real Windows host (Issue #9, ADR-0010): `mhw install-windows`, which mhw
   # install, check and status run there since #497 (S27 of #470; it was global/install.ps1). Throwaway
   # USERPROFILEs under RUNNER_TEMP only. The runner's git checks out with core.autocrlf=true, so this also
-  # exercises a CRLF source tree. No PowerShell runs mhw any more; the live parity step below runs the base
-  # revision's install.ps1 under Windows PowerShell 5.1 and PowerShell 7 while the base still holds it.
+  # exercises a CRLF source tree. No PowerShell runs mhw any more; the S27 live parity step against the base
+  # revision's install.ps1 retired when #497 merged and was removed by #502 (S32 of #470). The npm package
+  # step below keeps `shell: pwsh`, the Windows runner's own shell (ADR-0045 states that bound).
   windows:
     runs-on: windows-latest
     permissions:
       contents: read
     steps:
       # actions/checkout v6.1.0 (same pin as version-main.yml, verified with git ls-remote 2026-10-01). Full
-      # history, so the live parity step can read the base revision's install.ps1.
+      # history, as the node job checks out.
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
@@ -856,29 +495,6 @@ jobs:
           git config --get core.autocrlf
           node --version
           node --test --test-reporter=tap test/install/windows.test.js test/install/windows-golden.test.js
-      # #497 (S27 of #470): the live arm of test/install/windows-golden.test.js runs the base revision's
-      # global/install.ps1, under PowerShell 7 and Windows PowerShell 5.1, beside this tree's
-      # `mhw install-windows` on every scenario, in throwaway profiles, on frozen inputs. MHW_S27_LIVE_REQUIRED=1
-      # is the requirement: while the base still holds global/install.ps1 the live line must be reported and
-      # not as SKIP; once it does not (this slice has merged), the step says the arm retired and passes, as
-      # the S14 and S25 steps do (#534). A missing base fails. The original is PowerShell and Node, so no
-      # CPython is pinned for it.
-      - name: S27 live parity against install.ps1
-        if: ${{ !cancelled() }}
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S27_LIVE_REQUIRED: "1"
-        run: |
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          if ! git cat-file -e "$base:global/install.ps1" 2>/dev/null; then
-            echo "S27 live arm retired: base $base no longer holds global/install.ps1"
-            exit 0
-          fi
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/install/windows-golden.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: install.ps1 at the base revision" | grep -vq SKIP
       # Issue #68, ADR-0034: the npm package on Windows. git archive of HEAD (what GitHub serves, with
       # .workstation-archive filled in), npm pack, npm install -g into a throwaway prefix and cache; its
       # postinstall installs nothing (#113); then mhw.cmd install, check, update and uninstall against a

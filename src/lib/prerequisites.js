@@ -60,11 +60,11 @@ export const COMMANDS = Object.freeze({
   claude: { version: ['--version'] }, codex: { version: ['--version'] },
   'kiro-cli': { version: ['--version'] }, gh: { version: ['--version'] },
   git: { version: ['--version'] }, jq: { version: ['--version'] },
-  python3: { version: ['--version'] }, 'xcode-select': { path: ['-p'] },
+  'xcode-select': { path: ['-p'] },
   security: {}, node: { version: ['--version'] }, terraform: { version: ['version'] },
   actionlint: { version: ['--version'] }, checkov: { version: ['--version'] },
   shellcheck: { version: ['--version'] },
-  pwsh: { version: ['--version'] }, uv: { version: ['--version'] },
+  uv: { version: ['--version'] },
   brew: { version: ['--version'] }, docker: { version: ['--version'] },
   podman: { version: ['--version'] },
 });

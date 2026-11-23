@@ -3,21 +3,17 @@
 //   golden: every case's find_spans() (category, offset and length in code points, in Python's own
 //           order), sanitise(), categories() and tokens(), recorded from CPython 3.14.6 into
 //           test/golden/S15/corpus.json, against clean.js in this process. Every OS.
-//   live:   python3 at the recorded version answers the same corpus beside clean.js, through
-//           test/helpers/s15-record.py and the clipboard_guard.py of this tree (it stays in this slice).
-//           MHW_S15_LIVE_REQUIRED=1 (CI) turns a missing or other python3 into a failure.
-//           MHW_UPDATE_GOLDEN=1 rewrites the golden from the Python side, never from the Node side.
+//   The golden is frozen: its recorder (test/helpers/s15-record.py) and the live arm that re-ran it
+//           were deleted by #502 (S32 of #470, one Node runtime).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
-import { spawnSync } from 'node:child_process';
 import * as clean from '../../src/lib/clean.js';
 import { CASES, SALT } from './corpus.js';
-import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
-import { CPYTHON, RECORDER, clipboardDir, recordedPython } from '../helpers/s15.js';
+import { CPYTHON } from '../helpers/s15.js';
+import { readGolden, UPDATE } from '../helpers/golden.js';
 
 const SLICE = 'S15';
-const LIVE_REQUIRED = process.env.MHW_S15_LIVE_REQUIRED === '1';
 
 /** @typedef {{ name: string, text_sha256: string, spans: Array<[string, number, number]>, sanitised: string, categories: string[], tokens: Array<[number, number, string]> }} Answer */
 
@@ -52,13 +48,6 @@ export function nodeAnswer(c) {
     categories: clean.categories(spans),
     tokens: digestTokens(clean.tokens(c.text)),
   };
-}
-
-/** @param {string} py @param {string} dir the directory holding clipboard_guard.py @returns {Answer[]} */
-function pythonAnswers(py, dir) {
-  const p = spawnSync(py, ['-B', RECORDER, 'corpus', dir], { input: JSON.stringify(CASES), encoding: 'utf8', maxBuffer: 64 << 20 });
-  assert.equal(p.status, 0, p.stderr);
-  return JSON.parse(p.stdout).cases.map((/** @type {Answer} */ a) => ({ ...a, tokens: digestTokens(a.tokens) }));
 }
 
 /** @param {Answer[]} want @param {(c: import('./corpus.js').Case) => Answer} got */
@@ -98,25 +87,6 @@ test('the corpus holds a known-present hit for every category, and Unicode, case
   for (const a of /** @type {Answer[]} */ (readGolden(SLICE, 'corpus.json').cases)) for (const [cat] of a.spans) hits[cat] += 1;
   for (const cat of clean.CATEGORY_ORDER) assert.ok(hits[cat] >= 1, cat + ' has no known-present hit');
   for (const prefix of ['unicode/', 'ignore-case/', 'offsets/', 'term/']) assert.ok(CASES.some((c) => c.name.startsWith(prefix)), prefix);
-});
-
-test('live: the recorded CPython answers the corpus as clean.js does', (t) => {
-  const p = recordedPython();
-  if (!p.py) {
-    if (LIVE_REQUIRED) assert.fail('MHW_S15_LIVE_REQUIRED=1: ' + p.why);
-    t.skip(p.why);
-    return;
-  }
-  // clipboard_guard.py was deleted by #488 (S17): the base revision's copy while the base still holds it.
-  const d = clipboardDir('clipboard_guard.py', LIVE_REQUIRED);
-  if (!d.dir) {
-    if (d.fail) assert.fail('MHW_S15_LIVE_REQUIRED=1: ' + d.why);
-    t.skip(d.why);
-    return;
-  }
-  const answers = pythonAnswers(p.py, d.dir);
-  if (UPDATE) writeGolden(SLICE, 'corpus.json', { cpython: CPYTHON, salt: SALT, cases: answers });
-  assert.deepEqual(compare(answers, nodeAnswer), []);
 });
 
 // Unit tests of what the corpus does not reach through findSpans.

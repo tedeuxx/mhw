@@ -22,7 +22,10 @@ describe('the declaration', () => {
   test('the repository declaration is valid and generic', () => {
     const doc = pq.loadDeclaration(pq.DECLARATION);
     const ids = doc.items.map((/** @type {any} */ i) => i.id);
-    for (const needed of ['claude', 'codex', 'github', 'sonarcloud', 'terraform-cloud', 'git', 'jq', 'python3', 'terraform', 'node']) assert.ok(ids.includes(needed), needed);
+    for (const needed of ['claude', 'codex', 'github', 'sonarcloud', 'terraform-cloud', 'git', 'terraform', 'node']) assert.ok(ids.includes(needed), needed);
+    // One Node runtime (#502, S32 of #470; owner ruling on #494): no Python, jq or PowerShell item, and no probe for python3 or pwsh.
+    for (const gone of ['python3', 'jq', 'pwsh']) assert.ok(!ids.includes(gone), gone);
+    for (const gone of ['python3', 'pwsh']) assert.ok(!Object.hasOwn(pq.COMMANDS, gone), gone);
     for (const i of doc.items) assert.ok(i.manual.trim(), i.id);
     const text = fs.readFileSync(pq.DECLARATION, 'utf8');
     // Generic: no account, repository owner, e-mail or credential value.
@@ -277,9 +280,9 @@ describe('presence', { skip: !SHELL && 'needs a POSIX sh' }, () => {
   test('the repository declaration with nothing on PATH', () => {
     const [code, out] = s.check();
     assert.equal(code, 1, out);
-    for (const required of ['claude', 'codex', 'github', 'git', 'python3', 'node']) assert.match(out, new RegExp('^MISSING ' + required + ' \\[required\\]: missing ', 'm'));
-    // jq is optional since #491: mhw install, check and uninstall no longer run it (only install-managed.sh did, until #496; since then nothing does).
-    assert.match(out, /^ABSENT {2}jq \[optional\]: missing /m);
+    for (const required of ['claude', 'codex', 'github', 'git', 'node']) assert.match(out, new RegExp('^MISSING ' + required + ' \\[required\\]: missing ', 'm'));
+    // jq and python3 left the declaration with #502 (nothing runs them since #496).
+    assert.doesNotMatch(out, /^\S+ +(jq|python3) \[/m);
     assert.match(out, /^ABSENT {2}terraform \[optional; required for site\]/m);
   });
 });

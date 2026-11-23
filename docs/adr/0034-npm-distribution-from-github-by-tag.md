@@ -320,6 +320,14 @@ Ratification changes no evidence level stated above: it installs, loads or enfor
 
 Later amendments (#470) change this record by appending and striking, as for any accepted record.
 
+## Amendment 2026-11-22: one runtime (#502, [ADR-0045](0045-one-node-runtime.md), proposed)
+
+*S32 of #470.* An install needs Node.js 26 or later (`engines.node`) and git, and nothing else: no Python,
+PowerShell or `jq`. `python3` and `jq` left `global/prerequisites.json`, and a CI check
+(`runtime-guard`) fails while the tracked tree holds a `.py`, `.sh` or `.ps1` file or another runtime's
+`#!` script outside a declared allowance. The lockfile stays `npm-shrinkwrap.json`, so a git or tarball
+install resolves the same dependency tree as CI. `.bumpversion.toml` keeps its name; ADR-0045 says why.
+
 ## Links
 
 - Measurements: npm 11.13.0, Node.js 25.9.0, macOS; branches `feat/npm-distribution` and

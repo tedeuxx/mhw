@@ -1,6 +1,6 @@
 // The release bump (#473, S02 of #470; ADR-0002): the Node replacement for bump-my-version 1.5.1 in
-// .github/workflows/version-main.yml. It reads .bumpversion.toml (the file keeps that name until S32,
-// because other readers parse it), bumps the part it is given, rewrites the configured files, and makes
+// .github/workflows/version-main.yml. It reads .bumpversion.toml (the file keeps that name, because
+// other readers parse it; ADR-0045 says why), bumps the part it is given, rewrites the configured files, and makes
 // one commit and one annotated tag with the configured messages. On success it prints the new tag, and
 // nothing else, on stdout.
 //

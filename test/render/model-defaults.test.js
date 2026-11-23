@@ -529,20 +529,6 @@ test('the parse guard accepts or refuses each document as tomllib did (recorded,
   }
 });
 
-test('live tomllib: the recorded answers are what the recorded CPython answers', (t) => {
-  const p = python3();
-  if (!p || p.version !== guardTable.cpython) {
-    const why = 'the table was recorded from CPython ' + guardTable.cpython + ', python3 here is ' + (p ? p.version : 'absent');
-    if (LIVE_REQUIRED) assert.fail('MHW_S10_LIVE_REQUIRED=1: ' + why);
-    t.skip(why);
-    return;
-  }
-  const r = spawnSync(p.py, ['-c', 'import json,sys,tomllib\nout=[]\nfor d in json.load(sys.stdin):\n    try:\n        tomllib.loads(d); out.append("accept")\n    except Exception:\n        out.append("refuse")\nprint(json.dumps(out))'],
-    { input: JSON.stringify(guardTable.rows.map((x) => x.text)), encoding: 'utf8' });
-  assert.equal(r.status, 0, r.stderr);
-  assert.deepEqual(JSON.parse(r.stdout), guardTable.rows.map((x) => x.tomllib));
-});
-
 test('the guard keeps integers past 2^53 and reports the first line of a smol-toml refusal', () => {
   assert.equal(tomlInvalid('n = 9223372036854775807\n'), null);
   assert.match(String(tomlInvalid('a = 1\na = 2\n')), /^Invalid TOML document: [^\n]+$/);

@@ -315,10 +315,8 @@ test('a backup that cannot be written stops the installer with exit 1 and leaves
 
 test('prerequisites: jq is no longer required by the workstation', () => {
   const doc = JSON.parse(fs.readFileSync(path.join(ROOT, 'global', 'prerequisites.json'), 'utf8'));
-  const jq = doc.items.find((/** @type {{ id: string }} */ i) => i.id === 'jq');
-  assert.ok(jq, 'jq is still declared, as optional');
-  assert.equal(jq.required, 'optional');
-  assert.ok(Object.values(jq.lanes || {}).every((v) => v !== 'required'), JSON.stringify(jq.lanes));
+  // Optional since #491; removed from the declaration by #502 (S32 of #470), since nothing runs it after #496.
+  assert.ok(!doc.items.some((/** @type {{ id: string }} */ i) => i.id === 'jq'), 'jq is no longer declared');
   assert.ok(!fs.readFileSync(path.join(ROOT, 'src', 'commands', 'install-user.js'), 'utf8').match(/\bjq (-|--)/), 'the user-layer installer runs no jq');
 });
 

@@ -6,10 +6,8 @@
 //           by the case) on every OS, and through bin/mhw.js with a pgrep stub on PATH (POSIX, the
 //           running system). Each run is compared with the transcript recorded from the Python original:
 //           stdout, stderr, exit code, and every file under HOME after the run (its bytes and its mode).
-//   live:   where the base revision still holds chrome_debugging.py and python3 is on PATH, the original
-//           runs beside the Node command (test/helpers/chrome-debugging-probe.py, system and the running
-//           answer pinned the same way). POSIX only. MHW_UPDATE_GOLDEN=1 rewrites the golden transcripts
-//           from the Python side, never from the Node side.
+//   The live arm and its probe (test/helpers/chrome-debugging-probe.py) were deleted by #502 (S32 of
+//           #470, one Node runtime): the original left the tree with #480, so the transcripts are frozen.
 // Windows: a case that writes the file is skipped (the original's directory fsync fails there, as Node's
 // does, and the step never reaches a write on Windows anyway), and modes are not compared.
 // Normalised before comparing: the HOME (<HOME>) and the Chrome profile directory (<PROFILE>). The
@@ -23,15 +21,11 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import * as cd from '../../src/render/chrome-debugging.js';
 import { loads, dumps } from '../../src/lib/py.js';
-import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
-import { which } from '../helpers/home.js';
-import { extractRevision } from '../helpers/parity.js';
+import { readGolden, UPDATE } from '../helpers/golden.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SLICE = 'S09';
 const POSIX = process.platform !== 'win32';
-const PY = POSIX ? which('python3') : null;
-const GIT = which('git');
 const SECRET = 'fixture-private-value-7f3a';
 const PROFILE_PARTS = { Darwin: ['Library', 'Application Support', 'Google', 'Chrome'], Linux: ['.config', 'google-chrome'] };
 /** @type {Array<{ case: string[], stream: 'stdout' | 'stderr', base: string, head: string, replace: string, why: string }>} */
@@ -259,13 +253,6 @@ const binRunner = { name: 'bin/mhw.js', system: () => cd.systemName(), run: (c, 
   return spawn([process.execPath, path.join(ROOT, 'bin', 'mhw.js'), 'chrome-debugging', ...(args === 'status' ? ['--mode=status'] : args)], e);
 } };
 
-/** @param {string} script @returns {Runner} */
-const pythonRunner = (script) => ({ name: 'python', system: (c) => c.system || 'Darwin', run: (c, args, _home, env) => {
-  const probe = path.join(ROOT, 'test', 'helpers', 'chrome-debugging-probe.py');
-  const head = [/** @type {string} */ (PY), '-B', probe, script, c.system || 'Darwin', c.running ? '1' : '0'];
-  return spawn(args === 'status' ? [...head, 'status'] : [...head, 'main', ...args], env);
-} });
-
 /** Why case c cannot run with runner r here, or ''. @param {Case} c @param {Runner} r */
 function skipReason(c, r) {
   if (!POSIX && (c.writes || c.suffix)) return 'writes the file, or a POSIX home spelling: POSIX only';
@@ -377,39 +364,6 @@ test('no transcript carries the Local State contents', () => {
       assert.ok(!run.stdout.includes('info_cache'), c.name);
     }
   }
-});
-
-/** The base revision's chrome_debugging.py, or a reason it is not readable here. */
-function pythonBase() {
-  if (!POSIX) return 'POSIX only';
-  if (!PY || !GIT) return 'needs python3 and git on PATH';
-  const base = process.env.MHW_PARITY_BASE || (() => {
-    const p = spawnSync(GIT, ['-C', ROOT, 'merge-base', 'HEAD', 'origin/' + (process.env.GITHUB_BASE_REF || 'rc/next')], { encoding: 'utf8' });
-    return p.status === 0 ? p.stdout.trim() : '';
-  })();
-  if (!base) return 'no base revision (MHW_PARITY_BASE unset, no merge-base with origin/rc/next)';
-  const dest = path.join(freshDir(), 'tree');
-  if (!extractRevision(ROOT, base, dest)) return 'base revision ' + base + ' is not readable here';
-  const script = path.join(dest, 'global', 'chrome_debugging.py');
-  if (!fs.existsSync(script)) return 'the base revision no longer holds chrome_debugging.py (this slice has merged)';
-  return script;
-}
-
-test('live: the Python original and the Node command side by side on the same fixtures', (t) => {
-  const script = pythonBase();
-  if (!path.isAbsolute(script)) {
-    t.skip(script);
-    return;
-  }
-  const python = pythonRunner(script);
-  /** @type {string[]} */
-  const diffs = [];
-  for (const c of CASES) {
-    const original = play(c, python);
-    if (UPDATE) writeGolden(SLICE, goldenName(c.name), { name: c.name, runs: original });
-    diffs.push(...differences(c.name, original, play(c, inProcess), inProcess.name));
-  }
-  assert.deepEqual(diffs, []);
 });
 
 // The cases of chrome_debugging_test.py the transcripts cannot reach: injected failures and processes.

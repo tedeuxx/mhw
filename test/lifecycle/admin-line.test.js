@@ -4,25 +4,16 @@
 // take a recording runner, and the scenarios feed them a synthetic render of the admin-layer installer
 // (mhw install-admin since #496; global/install-managed.sh before).
 //   golden: src/lib/lifecycle.js against test/golden/S24/admin-lines.json, on every OS.
-//   live:   the base revision's workstation.py through test/helpers/s24-admin-line.py, on the recorded
-//           CPython, while the base still holds it. MHW_UPDATE_GOLDEN=1 rewrites the golden from that side.
-import { test, after } from 'node:test';
+//   The golden is frozen: the live arm and its recorder (test/helpers/s24-admin-line.py) were deleted by
+//           #502 (S32 of #470, one Node runtime).
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
-import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
-import { throwawayHome, which } from '../helpers/home.js';
-import { allow, baseTree } from '../helpers/mcp-golden.js';
+import { readGolden } from '../helpers/golden.js';
+import { allow } from '../helpers/mcp-golden.js';
 import { adminApply, asRoot, ADMIN, MHW_JS, NODE, SUDO } from '../../src/lib/lifecycle.js';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SLICE = 'S24';
-const RECORDED = readGolden(SLICE, 'recorded-from.json');
 const expected = readGolden(SLICE, 'expected-differences.json');
-const h = throwawayHome('admin-line');
-after(() => h.cleanup());
 
 const HERE = '<INSTALL_MANAGED>';
 const STAGE = '/Users/someone/Library/Caches/mhw stage/admin-stage.ABC123';
@@ -85,22 +76,4 @@ test('golden: the admin-layer root command line is the one workstation.py ran, q
   // Since #496 (S26) the admin layer is `mhw install-admin`, on the node running mhw: the same one sudo call.
   const now = /** @type {Record<string, { calls: string[][] }>} */ (head())['rendered sudo quiet'].calls[1];
   assert.deepEqual(now, [SUDO, '-k', '-p', 'Password for %u: ', '<NODE>', '<MHW_JS>', 'install-admin', '--apply=' + STAGE, '--sha256=' + SHA]);
-});
-
-test('live: the base revision\'s workstation.py records the same admin-layer line', (t) => {
-  const py = process.platform === 'win32' ? null : which('python3');
-  const version = py ? spawnSync(py, ['-c', 'import platform; print(platform.python_version())'], { encoding: 'utf8' }).stdout.trim() : '';
-  const holds = (!py && 'needs python3 (POSIX)') || (version !== RECORDED.cpython && 'needs CPython ' + RECORDED.cpython + ' (found ' + (version || 'none') + ')') || '';
-  const base = holds || baseTree({ root: ROOT, dir: h.dir, holds: path.join('global', 'workstation.py') });
-  if (!path.isAbsolute(base)) {
-    if (process.env.MHW_S24_LIVE_REQUIRED === '1' && !base.includes('has merged')) assert.fail('the live arm is required here: ' + base);
-    t.skip(base);
-    return;
-  }
-  const p = spawnSync(/** @type {string} */ (py), ['-I', '-B', path.join(ROOT, 'test', 'helpers', 's24-admin-line.py'), base], { encoding: 'utf8', env: { PATH: '/usr/bin:/bin' } });
-  assert.equal(p.status, 0, p.stderr);
-  const was = JSON.parse(p.stdout);
-  if (UPDATE) writeGolden(SLICE, 'admin-lines.json', was);
-  assert.equal(allowed(head(), 'head'), allowed(was, 'base'));
-  assert.ok(fs.existsSync(path.join(base, 'global', 'workstation.py')));
 });

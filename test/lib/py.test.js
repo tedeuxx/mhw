@@ -1,28 +1,15 @@
 // src/lib/py.js (#476, S05 of #470) against CPython 3.14, on the inputs the worklog's output depends on:
 // json.loads and its error texts, datetime.fromisoformat, float repr, round(x, 6) and sum(). The answers
-// were recorded from CPython into test/golden/S05/py-<kind>.json (MHW_UPDATE_GOLDEN=1 with python3 on PATH
-// rewrites them from CPython, never from the Node side); where python3 runs, the live arm asks it again.
+// were recorded from CPython 3.14.6 into test/golden/S05/py-<kind>.json, and they are frozen: the
+// recording oracle (test/helpers/py-probe.py) was deleted by #502 (S32 of #470, one Node runtime), so the
+// golden is the only oracle, and it is never rewritten from the Node side.
 // The inputs are generated from a fixed seed, so the golden file and the generator agree on every OS.
-import { test, after } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
 import {
   loads, dumps, JsonDecodeError, fromIsoformat, pyStr, pyRound, pySum, PyFloat, cmpStr, pyStrip, pyLen,
 } from '../../src/lib/py.js';
-import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
-import { which } from '../helpers/home.js';
-
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const PY = process.platform === 'win32' ? null : which('python3');
-const RECORDED = readGolden('S05', 'recorded-from.json').cpython;
-/** The python3 version on PATH, major.minor.micro, or ''. */
-const pythonVersion = () => (PY ? spawnSync(PY, ['-c', 'import platform; print(platform.python_version())'], { encoding: 'utf8' }).stdout.trim() : '');
-const work = fs.mkdtempSync(path.join(os.tmpdir(), 'mhw-py-'));
-after(() => fs.rmSync(work, { recursive: true, force: true }));
+import { readGolden } from '../helpers/golden.js';
 
 let seed = 476;
 /** @param {number} n */
@@ -130,35 +117,11 @@ const NODE = {
   },
 };
 
-/** @param {string} kind @param {unknown[]} cases @returns {unknown[]} */
-function cpython(kind, cases) {
-  const src = path.join(work, kind + '-in.json');
-  const dst = path.join(work, kind + '-out.json');
-  fs.writeFileSync(src, JSON.stringify(cases));
-  const p = spawnSync(/** @type {string} */ (PY), ['-B', path.join(ROOT, 'test', 'helpers', 'py-probe.py'), kind, src, dst], { encoding: 'utf8' });
-  assert.equal(p.status, 0, p.stderr);
-  return JSON.parse(fs.readFileSync(dst, 'utf8'));
-}
-
 for (const kind of Object.keys(GEN)) {
-  test('golden: ' + kind + ' answers what CPython 3.14 answered', { skip: UPDATE && 'MHW_UPDATE_GOLDEN=1' }, () => {
+  test('golden: ' + kind + ' answers what CPython 3.14 answered', () => {
     const g = readGolden('S05', 'py-' + kind + '.json');
     assert.deepEqual(GEN[kind](), g.cases, 'the generator and the golden inputs agree');
     const bad = g.cases.map((/** @type {unknown} */ c, /** @type {number} */ i) => [c, g.answers[i], NODE[kind](c)]).filter((/** @type {unknown[]} */ x) => JSON.stringify(x[1]) !== JSON.stringify(x[2]));
-    assert.deepEqual(bad.slice(0, 10), []);
-  });
-  test('live: ' + kind + ' against the python3 on PATH', { skip: !PY && 'needs python3 (POSIX)' }, (t) => {
-    const cases = GEN[kind]();
-    // The golden is the binding oracle: the CPython it was recorded from (QA on PR #510: another patch
-    // release answered "+00:99" differently). Any other python3 is not compared, and says so.
-    const v = pythonVersion();
-    if (v !== RECORDED && !UPDATE) {
-      t.skip('python3 on PATH is ' + (v || 'unknown') + '; the golden was recorded from CPython ' + RECORDED + ', and only that one is compared');
-      return;
-    }
-    const answers = cpython(kind, cases);
-    if (UPDATE) writeGolden('S05', 'py-' + kind + '.json', { cases, answers });
-    const bad = cases.map((c, i) => [c, answers[i], NODE[kind](c)]).filter((x) => JSON.stringify(x[1]) !== JSON.stringify(x[2]));
     assert.deepEqual(bad.slice(0, 10), []);
   });
 }

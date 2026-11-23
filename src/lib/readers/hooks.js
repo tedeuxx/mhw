@@ -211,7 +211,7 @@ export function hooksText(found) {
 /**
  * The node the prompt hook runs, read from the installed hook commands (admin first), whether a process
  * running as the owner can replace it (or the libraries it loads), and FAIL when it is missing (D6 of #470,
- * #488; the owner accepted an owner-writable node until S32, PR #536).
+ * #488; the owner accepted an owner-writable node, PR #536; the lock is open in ADR-0045, #502).
  * @param {Env} env
  */
 export function hookNodeText(env) {

@@ -1,26 +1,18 @@
 // Parity of the paste wrapper (#487, S16 of #470; convention 3): the Node port against the answers the
 // Python original (global/clipboard/paste_wrapper.py, deleted in this slice) gave on the same cases.
 // test/golden/S16/answers.json is the binding oracle: the state machine (every split, hold, limit and
-// cleaner case), the notices, the argument rule and the constants. The live arm plays the same cases on
-// the base revision's paste_wrapper.py with the recorded CPython while the base still holds it;
-// MHW_S16_LIVE_REQUIRED=1 (CI) turns a missing base or interpreter into a failure. MHW_UPDATE_GOLDEN=1
-// rewrites the golden from that live run.
+// cleaner case), the notices, the argument rule and the constants. The golden is frozen: the live arm and
+// its recorder (test/helpers/s16-record.py) were deleted by #502 (S32 of #470, one Node runtime).
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import * as core from '../../src/lib/clean.js';
 import * as w from '../../src/commands/paste-wrapper.js';
-import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
-import { which } from '../helpers/home.js';
-import { extractRevision } from '../helpers/parity.js';
-import { ROOT, recordedPython } from '../helpers/s15.js';
+import { readGolden } from '../helpers/golden.js';
 import { SALT, TERM, filterCases, noticeCases, argCases } from '../helpers/s16.js';
 
-const LIVE_REQUIRED = process.env.MHW_S16_LIVE_REQUIRED === '1';
-const RECORDER = path.join(ROOT, 'test', 'helpers', 's16-record.py');
 const WRAPPER_NOTICE_KEYS = Object.keys(core.DEFAULTS).filter((k) => k.startsWith('notice_')).sort();
 const CASES = { salt: SALT, term: TERM, filter: filterCases(), notice: noticeCases(), args: argCases(), wrapper_notice_keys: WRAPPER_NOTICE_KEYS };
 /** @type {Array<() => void>} */
@@ -127,44 +119,4 @@ test('the Node paste filter, notices and argument rule give the answers the Pyth
   const golden = readGolden('S16', 'answers.json');
   assert.equal(golden.filter.length, CASES.filter.length, 'the cases changed: re-record the golden from the base revision');
   assert.deepEqual(diff(golden, nodeAnswers()), []);
-});
-
-/** The base revision's paste_wrapper.py and clipboard_guard.py, or why not. @returns {{ py?: string, dir?: string, why?: string, fail?: boolean }} */
-function pythonBase() {
-  if (process.platform === 'win32') return { why: 'POSIX only' };
-  const git = which('git');
-  if (!git) return { why: 'needs git on PATH', fail: LIVE_REQUIRED };
-  let dir = path.join(ROOT, 'global', 'clipboard');
-  if (!fs.existsSync(path.join(dir, 'paste_wrapper.py'))) {
-    const base = process.env.MHW_PARITY_BASE || (() => {
-      const p = spawnSync(git, ['-C', ROOT, 'merge-base', 'HEAD', 'origin/' + (process.env.GITHUB_BASE_REF || 'rc/next')], { encoding: 'utf8' });
-      return p.status === 0 ? p.stdout.trim() : '';
-    })();
-    if (!base) return { why: 'no base revision (MHW_PARITY_BASE unset, no merge-base with origin/rc/next)', fail: LIVE_REQUIRED };
-    const dest = path.join(fresh(), 'tree');
-    if (!extractRevision(ROOT, base, dest)) return { why: 'base revision ' + base + ' is not readable here', fail: LIVE_REQUIRED };
-    dir = path.join(dest, 'global', 'clipboard');
-    if (!fs.existsSync(path.join(dir, 'paste_wrapper.py'))) return { why: 'the base revision no longer holds paste_wrapper.py (this slice has merged)' };
-  }
-  const p = recordedPython();
-  if (!p.py) return { why: /** @type {string} */ (p.why), fail: LIVE_REQUIRED };
-  return { py: p.py, dir };
-}
-
-test('live: the base revision\'s paste_wrapper.py still gives the recorded answers', (t) => {
-  const b = pythonBase();
-  if (!b.py || !b.dir) {
-    if (b.fail) assert.fail('MHW_S16_LIVE_REQUIRED=1: ' + b.why);
-    t.skip(b.why);
-    return;
-  }
-  const work = fresh();
-  const casesFile = path.join(work, 'cases.json');
-  fs.writeFileSync(casesFile, JSON.stringify(CASES));
-  const p = spawnSync(b.py, ['-I', '-B', RECORDER, b.dir, casesFile, path.join(work, 'run')], { encoding: 'utf8', maxBuffer: 1 << 28 });
-  assert.equal(p.status, 0, p.stderr);
-  const original = JSON.parse(p.stdout);
-  if (UPDATE) writeGolden('S16', 'answers.json', original);
-  assert.deepEqual(diff(readGolden('S16', 'answers.json'), original), [], 'the golden no longer matches the original');
-  assert.deepEqual(diff(original, nodeAnswers()), []);
 });

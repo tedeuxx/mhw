@@ -1,5 +1,5 @@
 // The S17 parity cases (#488): the prompt hook's decision on every agent harness, its command line, the
-// settings check and add-term's pure half, as data. test/helpers/s17-record.py plays them on
+// settings check and add-term's pure half, as data. test/helpers/s17-record.py (deleted by #502) played them on
 // clipboard_guard.py (the Python original) and test/golden/S17/answers.json holds what it answered;
 // test/clipboard/hook-golden.test.js plays them on src/commands/hook-prompt.js and add-term.js and compares.
 // Every payload is SYNTHETIC and assembled here at run time from pieces, and the payloads travel as hex,
