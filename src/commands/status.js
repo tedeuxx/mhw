@@ -344,7 +344,7 @@ const DRIFT_CATEGORIES = /** @type {Array<[string, string[]]>} */ ([
   ['paste wrapper', ['paste']],
   ['allow list', ['allow list', 'permissions.allow', 'allow-list']],
   ['deny floor', ['deny-floor', 'deny floor', '/.claude/settings.json', 'permissions.yaml', 'managed-settings', 'requirements.toml']],
-  ['hooks', ['hooks.json', 'clipboard', 'hook']],
+  ['hooks', ['hooks.json', 'clipboard', 'hook', 'pattern-check']], // pattern-check: the fixed-pattern check's files (#588)
   ['MCP', ['mcp', 'claude.json', 'codex:', 'kiro:', 'claude-code:']],
   ['models', ['model']],
   ['method', ['/skills/', '/agents/', '/commands/', '/prompts/', '/method/']],

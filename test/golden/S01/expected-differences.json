@@ -96,5 +96,26 @@
     "pattern": "^  - Your settings in Claude Code, Codex and Kiro: [0-9]+ file\\(s\\) to write \\(no password needed\\)$",
     "whenBaseHas": "global/clipboard/clipboard_guard.py",
     "why": "S17 (#488): the plan counts one file fewer, the Python prompt-hook core install no longer writes. Only while the base still ships clipboard_guard.py."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree-drop",
+    "pattern": "pattern-check",
+    "whenBaseLacks": "src/hooks/pattern-check.js",
+    "why": "#588: the head installs the fixed-pattern check (its script and core under <data dir>/pattern-check, its Kiro hook file); a base without src/hooks/pattern-check.js does not. Left out of the comparison on both sides until the base holds it; test/hooks/pattern-check-install.test.js holds those files."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree",
+    "pattern": "^\\.claude/settings\\.json$|^\\.codex/hooks\\.json$",
+    "whenBaseLacks": "src/hooks/pattern-check.js",
+    "why": "#588: the head merges the fixed-pattern check's hook entries into these two files (a second UserPromptSubmit entry and a PreToolUse group), so their content is compared by kind and mode only while the base lacks the check; test/hooks/pattern-check-install.test.js holds the entries."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "stdout",
+    "pattern": "file\\(s\\) to write \\(no password needed\\)$",
+    "whenBaseLacks": "src/hooks/pattern-check.js",
+    "why": "#588: the install plan counts the files it writes, which grows by the fixed-pattern check's five; the line is left out on both sides while the base lacks the check, and every other line is compared."
   }
 ]

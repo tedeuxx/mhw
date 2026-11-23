@@ -104,11 +104,18 @@ test('mhw status flags an owner-writable node in the installed admin hook', { sk
   }
 });
 
-test('the Claude Code drop-in registers the paste filter from the admin bin, and no other hook; no HITL guard', { skip: SKIP }, () => {
+test('the Claude Code drop-in registers the paste filter and the fixed-pattern check from the admin bin, and no other hook; no HITL guard', { skip: SKIP }, () => {
   const d = JSON.parse(fs.readFileSync(t.claude, 'utf8'));
   assert.deepEqual(Object.keys(d).sort(), ['hooks', 'permissions', NAME].sort());
-  assert.deepEqual(Object.keys(d.hooks), ['UserPromptSubmit']);
-  assert.ok(d.hooks.UserPromptSubmit.every((/** @type {any} */ g) => g.hooks.every((/** @type {any} */ h) => h.command.includes(t.bin))));
+  // #588: the fixed-pattern check before the prompt, and before the Bash tool.
+  assert.deepEqual(Object.keys(d.hooks), ['UserPromptSubmit', 'PreToolUse']);
+  for (const ev of ['UserPromptSubmit', 'PreToolUse']) {
+    assert.ok(d.hooks[ev].every((/** @type {any} */ g) => g.hooks.every((/** @type {any} */ h) => h.command.includes(t.bin))), ev);
+  }
+  assert.deepEqual(d.hooks.UserPromptSubmit[0].hooks.map((/** @type {any} */ h) => /hook-entry\.js|pattern-check\.js/.exec(h.command)?.[0]), ['hook-entry.js', 'pattern-check.js']);
+  assert.equal(d.hooks.PreToolUse.length, 1);
+  assert.equal(d.hooks.PreToolUse[0].matcher, 'Bash');
+  assert.ok(d.hooks.PreToolUse[0].hooks[0].command.includes(t.bin + '/hook/src/hooks/pattern-check.js" pre-tool --harness claude'));
   const req = fs.readFileSync(t.codex, 'utf8');
   for (const s of ['AskUserQuestion', 'hitl-escalation-guard', 'restart_guard', 'breaking_glass']) {
     assert.ok(!JSON.stringify(d).includes(s) && !req.includes(s), s);
@@ -129,13 +136,18 @@ test('the admin hook command is the user layer\'s start-fallback form, on the no
   assert.equal(renderedNode(path.join(base, 'no-such-settings.json')), '');
 });
 
-test('the Codex requirements carry our marker, the paste filter hook only, no hooks-only lock, and parse as TOML', { skip: SKIP }, () => {
+test('the Codex requirements carry our marker, the paste filter and fixed-pattern hooks only, no hooks-only lock, and parse as TOML', { skip: SKIP }, () => {
   const req = fs.readFileSync(t.codex, 'utf8');
   assert.ok(req.split('\n')[0].includes('managed-by: ' + NAME));
   assert.ok(!/^\s*(allow_managed_hooks_only|\[features\])/m.test(req));
-  assert.equal(req.match(/^\[\[hooks\.[A-Za-z]*\.hooks\]\]/gm)?.length, 1);
+  // The paste filter, then the fixed-pattern check before the prompt and before a tool call (#588).
+  assert.equal(req.match(/^\[\[hooks\.[A-Za-z]*\.hooks\]\]/gm)?.length, 3);
   const d = parseToml(req);
-  assert.deepEqual(Object.keys(d.hooks).sort(), ['UserPromptSubmit', 'managed_dir']);
+  assert.deepEqual(Object.keys(d.hooks).sort(), ['PreToolUse', 'UserPromptSubmit', 'managed_dir']);
+  assert.equal(d.hooks.UserPromptSubmit[0].hooks.length, 2);
+  assert.ok(d.hooks.UserPromptSubmit[0].hooks[1].command.includes('/hook/src/hooks/pattern-check.js" prompt --harness codex'));
+  assert.ok(d.hooks.PreToolUse[0].hooks[0].command.includes('/hook/src/hooks/pattern-check.js" pre-tool --harness codex'));
+  assert.equal(d.hooks.PreToolUse[0].matcher, undefined, 'no matcher: the script passes any call that is not an outbound act');
   assert.equal(d.hooks.managed_dir, t.bin);
 });
 
@@ -185,7 +197,7 @@ test('the Node hook\'s files and the conf are installed, none executable, root-o
     const st = fs.statSync(t.bin + '/' + f);
     assert.ok(st.isFile() && (st.mode & 0o777) === 0o644, f);
   }
-  for (const d of [t.base, t.bin, t.bin + '/hook', t.bin + '/hook/src', t.bin + '/hook/src/commands', t.bin + '/hook/src/lib']) {
+  for (const d of [t.base, t.bin, t.bin + '/hook', t.bin + '/hook/src', t.bin + '/hook/src/commands', t.bin + '/hook/src/lib', t.bin + '/hook/src/hooks']) {
     assert.equal(fs.statSync(d).mode & 0o777, 0o755, d);
   }
   // Each hook file is its source with one stamp line before it.
@@ -208,14 +220,14 @@ test('the installed admin hook blocks a finding, passes a clean prompt, and a pl
   assert.equal(clean.stdout, '');
 });
 
-test('check after apply is clean, names each of the nine files with the source\'s stamp, and the stamp names HEAD', { skip: SKIP }, () => {
+test('check after apply is clean, names each of the ten files with the source\'s stamp, and the stamp names HEAD', { skip: SKIP }, () => {
   const c = admin(['--check', '--root=' + r]);
   assert.equal(c.code, 0, c.out + c.err);
   const src = (/^SOURCE {2}(.*)$/m.exec(c.out) || [])[1] || '';
   const git = which('git');
   const head = git ? spawnSync(git, ['-C', ROOT, 'rev-parse', '--verify', 'HEAD'], { encoding: 'utf8' }).stdout.trim() : 'unknown';
   assert.match(src, new RegExp('^release: .*; commit: ' + head + '(-dirty)?$'));
-  assert.equal(c.out.split('\n').filter((l) => /^OK .*\(release: /.test(l)).length, 9);
+  assert.equal(c.out.split('\n').filter((l) => /^OK .*\(release: /.test(l)).length, 10); // #588: the fixed-pattern check's file
   for (const f of [t.claude, t.codex, t.kiro, t.bin + '/hook/src/commands/hook-entry.js', t.bin + '/hook/package.json', t.bin + '/clipboard.conf']) {
     assert.ok(fs.readFileSync(f, 'utf8').includes('; ' + src + ';'), f);
   }
@@ -430,3 +442,44 @@ for (const mode of [[], ['--uninstall']]) {
     }
   }
 }
+
+// #588: the admin layer's copy of the fixed-pattern check, run as Claude Code and Codex run it from the drop-in
+// and the requirements: a push carrying a synthetic credential in an unpushed commit is blocked, a clean
+// one passes. The repository's remote-tracking ref is written with update-ref, so nothing is pushed.
+test('the admin layer\'s fixed-pattern check blocks a dirty push and passes a clean one (Claude Code and Codex)', { skip: SKIP || (!which('git') && 'git') }, () => {
+  const git = /** @type {string} */ (which('git'));
+  const token = 'gh' + 'p_' + 'Z9y8X7w6V5u4T3s2R1q0P9o8N7m6L5k4J3i2';
+  const genv = { PATH: '/usr/bin:/bin', HOME: base, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', GIT_AUTHOR_NAME: 'F',
+    GIT_AUTHOR_EMAIL: 'f' + '@' + 'example.com', GIT_COMMITTER_NAME: 'F', GIT_COMMITTER_EMAIL: 'f' + '@' + 'example.com' };
+  /** @param {string} name @param {string} text */
+  const repo = (name, text) => {
+    const d = path.join(base, 'repo-' + name);
+    fs.mkdirSync(d);
+    const g = (/** @type {string[]} */ a) => assert.equal(spawnSync(git, ['-C', d, ...a], { env: genv }).status, 0, a.join(' '));
+    g(['init', '-q', '-b', 'main']);
+    fs.writeFileSync(path.join(d, 'a.txt'), 'a\n');
+    g(['add', '.']);
+    g(['commit', '-q', '-m', 'a']);
+    g(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
+    fs.writeFileSync(path.join(d, 'b.txt'), text);
+    g(['add', '.']);
+    g(['commit', '-q', '-m', 'b']);
+    return d;
+  };
+  const dirty = repo('dirty', 'key ' + token + '\n');
+  const clean = repo('clean', 'clean\n');
+  const claude = JSON.parse(fs.readFileSync(t.claude, 'utf8')).hooks.PreToolUse[0].hooks[0].command;
+  const codex = parseToml(fs.readFileSync(t.codex, 'utf8')).hooks.PreToolUse[0].hooks[0].command;
+  for (const cmd of [claude, codex]) {
+    /** @param {string} cwd */
+    const run = (cwd) => spawnSync('/bin/sh', ['-c', cmd], { input: JSON.stringify({ hook_event_name: 'PreToolUse', cwd, tool_name: 'Bash', tool_input: { command: 'git push origin main' } }),
+      env: { PATH: '/usr/bin:/bin', HOME: base }, encoding: 'utf8', cwd });
+    const blocked = run(dirty);
+    assert.equal(blocked.status, 2, blocked.stderr);
+    assert.match(blocked.stderr, /b\.txt:1: credential/);
+    assert.ok(!blocked.stderr.includes(token));
+    const passed = run(clean);
+    assert.equal(passed.status, 0, passed.stderr);
+    assert.equal(passed.stdout + passed.stderr, '');
+  }
+});

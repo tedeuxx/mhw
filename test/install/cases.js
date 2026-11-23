@@ -29,7 +29,7 @@ export const SCENARIOS = [
     overlay: true,
     runs: [{ args: [] }, { args: ['--check'] }, { args: ['--dry-run'] }, { args: ['--uninstall'] }, { args: ['--check'] }],
   },
-  { name: 'dry-run-fresh', runs: [{ args: ['--dry-run'] }] },
+  { name: 'dry-run-fresh', declared: true, runs: [{ args: ['--dry-run'] }] }, // #588: the semantic diff carries the check's entries
   {
     // --hooks=managed (ADR-0025): the user layer drops the hook entries and the Codex hooks.json; --method.
     name: 'hooks-managed-and-method',
@@ -55,6 +55,7 @@ export const SCENARIOS = [
     // Every retirement: the removed guards and switches, the restart guard's state, the Python cores and the
     // withdrawn watcher's plist; the salt notice for a term list hashed with the Keychain salt.
     name: 'retirements',
+    declared: true, // #588: its dry run's semantic diff carries the check's entries
     setup: [
       ...['hitl-escalation-guard.sh', 'hitl.conf', 'restart_guard.py', 'breaking_glass.py', 'clipboard_guard.py', 'paste_wrapper.py']
         .map((f) => ({ write: DATA + '/' + f, text: '#!/bin/sh\n# ' + MARKER + '; source: x\n' })),
@@ -96,6 +97,7 @@ export const SCENARIOS = [
   {
     // The owner's settings: every key and rule kept, our entries merged, then taken back out.
     name: 'settings-owner',
+    declared: true, // #588: its dry run's semantic diff carries the check's entries
     setup: [{ write: 'H/.claude/settings.json', text: '{"theme": "dark", "permissions": {"allow": ["Bash(ls:*)", "Bash(find:*)"], "deny": ["Bash(mine:*)", "Bash(rm -rf:*)"]}, "hooks": {"Stop": [{"hooks": [{"type": "command", "command": "/opt/x"}]}]}}\n' }],
     runs: [{ args: ['--dry-run'] }, { args: [] }, { args: ['--check'] }, { args: ['--uninstall'] }],
   },

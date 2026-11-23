@@ -113,7 +113,10 @@ test('live: the head matches the base revision run on its own throwaway HOMEs', 
   try {
     // An entry with whenBaseHas applies only while the base tree still holds that file, so it expires on
     // its own once the change that needed it has merged (#475).
-    const live = expected.filter((/** @type {{ whenBaseHas?: string }} */ e) => !e.whenBaseHas || fs.existsSync(path.join(base, e.whenBaseHas)));
+    // whenBaseLacks (#588) is the mirror: it applies only while the base does not hold that file yet, so it
+    // expires once the change that added it has merged.
+    const live = expected.filter((/** @type {{ whenBaseHas?: string, whenBaseLacks?: string }} */ e) => (!e.whenBaseHas || fs.existsSync(path.join(base, e.whenBaseHas)))
+      && (!e.whenBaseLacks || !fs.existsSync(path.join(base, e.whenBaseLacks))));
     const diffs = [];
     for (const c of cases) {
       const original = transcript(base, c);

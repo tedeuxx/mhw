@@ -718,7 +718,7 @@ function checkAdmin(box, exp) {
   const req = one(rglob(box.root, 'codex/requirements.toml'), 'Codex admin requirements.toml');
   if (req) {
     const r = codexRequirements(req);
-    hooks.codex = r.hooks.map(String);
+    hooks.codex = r.hooks.map(String).filter(pasteFilterOnly);
     check(JSON.stringify(r.pats) === JSON.stringify(codex), 'Codex admin requirements.toml (throwaway root) equals the floor',
       'got ' + r.pats.length + ' prefix rules');
   }
@@ -729,9 +729,17 @@ function checkAdmin(box, exp) {
     const g = kiroManaged(km);
     check(capsOf(kiro).every((c) => sameSet(g[c] ?? new Set(), kiro[c])), 'Kiro admin managed-settings.json (throwaway root) equals the floor');
   }
-  if (drop) hooks.claude = claudeHooks(readJson(drop));
+  if (drop) hooks.claude = claudeHooks(readJson(drop)).filter(pasteFilterOnly);
   return hooks;
 }
+
+/**
+ * The paste filter's prompt hook among the admin hooks: the fixed-pattern check's entries (#588, the installed
+ * src/hooks/pattern-check.js) sit beside it in the same documents and are held by test/hooks/ and
+ * test/install/admin.test.js, so this canary keeps checking the one hook it always checked.
+ * @param {string} cmd
+ */
+const pasteFilterOnly = (cmd) => !cmd.includes('/pattern-check.js"');
 
 /** The command hooks of a Claude Code settings document's UserPromptSubmit. @param {unknown} doc */
 function claudeHooks(doc) {

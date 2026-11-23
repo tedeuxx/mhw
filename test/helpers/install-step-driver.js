@@ -7,6 +7,7 @@
 //   A_SCRIPT_DIR   the tree's global/                           A_NODE         the node the steps run
 //   A_STAMP        the provenance stamp                         A_SETTINGS_WHY a refused node's reason
 //   A_PASTE_OK     0 when the paste filter cannot run           A_WRAP_NODE, A_WRAP_MHW  the hook command's paths
+//   A_PATTERN_OFF  1 to merge without the fixed-pattern check's entries (#588; the S20 goldens predate them)
 //   A_FLOOR, A_FLOOR_CLAUDE, A_FLOOR_CODEX  the floor inputs     A_MANAGED_ROOT, A_OVERLAY, A_SHELL_RC, A_UNAME
 import fs from 'node:fs';
 import os from 'node:os';
@@ -25,6 +26,7 @@ const ctx = /** @type {import('../../src/commands/install-user.js').Ctx} */ (/**
   allowNode: env.A_NODE || null, settingsWhy: env.A_SETTINGS_WHY || '', pasteOk: env.A_PASTE_OK !== '0',
   wrapNode: env.A_WRAP_NODE || '', wrapMhw: env.A_WRAP_MHW || '', cmd: env.MHW_CMD || './mhw',
   mergeRefused: false, codexFloorRefused: false, kiroFloorRefused: false, processRefused: false,
+  patternOff: env.A_PATTERN_OFF === '1', // #588: the S20 goldens predate the fixed-pattern check's entries
   work: fs.mkdtempSync(path.join(os.tmpdir(), 'mhw-step-')),
 }));
 /** @type {Record<string, (c: typeof ctx) => void>} */

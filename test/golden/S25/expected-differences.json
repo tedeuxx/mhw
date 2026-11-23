@@ -42,5 +42,26 @@
     "pattern": ", or install\\.sh --method;",
     "replace": ";",
     "why": "#503 (S25 of #470) deleted global/install.sh: the METHOD line the working-method step prints when the method is not installed named it as the second way to opt in ('./mhw install --method, or install.sh --method'), a pointer to a file that no longer exists. It now names `install --method` only. The rest of the line, and every other line, is compared unchanged."
+  },
+  {
+    "name": "#588: the dry run's semantic diff carries the fixed-pattern check's entries",
+    "case": "dry-run-fresh",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#588 (the fixed-pattern check, ADR-0033 and ADR-0035 decision 7 amendments of 2026-11-23): install now also writes the check's script and core under <data dir>/pattern-check, its Kiro hook file, a second UserPromptSubmit entry and a PreToolUse group in ~/.claude/settings.json, and the same two in the Codex hooks.json. Every scenario's Node run has those taken out before it is compared (test/helpers/s588.js: the check's own paths, the lines naming them, and its entries in the shared files), so the rest is still held to the install.sh transcript. A dry run's semantic diff of settings.json cannot be taken apart that way (its hunk headers and context move with the added lines), so this scenario is declared: its Node transcript, recorded at this slice's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json. test/hooks/pattern-check-install.test.js holds the check's entries themselves."
+  },
+  {
+    "name": "#588: the dry run's semantic diff carries the fixed-pattern check's entries",
+    "case": "retirements",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#588 (the fixed-pattern check, ADR-0033 and ADR-0035 decision 7 amendments of 2026-11-23): install now also writes the check's script and core under <data dir>/pattern-check, its Kiro hook file, a second UserPromptSubmit entry and a PreToolUse group in ~/.claude/settings.json, and the same two in the Codex hooks.json. Every scenario's Node run has those taken out before it is compared (test/helpers/s588.js: the check's own paths, the lines naming them, and its entries in the shared files), so the rest is still held to the install.sh transcript. A dry run's semantic diff of settings.json cannot be taken apart that way (its hunk headers and context move with the added lines), so this scenario is declared: its Node transcript, recorded at this slice's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json. test/hooks/pattern-check-install.test.js holds the check's entries themselves."
+  },
+  {
+    "name": "#588: the dry run's semantic diff carries the fixed-pattern check's entries",
+    "case": "settings-owner",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#588 (the fixed-pattern check, ADR-0033 and ADR-0035 decision 7 amendments of 2026-11-23): install now also writes the check's script and core under <data dir>/pattern-check, its Kiro hook file, a second UserPromptSubmit entry and a PreToolUse group in ~/.claude/settings.json, and the same two in the Codex hooks.json. Every scenario's Node run has those taken out before it is compared (test/helpers/s588.js: the check's own paths, the lines naming them, and its entries in the shared files), so the rest is still held to the install.sh transcript. A dry run's semantic diff of settings.json cannot be taken apart that way (its hunk headers and context move with the added lines), so this scenario is declared: its Node transcript, recorded at this slice's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json. test/hooks/pattern-check-install.test.js holds the check's entries themselves."
   }
 ]

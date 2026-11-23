@@ -25,6 +25,7 @@ import { readGolden, writeGolden, goldenPath, UPDATE } from '../helpers/golden.j
 import { apply as applyChange, baseRevision, assertTranscriptInventory } from '../helpers/install-golden.js';
 import { extractRevision, normalise } from '../helpers/parity.js';
 import { SCENARIOS } from './cases.js';
+import { patternPath, stripFile, stripOutput } from '../helpers/s588.js';
 
 const SLICE = 'S25';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -62,6 +63,7 @@ function tree(dir, norm) {
   const walk = (rel) => {
     for (const name of fs.readdirSync(path.join(dir, rel)).sort((a, b) => (a < b ? -1 : Number(a > b)))) {
       const r = rel ? rel + '/' + name : name;
+      if (patternPath(r)) continue; // #588's own files: test/hooks/pattern-check-install.test.js holds them
       const st = fs.lstatSync(path.join(dir, r));
       const mode = (st.mode & 0o777).toString(8);
       if (st.isSymbolicLink()) out.push({ path: r, kind: 'link', mode: '-', data: norm(fs.readlinkSync(path.join(dir, r))) });
@@ -69,7 +71,7 @@ function tree(dir, norm) {
         out.push({ path: r, kind: 'dir', mode, data: '' });
         walk(r);
       } else {
-        const text = norm(fs.readFileSync(path.join(dir, r), 'utf8'));
+        const text = norm(stripFile(r, fs.readFileSync(path.join(dir, r), 'utf8')));
         out.push({ path: r, kind: 'file', mode, data: text.length > 2048 ? 'sha256:' + crypto.createHash('sha256').update(text).digest('hex') : text });
       }
     }
@@ -117,7 +119,7 @@ export function runScenario(sc, source, side) {
     const p = side === 'shell'
       ? spawnSync('/bin/sh', [path.join(treeDir, 'global', 'install.sh'), ...args], { encoding: 'utf8', env, cwd: T, timeout: 120000 })
       : spawnSync(process.execPath, [path.join(treeDir, 'bin', 'mhw.js'), 'install-user', ...args], { encoding: 'utf8', env, cwd: T, timeout: 120000 });
-    runs.push({ run: r.label || r.args.join(' ') || 'install', code: p.status, stdout: norm(p.stdout), stderr: norm(p.stderr), tree: tree(d.H, norm) });
+    runs.push({ run: r.label || r.args.join(' ') || 'install', code: p.status, stdout: stripOutput(norm(p.stdout)), stderr: stripOutput(norm(p.stderr)), tree: tree(d.H, norm) });
   }
   return runs;
 }
