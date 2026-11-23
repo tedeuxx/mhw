@@ -183,5 +183,17 @@
     "head": "install-admin --apply or --remove, after the owner confirmed",
     "replace": "<the admin-layer installer> --apply or --remove, after the owner confirmed",
     "why": "#496 (S26 of #470): the usage text's last paragraph says sudo runs only for the admin-layer installer's --apply or --remove. It named install-managed.sh, which this slice deletes; it now names install-admin (`mhw install-admin`), which is what sudo runs. The rest of the paragraph is compared unchanged."
+  },
+  {
+    "case": [
+      "usage-and-refusals"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "(?<=\\n)    \\./mhw status --mcp-connect\\[=SECONDS\\]  also start each MCP active-set server and say whether it answers\\n {40}\\(opt-in: it starts processes; exit 1 when one fails; #219\\)(?=\\n)",
+    "head": "(?!)",
+    "replace": "    ./mhw mcp check [--timeout=SECONDS] connection test: start each MCP active-set server and say whether\n                                          it answers (it starts processes; exit 1 when one fails; #219,\n                                          #595; it was status --mcp-connect until v11)\n    ./mhw mcp render --check            drift check: exit 1 when an installed MCP configuration differs\n                                          from the definition; it starts nothing (mhw mcp render --help)",
+    "why": "A break of the public interface (#595, v11, section 4 of the CLI native baseline PRD): `mhw status --mcp-connect[=SECONDS]` is removed, because the connection test starts processes and status never does. The usage text drops its two lines and names `mhw mcp check [--timeout=SECONDS]` (the connection test) and `mhw mcp render --check` (the drift check) in their place, so the help tells the two apart. Every other line is compared unchanged. Steps 0 to 3 (--help, -h, help and no argument) all print it."
   }
 ]

@@ -245,7 +245,7 @@ export const CASES = [
       putJson(path.join(data, 'local-overlay', 'mcp-servers.json'), { version: 1, active_set: { 'claude-code': ['set-a'] }, servers: { 'set-a': { command: '/bin/echo' } } });
       putJson(path.join(w.home, '.claude.json'), { mcpServers: { 'synth-outside': { command: '/bin/echo' } } });
     }),
-    steps: [S([NONE]), S([NONE, '--mcp-connect=2']), S(['--summary', NONE, '--mcp-connect=3'])],
+    steps: [S([NONE])], // the two --mcp-connect steps moved to mhw mcp check (#595, test/mcp/check.test.js)
   },
   {
     // PR #535 (QA B1, lens finding 3): an empty --project= is no --project, as workstation.py's `if project:`
