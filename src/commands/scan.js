@@ -35,6 +35,7 @@ import { spawnSync } from 'node:child_process';
 import { onPath } from '../lib/onpath.js';
 import * as core from '../lib/clean.js';
 import { readSalt } from '../lib/salt.js';
+import * as baseUrl from '../lib/base-url.js';
 // The -U0 patch reader and the attribution-trailer rule, written once in the fixed-pattern check (#588), which
 // reads a push's commits the way this command does; re-exported here for this command's own tests.
 import { addedBlocks, withoutAttributionTrailer } from '../hooks/pattern-check.js';
@@ -341,7 +342,13 @@ function scan(ctx, targets, conf, root, commits) {
       continue;
     }
     scanned += 1;
-    const findings = scanText(decode(raw), ...det);
+    const text = decode(raw);
+    const findings = scanText(text, ...det);
+    // #27: a Claude Code settings file whose env block sets ANTHROPIC_BASE_URL; the value is never shown.
+    if (baseUrl.isSettingsPath(name)) {
+      for (const [line, length] of baseUrl.findInSettings(text)) findings.push([line, baseUrl.CATEGORY, length]);
+      findings.sort((a, b) => a[0] - b[0]);
+    }
     for (const [line, cat, length] of findings) ctx.out.push(name + ':' + line + ': ' + cat + ', ' + length + ' chars\n');
     total += findings.length;
     if (findings.length) filesWith += 1;
