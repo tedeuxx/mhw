@@ -1,0 +1,13 @@
+# FIXTURE — synthetic. The PRIOR half of the glob-metacharacter probe (#459's blocker).
+#
+# Its value carries a `*`. When 2000-05 is analysed, this file is read through the prior-period
+# lookup, whose own `set -- $pv` split is the SECOND of the two places pathname expansion could fire.
+# Run from a directory holding a file named `12345`, an unprotected split turns `12*` into `12345` and
+# the report publishes a number that is a function of the working directory.
+#
+# A `*` in a field needs no attacker: it is ordinary inside an analytics page path or a campaign name,
+# and this file is authored by whoever read those surfaces.
+
+collected: yes 2000-04-30 synthetic fixture — do not read as a measurement of anything
+
+figure: ga4 click-through-rate 12* 7
