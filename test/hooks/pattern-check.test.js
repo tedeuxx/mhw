@@ -12,7 +12,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { J } from '../clean/corpus.js';
 import { which } from '../helpers/home.js';
-import { simpleCommands, actionsOf, pushRevisions, bodyFiles } from '../../src/hooks/pattern-check.js';
+import { simpleCommands, actionsOf, pushRevisions, bodyFiles, addedBlocks, patchPath, headerPath } from '../../src/hooks/pattern-check.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SCRIPT = path.join(ROOT, 'src', 'hooks', 'pattern-check.js');
@@ -135,6 +135,34 @@ test('the command reading finds git push (with -C, -c and wrappers) and gh pr cr
   assert.deepEqual(pushRevisions(['origin']), ['HEAD']);
   assert.deepEqual(pushRevisions(['--all', 'origin']), ['--branches']);
   assert.deepEqual(bodyFiles(['--body-file', 'a', '-Fb', '--body-file=c', '-F', '-'], cwd), [at('a'), at('b'), at('c')]);
+});
+
+test('an option with no value at the end of a git command is read without failing (Sonar: the !== undefined that read as always true)', () => {
+  const cwd = path.resolve('/w');
+  // A trailing -C or --git-dir has no value: before #588's fix the missing word reached path.resolve and threw.
+  assert.deepEqual(actionsOf('git -C', cwd), []);
+  assert.deepEqual(actionsOf('git --git-dir', cwd), []);
+  assert.deepEqual(actionsOf('git push origin main; git -C', cwd), [{ kind: 'push', dir: cwd, gitDir: null, args: ['origin', 'main'] }]);
+  // With its value, each still applies; an attached value too.
+  assert.equal(actionsOf('git --git-dir .g -C r push', cwd)[0].gitDir, path.resolve(cwd, '.g'));
+  assert.equal(actionsOf('git -C=r push', cwd)[0].dir, path.resolve(cwd, 'r'));
+});
+
+test('the patch reader cuts trailing tabs in linear time (no backtracking on attacker-controlled commit text)', () => {
+  assert.equal(patchPath('b/f.txt\t\t'), 'f.txt');
+  assert.equal(patchPath('"b/a b"\t'), 'a b');
+  assert.equal(patchPath('/dev/null'), null);
+  assert.equal(headerPath('diff --git a/x b/x'), 'x');
+  assert.equal(headerPath('diff --git "a/x y" "b/x y"'), 'x y');
+  assert.equal(headerPath('diff --git weird'), null);
+  // 100 000 tabs followed by one more character: a trailing-tab regular expression backtracks over each
+  // start position (seconds); a scan is microseconds.
+  const evil = '+++ b/f' + '\t'.repeat(100000) + 'x';
+  const t0 = process.hrtime.bigint();
+  const blocks = addedBlocks('diff --git a/f b/f\n' + evil + '\n@@ -0,0 +1 @@\n+line\n');
+  const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+  assert.equal(blocks.length, 1);
+  assert.ok(ms < 500, 'took ' + ms + ' ms');
 });
 
 // ------------------------------------------------------------------------------------------- outbound

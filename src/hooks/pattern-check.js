@@ -176,53 +176,80 @@ export function promptCheck(conf, harness, raw, defer = false) {
  * @returns {string[][]}
  */
 export function simpleCommands(text) {
-  /** @type {string[][]} */
-  const cmds = [];
-  /** @type {string[]} */
-  let words = [];
-  let word = '';
-  let inWord = false;
-  const endWord = () => {
-    if (inWord) words.push(word);
-    word = '';
-    inWord = false;
-  };
-  const endCmd = () => {
-    endWord();
-    if (words.length) cmds.push(words);
-    words = [];
-  };
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (c === "'") {
-      const end = text.indexOf("'", i + 1);
-      word += end < 0 ? text.slice(i + 1) : text.slice(i + 1, end);
-      inWord = true;
-      i = end < 0 ? text.length : end;
-    } else if (c === '"') {
-      inWord = true;
-      for (i++; i < text.length && text[i] !== '"'; i++) {
-        if (text[i] === '\\' && i + 1 < text.length && '"\\$`\n'.includes(text[i + 1])) i++;
-        word += text[i];
-      }
-    } else if (c === '\\') {
-      if (text[i + 1] === '\n') i++;
-      else if (i + 1 < text.length) {
-        word += text[++i];
-        inWord = true;
-      }
-    } else if (c === '#' && !inWord) {
-      const nl = text.indexOf('\n', i);
-      i = nl < 0 ? text.length : nl - 1;
-    } else if (';&|()\n'.includes(c)) endCmd();
-    else if (c === ' ' || c === '\t' || c === '\r') endWord();
-    else {
-      word += c;
-      inWord = true;
-    }
+  /** @type {Lexer} */
+  const L = { text, i: 0, word: '', inWord: false, words: [], cmds: [] };
+  while (L.i < text.length) lexStep(L);
+  endCmd(L);
+  return L.cmds;
+}
+
+/** @typedef {{ text: string, i: number, word: string, inWord: boolean, words: string[], cmds: string[][] }} Lexer */
+
+/** @param {Lexer} L */
+function endWord(L) {
+  if (L.inWord) L.words.push(L.word);
+  L.word = '';
+  L.inWord = false;
+}
+
+/** @param {Lexer} L */
+function endCmd(L) {
+  endWord(L);
+  if (L.words.length) L.cmds.push(L.words);
+  L.words = [];
+}
+
+/** '...': everything to the next single quote, literally (or to the end, unterminated). @param {Lexer} L */
+function singleQuoted(L) {
+  const end = L.text.indexOf("'", L.i + 1);
+  const stop = end < 0 ? L.text.length : end;
+  L.word += L.text.slice(L.i + 1, stop);
+  L.inWord = true;
+  L.i = stop + 1;
+}
+
+/** A double-quoted run: a backslash escapes only a double quote, a backslash, a dollar sign, a backtick and a newline. @param {Lexer} L */
+function doubleQuoted(L) {
+  const t = L.text;
+  let j = L.i + 1;
+  L.inWord = true;
+  while (j < t.length && t[j] !== '"') {
+    if (t[j] === '\\' && j + 1 < t.length && '"\\$`\n'.includes(t[j + 1])) j++;
+    L.word += t[j];
+    j++;
   }
-  endCmd();
-  return cmds;
+  L.i = j + 1;
+}
+
+/** A backslash outside quotes: the next character literally; before a newline, a line continuation. @param {Lexer} L */
+function backslash(L) {
+  const next = L.text[L.i + 1];
+  if (next !== undefined && next !== '\n') {
+    L.word += next;
+    L.inWord = true;
+  }
+  L.i += 2;
+}
+
+/** One character (or quoted run) of the command text. @param {Lexer} L */
+function lexStep(L) {
+  const c = L.text[L.i];
+  if (c === "'") return singleQuoted(L);
+  if (c === '"') return doubleQuoted(L);
+  if (c === '\\') return backslash(L);
+  if (c === '#' && !L.inWord) {
+    const nl = L.text.indexOf('\n', L.i);
+    L.i = nl < 0 ? L.text.length : nl; // the comment runs to the newline, which still ends the command
+    return undefined;
+  }
+  if (';&|()\n'.includes(c)) endCmd(L);
+  else if (c === ' ' || c === '\t' || c === '\r') endWord(L);
+  else {
+    L.word += c;
+    L.inWord = true;
+  }
+  L.i++;
+  return undefined;
 }
 
 const WRAPPERS = new Set(['command', 'env', 'nohup', 'time', 'exec', 'builtin', 'noglob']);
@@ -245,38 +272,11 @@ export function actionsOf(text, cwd) {
   /** @type {Action[]} */
   const acts = [];
   for (const cmd of simpleCommands(text)) {
-    let i = 0;
-    for (;;) {
-      while (i < cmd.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(cmd[i])) i++; // VAR=value
-      if (i < cmd.length && WRAPPERS.has(cmd[i])) {
-        i++;
-        while (i < cmd.length && cmd[i].startsWith('-')) i++; // env -i, command -p
-        continue;
-      }
-      break;
-    }
+    const i = programIndex(cmd);
     const prog = path.basename(cmd[i] || '');
-    if (prog === 'git') {
-      let dir = cwd;
-      /** @type {string | null} */
-      let gitDir = null;
-      let j = i + 1;
-      while (j < cmd.length && cmd[j].startsWith('-')) {
-        const w = cmd[j];
-        const eq = w.indexOf('=');
-        const name = eq > 0 ? w.slice(0, eq) : w;
-        const value = eq > 0 ? w.slice(eq + 1) : cmd[j + 1];
-        if (GIT_VALUE.has(name) && eq < 0) j++;
-        if (name === '-C' && value !== undefined) dir = path.resolve(dir, value);
-        if (name === '--git-dir' && value !== undefined) gitDir = path.resolve(dir, value);
-        j++;
-      }
-      if (cmd[j] === 'push') acts.push({ kind: 'push', dir, gitDir, args: cmd.slice(j + 1) });
-    } else if (prog === 'gh') {
-      let j = i + 1;
-      while (j < cmd.length && cmd[j].startsWith('-')) j += GH_VALUE.has(cmd[j]) ? 2 : 1;
-      if (cmd[j] === 'pr' && cmd.slice(j + 1).filter((w) => !w.startsWith('-'))[0] === 'create') acts.push({ kind: 'pr', dir: cwd, args: cmd.slice(j + 2) });
-    }
+    const read = Object.hasOwn(READERS, prog) ? READERS[/** @type {'git' | 'gh'} */ (prog)] : null;
+    const act = read ? read(cmd, i, cwd) : null;
+    if (act) acts.push(act);
   }
   // A push or pull request the word reading above did not see (inside $(...), backticks, eval, sh -c):
   // check this directory's outgoing commits anyway. Over-triggering costs one check; missing one costs a leak.
@@ -285,6 +285,57 @@ export function actionsOf(text, cwd) {
   }
   return acts;
 }
+
+const ASSIGNMENT = /^[A-Za-z_]\w*=/;
+
+/** Where the program word is: past every leading VAR=value and wrapper (env -i, command -p, ...). @param {string[]} cmd */
+export function programIndex(cmd) {
+  let i = 0;
+  for (;;) {
+    while (i < cmd.length && ASSIGNMENT.test(cmd[i])) i++;
+    if (i >= cmd.length || !WRAPPERS.has(cmd[i])) return i;
+    i++;
+    while (i < cmd.length && cmd[i].startsWith('-')) i++;
+  }
+}
+
+/**
+ * The value of the option at cmd[j]: after its '=', else the next word, or null when there is none (a
+ * trailing `git -C`).
+ * @param {string[]} cmd @param {number} j @param {number} eq the index of '=' in cmd[j], or -1
+ * @returns {string | null}
+ */
+function optionValue(cmd, j, eq) {
+  if (eq > 0) return cmd[j].slice(eq + 1);
+  return j + 1 < cmd.length ? cmd[j + 1] : null;
+}
+
+/** `git [options] push ...`, each -C applied in order. @param {string[]} cmd @param {number} i @param {string} cwd @returns {Action | null} */
+function gitPush(cmd, i, cwd) {
+  let dir = cwd;
+  /** @type {string | null} */
+  let gitDir = null;
+  let j = i + 1;
+  while (j < cmd.length && cmd[j].startsWith('-')) {
+    const eq = cmd[j].indexOf('=');
+    const name = eq > 0 ? cmd[j].slice(0, eq) : cmd[j];
+    const value = optionValue(cmd, j, eq);
+    if (name === '-C' && value !== null) dir = path.resolve(dir, value);
+    if (name === '--git-dir' && value !== null) gitDir = path.resolve(dir, value);
+    j += GIT_VALUE.has(name) && eq < 0 ? 2 : 1;
+  }
+  return cmd[j] === 'push' ? { kind: 'push', dir, gitDir, args: cmd.slice(j + 1) } : null;
+}
+
+/** `gh [options] pr create ...`. @param {string[]} cmd @param {number} i @param {string} cwd @returns {Action | null} */
+function ghPrCreate(cmd, i, cwd) {
+  let j = i + 1;
+  while (j < cmd.length && cmd[j].startsWith('-')) j += GH_VALUE.has(cmd[j]) ? 2 : 1;
+  if (cmd[j] !== 'pr') return null;
+  return cmd.slice(j + 1).find((w) => !w.startsWith('-')) === 'create' ? { kind: 'pr', dir: cwd, args: cmd.slice(j + 2) } : null;
+}
+
+const READERS = Object.freeze({ git: gitPush, gh: ghPrCreate });
 
 /** The files a `gh pr create` reads its body from (--body-file F, -F F, --body-file=F), relative to cwd. @param {string[]} args @param {string} cwd */
 export function bodyFiles(args, cwd) {
@@ -368,29 +419,51 @@ export function addedBlocks(patch) {
   const blocks = [];
   /** @type {string | null} */
   let file = null;
-  /** @type {{ path: string, first: number, lines: string[] | null } | null} */
+  /** @type {{ path: string, first: number, lines: string[] } | null} */
   let current = null;
   for (const line of patch.split('\n')) {
     if (line.startsWith('diff --git ')) {
       current = null;
-      const head = line.slice('diff --git '.length);
-      file = head.endsWith('"') && head.includes(' "b/') ? head.slice(head.lastIndexOf(' "b/') + 4, -1)
-        : head.includes(' b/') ? head.slice(head.lastIndexOf(' b/') + 3) : null;
-    } else if (current === null && line.startsWith('+++ ')) {
-      let n = line.slice(4).replace(/\t+$/, '');
-      if (n.length > 1 && n.startsWith('"') && n.endsWith('"')) n = n.slice(1, -1);
-      file = n.startsWith('b/') ? n.slice(2) : null;
-    } else if (current === null && line.startsWith('Binary files ') && file) {
-      blocks.push({ path: file, first: 0, lines: null });
+      file = headerPath(line);
     } else if (line.startsWith('@@')) {
-      const m = HUNK.exec(line);
-      current = m && file ? { path: file, first: Number(m[1]), lines: [] } : null;
+      current = hunkStart(line, file);
       if (current) blocks.push(current);
-    } else if (current !== null && line.startsWith('+')) {
-      /** @type {string[]} */ (current.lines).push(line.slice(1));
+    } else if (current !== null) {
+      if (line.startsWith('+')) current.lines.push(line.slice(1));
+    } else if (line.startsWith('+++ ')) {
+      file = patchPath(line.slice(4));
+    } else if (line.startsWith('Binary files ') && file) {
+      blocks.push({ path: file, first: 0, lines: null });
     }
   }
   return blocks.map((b) => [b.path, b.first, b.lines === null ? null : b.lines.join('\n') + '\n']);
+}
+
+/** The new-side path of a 'diff --git a/<path> b/<path>' line, or null. @param {string} line */
+export function headerPath(line) {
+  const head = line.slice('diff --git '.length);
+  if (head.endsWith('"') && head.includes(' "b/')) return head.slice(head.lastIndexOf(' "b/') + 4, -1);
+  if (head.includes(' b/')) return head.slice(head.lastIndexOf(' b/') + 3);
+  return null;
+}
+
+/**
+ * The path of a '+++ b/<path>' line, or null for /dev/null. Trailing tabs are cut by a scan, not a regular
+ * expression, so a long run of tabs costs linear time.
+ * @param {string} name
+ */
+export function patchPath(name) {
+  let end = name.length;
+  while (end > 0 && name[end - 1] === '\t') end--;
+  let n = name.slice(0, end);
+  if (n.length > 1 && n.startsWith('"') && n.endsWith('"')) n = n.slice(1, -1);
+  return n.startsWith('b/') ? n.slice(2) : null;
+}
+
+/** A hunk header's block, or null. @param {string} line @param {string | null} file */
+function hunkStart(line, file) {
+  const m = HUNK.exec(line);
+  return m && file ? { path: file, first: Number(m[1]), lines: /** @type {string[]} */ ([]) } : null;
 }
 
 /** [line (1-based), category, length] for each finding in text. @param {string} text @param {Set<string>} cats */
@@ -415,6 +488,25 @@ export function outgoingFindings(ctx, dir, gitDir, revs) {
   if (!fs.existsSync(dir)) return []; // git -C <missing> push fails by itself and sends nothing
   const [inRepo] = git(ctx, dir, gitDir, ['rev-parse', '--git-dir']);
   if (inRepo) return []; // not a repository: git push itself fails, and sends nothing
+  const wanted = resolvedRevisions(ctx, dir, gitDir, revs);
+  if (!wanted.length) return []; // nothing that resolves: an empty repository, or a refspec git push refuses
+  const [c2, log] = git(ctx, dir, gitDir, ['log', '--reverse', '--format=%x00%H %h %P%n%B%x00', '-p', '-U0', '--no-color',
+    '--no-ext-diff', '--no-textconv', '--no-renames', '--diff-merges=off', ...wanted, '--not', '--remotes', '--']);
+  if (c2) throw new core.PyError('GitLogError');
+  if (Buffer.byteLength(log, 'utf8') > ctx.limit * 4) throw new core.PyError('TooLargeToCheck');
+  /** @type {Array<[string, string, number]>} */
+  const found = [];
+  const parts = log.split('\0');
+  for (let k = 1; k + 1 < parts.length; k += 2) found.push(...commitFindings(ctx, parts[k], parts[k + 1] || ''));
+  return found;
+}
+
+/**
+ * The revisions as git rev-list reads them: an option kept, a name resolved to its commit, a name that does
+ * not resolve left out.
+ * @param {{ git: string, env: Record<string, string | undefined> }} ctx @param {string} dir @param {string | null} gitDir @param {string[]} revs
+ */
+function resolvedRevisions(ctx, dir, gitDir, revs) {
   /** @type {string[]} */
   const wanted = [];
   for (const r of revs) {
@@ -425,25 +517,25 @@ export function outgoingFindings(ctx, dir, gitDir, revs) {
     const [code, out] = git(ctx, dir, gitDir, ['rev-parse', '--verify', '--quiet', '--end-of-options', r + '^{commit}']);
     if (!code && OBJECT_ID.test(core.strip(out))) wanted.push(core.strip(out));
   }
-  if (!wanted.length) return []; // nothing that resolves: an empty repository, or a refspec git push refuses
-  const [c2, log] = git(ctx, dir, gitDir, ['log', '--reverse', '--format=%x00%H %h %P%n%B%x00', '-p', '-U0', '--no-color',
-    '--no-ext-diff', '--no-textconv', '--no-renames', '--diff-merges=off', ...wanted, '--not', '--remotes', '--']);
-  if (c2) throw new core.PyError('GitLogError');
-  if (Buffer.byteLength(log, 'utf8') > ctx.limit * 4) throw new core.PyError('TooLargeToCheck');
+  return wanted;
+}
+
+/**
+ * One commit's findings: its message (head line '<full> <short> <parents>', then the body), and the lines
+ * its patch adds.
+ * @param {{ limit: number, cats: Set<string> }} ctx @param {string} record @param {string} patch
+ * @returns {Array<[string, string, number]>}
+ */
+function commitFindings(ctx, record, patch) {
+  const nl = record.indexOf('\n');
+  const short = (nl < 0 ? record : record.slice(0, nl)).split(' ')[1] || '';
+  const message = nl < 0 ? '' : record.slice(nl + 1);
   /** @type {Array<[string, string, number]>} */
-  const found = [];
-  const parts = log.split('\0');
-  for (let k = 1; k + 1 < parts.length; k += 2) {
-    const nl = parts[k].indexOf('\n');
-    const head = (nl < 0 ? parts[k] : parts[k].slice(0, nl)).split(' ');
-    const message = nl < 0 ? '' : parts[k].slice(nl + 1);
-    const short = head[1] || '';
-    for (const [, cat, len] of located(withoutAttributionTrailer(message), ctx.cats)) found.push([short + ':message', cat, len]);
-    for (const [file, first, text] of addedBlocks(parts[k + 1] || '')) {
-      if (text === null) continue; // binary: a text pattern cannot read it (`mhw scan` names it SKIPPED)
-      if (Buffer.byteLength(text, 'utf8') > ctx.limit) throw new core.PyError('TooLargeToCheck');
-      for (const [line, cat, len] of located(text, ctx.cats)) found.push([short + ':' + file + ':' + (first + line - 1), cat, len]);
-    }
+  const found = located(withoutAttributionTrailer(message), ctx.cats).map(([, cat, len]) => [short + ':message', cat, len]);
+  for (const [file, first, text] of addedBlocks(patch)) {
+    if (text === null) continue; // binary: a text pattern cannot read it (`mhw scan` names it SKIPPED)
+    if (Buffer.byteLength(text, 'utf8') > ctx.limit) throw new core.PyError('TooLargeToCheck');
+    for (const [line, cat, len] of located(text, ctx.cats)) found.push([short + ':' + file + ':' + (first + line - 1), cat, len]);
   }
   return found;
 }
