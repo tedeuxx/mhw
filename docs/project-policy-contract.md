@@ -18,7 +18,7 @@ values, ratified in its own MADR.
 ## Evidence level, said first
 
 **Written and tested; no project runs it.** The schema and its examples are
-[#244](https://github.com/tedeuxx/mhw/issues/244); `mhw policy check`, the fail-closed validator, is
+[#244](https://github.com/tedeuxx/mhw/issues/244); ~~`mhw policy check`~~ the fail-closed validator (the delivery gates Action's `contract` gate since [#592](https://github.com/tedeuxx/mhw/issues/592)), is
 [#245](https://github.com/tedeuxx/mhw/issues/245). The reference CI/CD that calls the validator is
 [#246](https://github.com/tedeuxx/mhw/issues/246) ([docs/reference-cicd.md](reference-cicd.md)), and the recovery reference is
 [#247](https://github.com/tedeuxx/mhw/issues/247) ([docs/recovery-reference.md](recovery-reference.md)). No project declares this contract and no project's
@@ -43,7 +43,7 @@ another language must reach the same answer: an ECMA engine, or a full match.
 ## Where a project puts it
 
 `project-policy.json` at the repository root, version-controlled beside the MADR that ratifies its
-values. `mhw policy check --project=DIR` reads `DIR/project-policy.json` (the current directory by
+values. The validator (`project-dir: DIR` of the Action's `contract` gate, or `node src/action/gates.js policy check --project=DIR` in a checkout of mhw) reads `DIR/project-policy.json` (the current directory by
 default); `--file=PATH` reads another path instead.
 
 ## Validating it: the `contract` gate of the delivery gates Action
@@ -79,7 +79,7 @@ Beyond the schema, it checks one thing the pattern cannot: `recovery.runbook.las
 real calendar date (not `2026-02-30`) and not later than tomorrow on the validator's clock (one day of
 slack for time zones). A runbook cannot have been tested in the future.
 
-It is `mhw policy check` on macOS, Linux and Windows (`node bin/mhw.js policy check` in a checkout). It
+~~It is `mhw policy check` on macOS, Linux and Windows (`node bin/mhw.js policy check` in a checkout).~~ Since #592 it is the Action's `contract` gate in CI, and `node src/action/gates.js policy check` in a checkout of mhw, on macOS, Linux and Windows. It
 needs Node 26 or later and nothing else. Since [#498](https://github.com/tedeuxx/mhw/issues/498) it is
 Node; the Python original it replaced answered the same: `test/project-policy/project-policy-golden.test.js`
 holds it to that original's recorded transcripts, its JSON error messages included, and
@@ -122,7 +122,7 @@ them any other way. A project may be stricter where the schema allows it, never 
 
 One more constraint is **mhw's own guard, not ADR-0015 text**: the risk model must name at least one
 high-risk rule. Without one, the high-risk approval rule above would have nothing to apply to, so this
-guard is what makes ADR-0015's high-risk rule applicable. `mhw policy check` refuses a model without
+guard is what makes ADR-0015's high-risk rule applicable. The validator refuses a model without
 one; that holds only where a project's CI/CD runs the check, and none does yet.
 
 The schema names these things; it checks no evidence, and neither does the validator. Whether the
@@ -216,12 +216,12 @@ What happens when a critical production validation fails.
 - `runbook`: required for `manual`. An object with:
   - `path`: a repository-relative `.md` path, with the same rules as the MADR's;
   - `last_tested`: the date the runbook was last tested, as `YYYY-MM-DD`. The schema checks the shape;
-    `mhw policy check` also refuses a date that does not exist or lies in the future.
+    The validator also refuses a date that does not exist or lies in the future.
 - `operator`: required for `manual`. The account handle of the operator available for the deployment
   and the observation period, as `@handle`. Never contact details.
 
 The contract only names the mode. ~~What a runbook must contain is #247.~~ What a runbook must
-contain, and the record of its test that `mhw delivery-gate recovery-plan` reads against
+contain, and the record of its test that the Action's `recovery-plan` gate reads against
 `last_tested` and the objective, are in [docs/recovery-reference.md](recovery-reference.md) (#247).
 
 ### `baseline_override`
@@ -243,18 +243,18 @@ reason, in its documentation manifest, `docs/documentation-baseline.json`, not i
     each an object with a `path` (a repository-relative `.md` path, the MADR path's rules) and a
     `description`. `mhw onboard` reports one that does not exist.
 
-What reads the section: `mhw policy check` validates it, and `mhw onboard` reports an `additional_docs`
+What reads the section: the validator (the Action's `contract` gate) validates it, and `mhw onboard` reports an `additional_docs`
 path that is missing. Whether each additional criterion holds on a change is the gate's judgement,
 under its criteria; no check reads it.
 
 ## What this contract does not cover
 
-- **No project runs the check.** `mhw policy check` exists (#245), but a file that breaks the
+- **No project runs the check.** The validator exists (#245; the Action's `contract` gate since #592), but a file that breaks the
   contract fails only where a project's CI/CD calls it. #246's reference workflow runs it as a
   required step; adopting that in any repository needs that repository's own Issue.
 - **The validator reads no evidence and no findings.** It checks the contract a project declares,
   not a deployment. Applying the contract to a revision's actual findings and test results, and
-  binding them to the exact revision, is #246's `mhw delivery-gate` (see
+  binding them to the exact revision, is #246's gates, the delivery gates Action since #592 (see
   [docs/reference-cicd.md](reference-cicd.md)).
 - **The schema checks shape, not truth.** Neither it nor the validator can tell whether the MADR at
   `madr.path` exists or is really accepted, whether the runbook was really tested on `last_tested`,

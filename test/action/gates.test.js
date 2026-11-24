@@ -10,7 +10,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { plan, inputs, outputLines, GATES, OUTPUT_GATES } from '../../src/action/gates.js';
+import { plan, inputs, outputLines, runOne, writeOutputs, GATES, OUTPUT_GATES } from '../../src/action/gates.js';
+import { runOnboard } from '../../src/commands/docs-baseline.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ENGINE = path.join(ROOT, 'src', 'action', 'gates.js');
@@ -141,9 +142,9 @@ test('the Action: pinned, no secret, no token, inputs only through env', () => {
   assert.doesNotMatch(yaml, /secrets\.|github\.token|GITHUB_TOKEN|GH_TOKEN/);
   assert.match(yaml, /^ {2}using: composite$/m);
   // Every run block carries no expression.
-  const run = /^ {6}run: (.*)$/m.exec(yaml);
-  assert.ok(run);
-  assert.equal(run[1], 'node "$GITHUB_ACTION_PATH/../../src/action/gates.js" --action');
+  // There is exactly one run block (QA A5 on #611: every one is read, not only the first).
+  const runs = [...yaml.matchAll(/^\s*(?:- )?run:(.*)$/gm)].map((m) => m[1].trim());
+  assert.deepEqual(runs, ['node "$GITHUB_ACTION_PATH/../../src/action/gates.js" --action']);
   // Every declared input but node-version reaches the engine as MHW_INPUT_<NAME>, and nothing else does.
   const declared = [...yaml.split('\noutputs:\n')[0].matchAll(/^ {2}([a-z-]+):$/gm)].map((m) => m[1]).filter((n) => n !== 'node-version');
   const env = [...yaml.matchAll(/^ {8}MHW_INPUT_([A-Z_]+): \$\{\{ inputs\.([a-z-]+) \}\}$/gm)];
@@ -170,4 +171,58 @@ test('this repository\'s workflows call the Action at their own ref', () => {
   assert.match(fixture, /^ {4}permissions:\n {6}contents: read$/m);
   assert.match(fixture, /^ {8}continue-on-error: true\n {8}uses: \.\/actions\/delivery-gates$/m);
   assert.match(fixture, /\[ "\$BROKEN" = failure \]/);
+});
+
+test('a passing gate appends only its key=value lines to $GITHUB_OUTPUT (QA A2 on #611)', () => {
+  const out = path.join(tmp, 'output-filter');
+  /** @type {string[]} */
+  const seen = [];
+  const io = { out: (/** @type {string} */ s) => { seen.push(s); }, err: () => {}, cwd: ROOT };
+  fs.writeFileSync(out, '');
+  // The validator prints an OK line and no key=value line: nothing reaches the output file.
+  const example = path.join(ROOT, 'global', 'project-policy', 'project-policy.example.json');
+  assert.equal(runOne(['policy', 'check', '--file=' + example], ENV, io, out), 0);
+  assert.match(seen.join(''), /^OK {2}/);
+  assert.equal(fs.readFileSync(out, 'utf8'), '');
+  // classify prints only key=value lines, and they arrive.
+  assert.equal(runOne(['delivery-gate', 'classify', '--project=' + FIXTURE, '--rules=1'], ENV, io, out), 0);
+  assert.equal(fs.readFileSync(out, 'utf8'), 'class=low\napproval=automatic-after-all-gates\n');
+  // No output file named: nothing is written anywhere.
+  assert.equal(runOne(['delivery-gate', 'classify', '--project=' + FIXTURE, '--rules=1'], ENV, io, undefined), 0);
+  // A stdout that mixes lines: only the key=value ones are appended, after what the file held.
+  fs.writeFileSync(out, 'before=1\n');
+  writeOutputs(out, 'OK  something\nmode=manual\nNOTE  more\nrollback_target=none\n');
+  assert.equal(fs.readFileSync(out, 'utf8'), 'before=1\nmode=manual\nrollback_target=none\n');
+  writeOutputs(out, 'OK  nothing to output\n');
+  assert.equal(fs.readFileSync(out, 'utf8'), 'before=1\nmode=manual\nrollback_target=none\n');
+});
+
+// QA B1 on #611: live text that presents a removed command (`mhw policy check`, `mhw delivery-gate`,
+// `mhw docs-baseline check`) as current. One row per member file the verdict named; every line there
+// that names one must also mark it as history. The S28/S29-pinned messages of src/commands/ are the
+// exit contract and are not members; onboard's output, which stays in the CLI, is checked below.
+const REMOVED = /(?:mhw|bin\/mhw\.js) (?:policy|delivery-gate|docs-baseline)/;
+const HISTORY = /#592|until|left the CLI|~~|it was|was `|were three|removed|no longer|replaces/;
+for (const file of ['docs/project-policy-contract.md', 'docs/recovery-reference.md', 'README.md',
+  'docs/native-enforcement-matrix.md', 'global/project-policy/project-policy.schema.json',
+  'docs/deployment-lock-coverage.md', 'method/skills/documentation-standard/SKILL.md']) {
+  test('no live instruction names a removed command: ' + file, () => {
+    const lines = fs.readFileSync(path.join(ROOT, ...file.split('/')), 'utf8').split(/\r?\n/);
+    const live = lines.map((l, i) => [i + 1, l]).filter(([, l]) => REMOVED.test(String(l)) && !HISTORY.test(String(l)));
+    assert.deepEqual(live, []);
+  });
+}
+
+test('mhw onboard names no removed command when project-policy.json is present or not JSON', () => {
+  const dir = path.join(tmp, 'onboard-policy');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'project-policy.json'), 'not json');
+  /** @type {string[]} */
+  const out = [];
+  const push = (/** @type {string} */ s) => { out.push(s); };
+  runOnboard(['--project=' + dir], { cwd: tmp, env: ENV, out: push, err: push });
+  const text = out.join('');
+  assert.match(text, /^GAP .*project-policy\.json is not JSON; validate it with the delivery gates Action's contract gate$/m);
+  assert.match(text, /^NOTE  project-policy\.json is present; the delivery gates Action's contract gate validates it, this command does not$/m);
+  assert.doesNotMatch(text, REMOVED);
 });

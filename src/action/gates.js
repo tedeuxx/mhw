@@ -123,17 +123,38 @@ export function runAction(env, io) {
     io.err('BLOCK  delivery gates action: ' + p.error + '\n');
     return 2;
   }
+  const outputs = OUTPUT_GATES.has(input('gate')) ? env.GITHUB_OUTPUT : undefined;
   for (const argv of p.runs) {
-    const r = spawnSync(process.execPath, [SELF, ...argv], { cwd: io.cwd, env, encoding: 'utf8' });
-    if (r.stdout) io.out(r.stdout);
-    if (r.stderr) io.err(r.stderr);
-    if (r.status !== 0) return r.status === null ? 2 : r.status;
-    if (OUTPUT_GATES.has(input('gate')) && env.GITHUB_OUTPUT) {
-      const lines = outputLines(r.stdout || '');
-      if (lines.length) fs.appendFileSync(env.GITHUB_OUTPUT, lines.join('\n') + '\n');
-    }
+    const code = runOne(argv, env, io, outputs);
+    if (code !== 0) return code;
   }
   return 0;
+}
+
+/**
+ * One gate run in a child process of this file: its output forwarded, its `key=value` lines appended
+ * to `outputs` when it passes. Its exit code; 2 when it ended on a signal.
+ * @param {string[]} argv @param {Record<string, string | undefined>} env
+ * @param {{ out: (s: string) => void, err: (s: string) => void, cwd: string }} io
+ * @param {string | undefined} outputs @returns {number}
+ */
+export function runOne(argv, env, io, outputs) {
+  const r = spawnSync(process.execPath, [SELF, ...argv], { cwd: io.cwd, env, encoding: 'utf8' });
+  const stdout = r.stdout || '';
+  if (stdout) io.out(stdout);
+  if (r.stderr) io.err(r.stderr);
+  if (r.status !== 0) return r.status === null ? 2 : r.status;
+  if (outputs) writeOutputs(outputs, stdout);
+  return 0;
+}
+
+/**
+ * Append a passing gate's `key=value` lines, and nothing else it printed, to the output file.
+ * @param {string} outputs @param {string} stdout
+ */
+export function writeOutputs(outputs, stdout) {
+  const lines = outputLines(stdout);
+  if (lines.length) fs.appendFileSync(outputs, lines.join('\n') + '\n');
 }
 
 if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(SELF)) {

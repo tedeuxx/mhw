@@ -45,7 +45,7 @@ deployment when they fail; the rest are the project's to keep and nothing reads 
 1. **Automatic rollback is not reliable for this project**, and the project MADR says why. *Not
    checked*: no gate can tell whether a rollback would have worked.
 2. **The project MADR defines the recovery-time objective**, and the contract carries the same number
-   in `recovery_time_objective_minutes`. *Checked* that the contract carries one (`mhw policy check`)
+   in `recovery_time_objective_minutes`. *Checked* that the contract carries one (the validator, the Action's `contract` gate)
    and that the MADR is accepted (the `contract` gate). *Not checked* that the MADR states the same
    number.
 3. **The runbook exists in the project.** *Checked* by the `contract` gate and again by
@@ -53,11 +53,11 @@ deployment when they fail; the rest are the project's to keep and nothing reads 
    refused.
 4. **The runbook has been tested.** *Checked* by `recovery-plan`: the runbook carries a test record
    dated the contract's `last_tested`, and every record of that date recovered within the
-   recovery-time objective. `mhw policy check` already refuses a `last_tested` in the future. *Not
+   recovery-time objective. The validator already refuses a `last_tested` in the future. *Not
    checked*: whether the test really happened, and how old it may be (the contract has no maximum age;
    a project's MADR can set one, and nothing reads it).
 5. **An identified operator is available for the deployment and the observation period.** *Checked*
-   only that the contract names one account handle (`mhw policy check`). *Not checked*: availability,
+   only that the contract names one account handle (the validator). *Not checked*: availability,
    and whether the `by @handle` of the runbook's test record is that operator (`recovery-plan` reads
    the date and minutes of a record, never its handle, so a test run by someone else counts).
    No gate can read whether a person is present. The template prints the operator, the runbook and
