@@ -204,31 +204,8 @@ jobs:
         run: |
           python3 --version
           node --test --test-name-pattern="^live" test/clean/clean.test.js test/clean/unicode.test.js test/scan/scan.test.js
-      # #487 (S16 of #470): the live arm of the paste wrapper's parity test plays the recorded cases on the
-      # base revision's paste_wrapper.py with the same CPython. MHW_S16_LIVE_REQUIRED=1 turns a skip into a
-      # failure while the base still holds it.
-      - name: S16 live parity against the recorded CPython
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S16_LIVE_REQUIRED: "1"
-        run: |
-          python3 --version
-          node --test --test-name-pattern="^live" test/clipboard/paste-wrapper-golden.test.js
-      # #487: the live relay tests run a real wrapper between a pty the suite owns and a fake CLI, through
-      # the vendored node-pty: its macOS prebuilds from npm, and on Linux the pty.node node-pty-linux.yml
-      # built from the pinned source (ADR-0042). MHW_S16_LIVE_REQUIRED=1 turns a pty that does not load
-      # into a failure. Windows is not measured (D7): there the tests skip and the refusal tests run.
-      - name: S16 live relay through the vendored pty (macOS and Linux)
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S16_LIVE_REQUIRED: "1"
-        run: |
-          node --test --test-name-pattern="^live" test/clipboard/paste-wrapper.test.js
-          node bin/mhw.js paste-wrapper check
+      # #487 (S16 of #470) ran the paste wrapper's parity and live relay arms here, through the vendored
+      # node-pty; #590 removed the wrapper, its pty library and node-pty-linux.yml, and the steps with them.
       # #488 (S17 of #470) ran add-term on a real pty here; #589 removed add-term, the term lists and the salt
       # (third-party terms are judged by the model), and the step with them.
       # #493 (S22 of #470): the live arm of test/status/status-golden.test.js runs the base revision's
@@ -450,28 +427,8 @@ jobs:
           fi
           echo "$out" | grep -E "^ *ok [0-9]+ - live: the Node steps match" | grep -vq SKIP
 
-      # #492 (S21 of #470): the live arm of test/render/shell-rc-golden.test.js runs the base revision's
-      # rc_* and shell_rc_* functions (shell and awk) beside the head's startup_step, which runs
-      # src/render/shell-rc.js, on every case, in throwaway HOMEs. MHW_S21_LIVE_REQUIRED=1 is the
-      # requirement: while the base's install.sh still holds rc_scan the live line must be reported and not
-      # as SKIP; once it does not (this slice has merged), the step says the arm retired and passes, as the
-      # S14 step does (#534). A missing base fails. The golden arm runs in npm test on macOS and Linux.
-      - name: S21 live parity against the shell functions
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S21_LIVE_REQUIRED: "1"
-        run: |
-          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
-          [ -n "$base" ] || { echo "no base revision"; exit 1; }
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/render/shell-rc-golden.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          if ! git show "$base:global/install.sh" 2>/dev/null | grep -qF 'rc_scan() {'; then
-            echo "S21 live arm retired: base $base no longer holds the shell functions"
-            exit 0
-          fi
-          echo "$out" | grep -E "^ *ok [0-9]+ - live: the Node step matches" | grep -vq SKIP
+      # #492 (S21 of #470) ran the shell start-up block's parity golden here; #590 made the step remove-only
+      # (the paste wrapper is gone), so that golden and this step left with the block it wrote.
 
       # #503 (S25 of #470): the live arm of test/install/install-user-golden.test.js runs the base revision's
       # global/install.sh beside this tree's `mhw install-user` on every scenario (install, check, dry run,
@@ -601,7 +558,8 @@ jobs:
       # Evidence for Principle 1 (Issue #9): which POSIX sh runs the suites. On ubuntu /bin/sh is dash,
       # the strictest common POSIX sh; this step fails if that ever stops being true, so a green ubuntu
       # run is a dash run. On macOS /bin/sh is bash in POSIX mode.
-      # PR #146 lens H1: install writes the paste wrapper block into ${ZDOTDIR:-~}/.zshrc. Every suite
+      # PR #146 lens H1: install wrote the paste wrapper block into ${ZDOTDIR:-~}/.zshrc, and since #590 it
+      # removes one there. Every suite
       # below runs with ZDOTDIR exported to a sentinel outside its throwaway HOMEs, and SHELL set to zsh,
       # the worst case; the last step fails if anything was written there.
       - name: export a ZDOTDIR sentinel the suites must never write
@@ -636,7 +594,7 @@ jobs:
         run: node --test test/install/admin.test.js
       # Issues #57 and #67: ./mhw install, update and uninstall are Node since #495 (S24 of #470): their suites,
       # test/lifecycle/lifecycle.test.js and lifecycle-golden.test.js (throwaway HOMEs and admin roots, a pty
-      # arm for the RETURN prompt), run in the node job (npm test) and its S24 live step. The status view and
+      # arm for the RETURN prompt, driven by test/helpers/pty-run.py since #590), run in the node job (npm test) and its S24 live step. The status view and
       # the version key are Node since #493 (S22): test/status/*.test.js. check since #494 (S23): test/check/.
       # Issue #195: the merge-authority contract is Node since #494 (S23 of #470): the method's operational
       # copies against the canonical contract and mhw check --project=DIR against synthetic briefs,
@@ -914,7 +872,7 @@ jobs:
           if ($LASTEXITCODE) { Fail "mhw check exited $LASTEXITCODE" }
           $st = @(& $mhw status)
           if ($LASTEXITCODE) { Fail "mhw status exited $LASTEXITCODE" }
-          if (-not ($st[0] -like 'NODE    *' -and $st[1] -like 'PASTE   *' -and ($st | Where-Object { $_ -like 'OK      *CLAUDE.md (release: *' }))) { Fail "mhw status: $($st -join ' | ')" }
+          if (-not ($st[0] -like 'NODE    *' -and -not ($st | Where-Object { $_ -like 'PASTE   *' }) -and ($st | Where-Object { $_ -like 'OK      *CLAUDE.md (release: *' }))) { Fail "mhw status: $($st -join ' | ')" }
           if (Test-Path -LiteralPath (Join-Path $prefix 'workstation.cmd')) { Fail 'the removed workstation alias was installed (#206)' }
           $out = (& $mhw update v4.2.0) -join ' | '
           if ($LASTEXITCODE -or -not $out.Contains('npm install -g github:tedeuxx/mhw#v4.2.0')) { Fail "update: $out" }

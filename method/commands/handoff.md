@@ -184,9 +184,10 @@ not print it. Each is read from `--help`; none was run. ~~The block runs in the 
 directory; open the terminal in a different checkout from the old session's.~~ *(Struck 2026-11-01,
 #198: that was a second step handed to the owner. The block now starts with `cd` into the checkout, so
 it runs the same from any directory.)* The launch environment is a prefix on the start command, after
-the `cd`, so it reaches the agent harness and not the shell. Where the workstation's paste wrapper is installed, those names reach it and an environment prefix
+the `cd`, so it reaches the agent harness and not the shell. ~~Where the workstation's paste wrapper is installed, those names reach it and an environment prefix
 reaches the agent harness through it; a prompt passed as an argument is not cleaned by the wrapper, so
-the sanitising above is the clean-up. On Windows the block does not apply: step 4 prints the prompt
+the sanitising above is the clean-up.~~ *(Struck 2026-11-24, mhw#590: the workstation has no paste wrapper
+any more.)* Nothing cleans a prompt passed as an argument, so the sanitising above is the clean-up. On Windows the block does not apply: step 4 prints the prompt
 instead.
 
 ## What this command never does

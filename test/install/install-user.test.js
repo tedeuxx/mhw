@@ -33,7 +33,6 @@ if (POSIX) {
 }
 const REPO_OVERLAY = path.join(ROOT, 'overlay');
 const NODE = which('node') || process.execPath;
-const WRAP_MHW = MHW;
 
 /** A fresh directory under BASE. @param {string} name */
 function dir(name) {
@@ -96,8 +95,7 @@ const hasLine = (text, line) => text.split('\n').includes(line);
 
 /** The managed targets of a HOME. @param {string} h */
 const targets = (h) => [h + '/.claude/CLAUDE.md', h + '/.codex/AGENTS.md', h + '/.kiro/steering/workstation-global-brief.md',
-  h + '/.claude/settings.json', h + '/.codex/rules/workstation-deny-floor.rules', data(h) + '/clipboard.conf', h + '/.codex/hooks.json',
-  data(h) + '/paste-filter.sh'];
+  h + '/.claude/settings.json', h + '/.codex/rules/workstation-deny-floor.rules', data(h) + '/clipboard.conf', h + '/.codex/hooks.json'];
 /** @param {string} h */
 const fingerprint = (h) => targets(h).map((f) => read(f) ?? 'absent ' + f);
 
@@ -400,280 +398,103 @@ test('2c. the paste filter: its settings, one UserPromptSubmit entry for Claude 
   assert.ok(!exists(H + '/Library/LaunchAgents'), 'a LaunchAgent was written');
 });
 
-test('2c\'. the paste wrapper: mhw paste-wrapper, a managed snippet of shell functions', { skip }, () => {
+test('2c\'. #590: the paste wrapper is removed; a fresh install writes no snippet and no shell start-up block', { skip }, () => {
   assert.ok(!exists(data(H) + '/paste_wrapper.py'));
-  const sn = data(H) + '/paste-filter.sh';
-  const cc = data(H) + '/clipboard.conf';
-  const t = /** @type {string} */ (read(sn));
-  assert.ok(t.split('\n')[0].startsWith('# ' + MARKER));
-  assert.ok(hasLine(t, 'claude() { "' + NODE + '" "' + WRAP_MHW + '" paste-wrapper run --config "' + cc + '" -- claude "$@"; }'));
-  assert.equal(t.split('"' + NODE + '" "' + WRAP_MHW + '" paste-wrapper run ').length - 1, 3);
-  assert.match(t, /^kiro-cli\(\) /m);
-  assert.match(t, /^codex\(\) /m);
-  // PR #521 lens A1: when node on PATH is the same file as MHW_NODE, the snippet names node on PATH.
+  assert.ok(!exists(data(H) + '/paste-filter.sh'));
+  assert.ok(!exists(data(H) + '/shell-rc-created.list'));
+  for (const rc of ['.zshrc', '.bashrc', '.bash_profile', '.bash_login', '.profile', '.zprofile', '.zshenv']) assert.ok(!exists(H + '/' + rc), rc);
+  assert.ok(!freshOut.includes('paste-wrapper') && !freshOut.includes('automatic paste cleaning'), freshOut);
+  // `mhw paste-wrapper` is an unknown subcommand: exit 2, nothing run.
+  const p = spawnSync(process.execPath, [MHW, 'paste-wrapper', 'check'], { encoding: 'utf8', env: { ...process.env, MHW_NODE: process.execPath } });
+  assert.equal(p.status, 2, p.stdout + p.stderr);
+  assert.equal(p.stdout, '');
+  assert.match(p.stderr, /^mhw: unknown argument for paste-wrapper: check\n$/);
+  const bare = spawnSync(process.execPath, [MHW, 'paste-wrapper'], { encoding: 'utf8', env: { ...process.env, MHW_NODE: process.execPath } });
+  assert.equal(bare.status, 2);
+  assert.match(bare.stderr, /^mhw: unknown subcommand paste-wrapper /);
+  // An MHW_NODE that is not an executable file is refused, exit 2: no prompt hook written.
   const nb = dir('node-pin');
-  fs.mkdirSync(nb + '/cellar/26.0.0/bin', { recursive: true });
-  fs.mkdirSync(nb + '/bin', { recursive: true });
-  fs.mkdirSync(nb + '/other', { recursive: true });
-  const real = process.execPath;
-  fs.symlinkSync(real, nb + '/cellar/26.0.0/bin/node');
-  fs.symlinkSync(nb + '/cellar/26.0.0/bin/node', nb + '/bin/node');
-  const hn = dir('home-node-same');
-  inst(hn, [], { MHW_NODE: nb + '/cellar/26.0.0/bin/node', PATH: nb + '/bin:' + process.env.PATH });
-  const same = /** @type {string} */ (read(data(hn) + '/paste-filter.sh'));
-  assert.ok(same.includes('claude() { "' + nb + '/bin/node" "' + WRAP_MHW + '" paste-wrapper run '));
-  assert.ok(!same.includes(nb + '/cellar'));
-  fs.writeFileSync(nb + '/other/node', '#!/bin/sh\nexit 0\n', { mode: 0o755 });
-  const hd = dir('home-node-different');
-  inst(hd, [], { MHW_NODE: real, PATH: nb + '/other:' + process.env.PATH });
-  assert.ok(/** @type {string} */ (read(data(hd) + '/paste-filter.sh')).includes('claude() { "' + real + '" "' + WRAP_MHW + '" paste-wrapper run '));
-  // An MHW_NODE that is not an executable file is refused, exit 2: no snippet and no prompt hook written.
-  const hx = dir('home-node-refused');
   fs.writeFileSync(nb + '/not-node', 'not a program\n');
+  const hx = dir('home-node-refused');
   const r = inst(hx, ['--overlay=none'], { MHW_NODE: nb + '/not-node' });
   assert.equal(r.code, 2, r.out);
-  assert.ok(!exists(data(hx) + '/paste-filter.sh'));
   assert.ok(r.out.includes('REFUSE  paste filter: MHW_NODE (' + nb + '/not-node) is not an executable file; the hook is not registered'));
+  assert.ok(!r.out.includes('paste wrapper cannot run'), r.out);
   assert.ok(!exists(hx + '/.claude/settings.json') || pours(hx + '/.claude/settings.json') === 0);
   assert.ok(!exists(hx + '/.codex/hooks.json'));
-  // An earlier install's Python wrapper (managed) is retired by the next install.
-  const hr = dir('home-retire');
-  fs.mkdirSync(data(hr), { recursive: true });
-  fs.writeFileSync(data(hr) + '/paste_wrapper.py', '#!/usr/bin/python3\n# ' + MARKER + '; source: global/clipboard/paste_wrapper.py\n');
-  assert.ok(inst(hr, ['--check']).out.includes('STALE   ' + data(hr) + '/paste_wrapper.py: the Python paste wrapper, replaced by mhw paste-wrapper (Node, #487); install removes it'));
-  const ri = inst(hr);
-  assert.ok(!exists(data(hr) + '/paste_wrapper.py'));
-  assert.ok(ri.out.includes('REMOVED ' + data(hr) + '/paste_wrapper.py (the Python paste wrapper, replaced by mhw paste-wrapper (Node, #487))'));
-  // Issue #145: the block goes into the start-up file of $SHELL (zsh here) and nowhere else.
-  for (const rc of ['.bashrc', '.bash_profile', '.profile', '.zprofile', '.zshenv']) assert.ok(!exists(H + '/' + rc), rc);
-  assert.equal(read(H + '/.zshrc'), blockOf(H));
-  assert.ok(!exists(H + '/.zshrc.pmhwc-backup'));
-  assert.ok(hasLine(freshOut, 'CHANGED ' + H + '/.zshrc: paste-wrapper start-up block absent -> present (new file); new shells clean pastes'));
-  assert.ok(!freshOut.includes('automatic paste cleaning'));
-  // The snippet's function, sourced by a real zsh and bash, reaches the real program through the wrapper.
-  const fb = dir('fakebin');
-  fs.writeFileSync(fb + '/claude', '#!/bin/sh\nprintf "fake-claude:"\nprintf "%s|" "$@"\nexit 5\n', { mode: 0o755 });
-  for (const shl of ['zsh', 'bash']) {
-    const sh = which(shl);
-    if (!sh) continue;
-    const p = spawnSync(sh, ['-c', '. "' + sn + '"; claude a \'b c\' < /dev/null'], { encoding: 'utf8', env: { HOME: H, PATH: fb + ':' + process.env.PATH } });
-    assert.equal(p.stdout, 'fake-claude:a|b c|', shl);
-    assert.equal(p.status, 5, shl);
-  }
 });
 
 const RC_BEGIN = '# >>> ' + NAME + ': paste wrapper (ADR-0011); managed block, mhw uninstall removes it';
 const RC_END = '# <<< ' + NAME + ': paste wrapper';
-/** The block install writes for a HOME (no final newline, as $(cat) reads it). @param {string} home */
-const block = (home) => RC_BEGIN + '\n[ -r "' + data(home) + '/paste-filter.sh" ] && . "' + data(home) + '/paste-filter.sh"\n' + RC_END;
-/** The block, with its final newline (a whole file). @param {string} home */
-const blockOf = (home) => block(home) + '\n';
-/** $(cat f): the text without its trailing newlines. @param {string} f */
-const cat = (f) => (read(f) ?? '').replace(/\n+$/, '');
+/** The block an earlier install wrote for a HOME, with its final newline. @param {string} home */
+const blockOf = (home) => RC_BEGIN + '\n[ -r "' + data(home) + '/paste-filter.sh" ] && . "' + data(home) + '/paste-filter.sh"\n' + RC_END + '\n';
+/** An earlier install's managed snippet (its marker in the first line). @param {string} home */
+function oldSnippet(home) {
+  fs.mkdirSync(data(home), { recursive: true });
+  fs.writeFileSync(data(home) + '/paste-filter.sh', '# ' + MARKER + '; source: global/install.sh (paste wrapper, ADR-0011); release: v10.1.0; commit: x; do not edit\n'
+    + 'claude() { "/n" "/m/bin/mhw.js" paste-wrapper run --config "/c" -- claude "$@"; }\n');
+}
 
-test('2c\'\'. the shell start-up block, against throwaway rc files only', { skip }, () => {
-  const h3 = dir('home-rc');
-  const rc = h3 + '/zshrc-throwaway';
-  fs.writeFileSync(rc, 'export SYNTHETIC_OWNER_SETTING=1\n# owner line two\n');
-  const orig = read(rc);
-  let r = inst(h3, ['--dry-run', '--shell-rc=' + rc]);
-  assert.equal(r.code, 0);
-  assert.equal(read(rc), orig);
-  assert.ok(hasLine(r.stdout, 'WOULD CHANGE ' + rc + ': paste-wrapper start-up block absent -> present (backup ' + rc + '.pmhwc-backup):'));
-  r = inst(h3, ['--check', '--shell-rc=' + rc]);
-  assert.equal(r.code, 1);
-  assert.match(r.stdout, new RegExp('^MISSING ' + esc(rc) + ': no paste-wrapper start-up block', 'm'));
-  r = inst(h3, ['--shell-rc=' + rc]);
-  assert.equal(r.code, 0);
-  assert.equal(cat(rc), 'export SYNTHETIC_OWNER_SETTING=1\n# owner line two\n' + block(h3));
-  assert.equal(read(rc + '.pmhwc-backup'), orig);
-  assert.ok(hasLine(r.stdout, 'CHANGED ' + rc + ': paste-wrapper start-up block absent -> present (previous file kept as ' + rc + '.pmhwc-backup); new shells clean pastes'));
-  const once = read(rc);
-  r = inst(h3, ['--shell-rc=' + rc]);
-  assert.equal(r.code, 0);
-  assert.equal(read(rc), once);
-  assert.ok(hasLine(r.stdout, 'OK      ' + rc + ' activates the paste wrapper (managed block)'));
-  assert.ok(!r.stdout.includes('CHANGED ' + rc));
-  assert.equal(inst(h3, ['--check', '--shell-rc=' + rc]).code, 0);
-  for (const shl of ['zsh', 'bash']) {
-    const sh = which(shl);
-    if (!sh) continue;
-    const p = spawnSync(sh, ['-c', '. "' + rc + '"; type claude'], { encoding: 'utf8', env: { HOME: h3, PATH: process.env.PATH } });
-    assert.match((p.stdout + p.stderr).split('\n')[0], /function/, shl);
-  }
-  // The owner edits inside the block: it is replaced whole, still once.
-  fs.writeFileSync(rc, /** @type {string} */ (read(rc)).replace(' && . ', ' && true ; . '));
-  assert.equal(inst(h3, ['--check', '--shell-rc=' + rc]).code, 1);
-  r = inst(h3, ['--shell-rc=' + rc]);
-  assert.equal(r.code, 0);
-  assert.equal(read(rc), once);
-  assert.match(r.stdout, new RegExp('^CHANGED ' + esc(rc) + ': paste-wrapper start-up block a different block -> present', 'm'));
-  // Uninstall removes exactly the block.
-  r = inst(h3, ['--uninstall', '--shell-rc=' + rc]);
+test('2c\'\'. #590: an install over an earlier one removes the old block with a backup, and the snippet; check and dry-run name them', { skip }, () => {
+  const h3 = dir('home-old-wrapper');
+  const owner = 'export SYNTHETIC_OWNER_SETTING=1\n# owner line two\n';
+  const before = owner + blockOf(h3);
+  fs.writeFileSync(h3 + '/.zshrc', before);
+  fs.writeFileSync(h3 + '/.bash_profile', 'export P=1\n' + blockOf(h3));
+  oldSnippet(h3);
+  // --check: each leftover is STALE (drift), and nothing changes.
+  const c = inst(h3, ['--check']);
+  assert.equal(c.code, 1, c.out);
+  assert.ok(c.out.includes('STALE   ' + h3 + "/.zshrc: the retired paste wrapper's start-up block (#590: a pasted credential is caught by the hook on submit) is still there; install removes it"), c.out);
+  assert.ok(c.out.includes('STALE   ' + h3 + '/.bash_profile: '), c.out);
+  assert.ok(c.out.includes('STALE   ' + data(h3) + "/paste-filter.sh: the paste wrapper's shell snippet, removed (#590"), c.out);
+  // --dry-run: says what install would do, writes nothing.
+  const d = inst(h3, ['--dry-run']);
+  assert.equal(d.code, 0, d.out);
+  assert.ok(d.out.includes('WOULD CHANGE ' + h3 + '/.zshrc: paste-wrapper start-up block present -> absent (backup ' + h3 + '/.zshrc.pmhwc-backup)'), d.out);
+  assert.ok(d.out.includes('WOULD REMOVE ' + data(h3) + '/paste-filter.sh'), d.out);
+  assert.equal(read(h3 + '/.zshrc'), before);
+  assert.ok(exists(data(h3) + '/paste-filter.sh'));
+  // install: the block leaves both files, each keeps a 0600 backup of what it held, the snippet goes.
+  const r = inst(h3);
   assert.equal(r.code, 0, r.out);
-  assert.equal(read(rc), orig);
-  assert.ok(hasLine(r.stdout, 'CHANGED ' + rc + ': paste-wrapper start-up block present -> absent (previous file kept as ' + rc + '.pmhwc-backup)'));
-  // The earlier one-line form is replaced by the block, once.
-  const old = h3 + '/old-form-rc';
-  fs.writeFileSync(old, 'export A=1\n[ -r "/old/paste-filter.sh" ] && . "/old/paste-filter.sh"  # ' + NAME + ': paste wrapper (ADR-0011)\nexport B=2\n');
-  r = inst(h3, ['--shell-rc=' + old]);
-  assert.equal(r.code, 0);
-  assert.equal(cat(old), 'export A=1\nexport B=2\n' + block(h3));
-  assert.match(r.stdout, new RegExp('^CHANGED ' + esc(old) + ': paste-wrapper start-up block the earlier one-line form -> present', 'm'));
-  // The unmarked two-line form an owner added by hand.
-  const l2c = '# ' + NAME + ': clean pastes into claude/codex/kiro-cli (ADR-0011)';
-  const l2s = '. "$HOME/.local/share/' + NAME + '/paste-filter.sh"';
-  const two = h3 + '/two-line-rc';
-  fs.writeFileSync(two, 'export A=1\n' + l2c + '\n' + l2s + '\n' + block(h3) + '\nexport B=2\n');
-  const twoOrig = read(two);
-  r = inst(h3, ['--check', '--shell-rc=' + two]);
-  assert.equal(r.code, 1);
-  assert.ok(hasLine(r.stdout, 'DRIFT   ' + two + ': paste-wrapper start-up block is sourced twice (an unmarked two-line form beside the block); install replaces it'));
-  r = inst(h3, ['--shell-rc=' + two]);
-  assert.equal(r.code, 0);
-  assert.equal(cat(two), 'export A=1\nexport B=2\n' + block(h3));
-  assert.equal(read(two + '.pmhwc-backup'), twoOrig);
-  assert.ok(hasLine(r.stdout, 'CHANGED ' + two + ': paste-wrapper start-up block sourced twice (an unmarked two-line form beside the block) -> present (previous file kept as ' + two + '.pmhwc-backup); new shells clean pastes'));
-  assert.equal(inst(h3, ['--check', '--shell-rc=' + two]).code, 0);
-  // Near misses are the owner's.
-  const near = h3 + '/two-line-near-rc';
-  fs.writeFileSync(near, l2c + '\nexport C=3\n' + l2s + '\n' + l2c + '\n\n' + l2s + '\n');
-  const nearOrig = cat(near);
-  r = inst(h3, ['--shell-rc=' + near]);
-  assert.equal(r.code, 0);
-  assert.equal(cat(near), nearOrig + '\n' + block(h3));
-  assert.match(r.stdout, new RegExp('^CHANGED ' + esc(near) + ': paste-wrapper start-up block absent -> present', 'm'));
-  // PR #153 lens: a pair that is the whole body of an if is left in place and reported.
-  const rif = h3 + '/two-line-if-rc';
-  fs.writeFileSync(rif, 'if true; then\n' + l2c + '\n' + l2s + '\nfi\n');
-  r = inst(h3, ['--shell-rc=' + rif]);
-  assert.equal(r.code, 0);
-  assert.deepEqual(/** @type {string} */ (read(rif)).split('\n').slice(1, 3), [l2c, l2s]);
-  const bash = which('bash');
-  if (bash) assert.equal(spawnSync(bash, ['-n', rif]).status, 0);
-  assert.match(r.stdout, new RegExp('^NOTE    ' + esc(rif) + ": an unmarked two-line paste-filter source opens a compound command's body", 'm'));
-  // Uninstall over the two-line form alone.
-  const twoOnly = h3 + '/two-line-only-rc';
-  fs.writeFileSync(twoOnly, 'export A=1\n' + l2c + '\n' + l2s + '\n');
-  r = inst(h3, ['--uninstall', '--shell-rc=' + twoOnly]);
-  assert.equal(r.code, 0);
-  assert.equal(cat(twoOnly), 'export A=1');
-  assert.match(r.stdout, new RegExp('^CHANGED ' + esc(twoOnly) + ': paste-wrapper start-up block present -> absent', 'm'));
-  // A file with no newline at its end gets one, then the block.
-  const nl = h3 + '/no-newline-rc';
-  fs.writeFileSync(nl, 'export X=1');
-  assert.equal(inst(h3, ['--shell-rc=' + nl]).code, 0);
-  assert.equal(cat(nl), 'export X=1\n' + block(h3));
-  // Damaged markers are refused, nothing written.
-  const bad = h3 + '/damaged-rc';
-  fs.writeFileSync(bad, 'x\n' + RC_BEGIN + '\nmine\n');
-  const badBefore = read(bad);
-  r = inst(h3, ['--shell-rc=' + bad]);
-  assert.equal(r.code, 3);
-  assert.equal(read(bad), badBefore);
-  assert.match(r.stdout, new RegExp('^REFUSE  ' + esc(bad) + ": the paste-wrapper block's markers are damaged", 'm'));
-  // A start-up file that is a symbolic link stays one, written through.
-  fs.mkdirSync(h3 + '/dotfiles', { recursive: true });
-  fs.writeFileSync(h3 + '/dotfiles/zshrc', 'export DOT=1\n');
-  fs.symlinkSync(h3 + '/dotfiles/zshrc', h3 + '/link-rc');
-  assert.equal(inst(h3, ['--shell-rc=' + h3 + '/link-rc']).code, 0);
-  assert.ok(fs.lstatSync(h3 + '/link-rc').isSymbolicLink());
-  assert.equal(cat(h3 + '/dotfiles/zshrc'), 'export DOT=1\n' + block(h3));
-  const never = h3 + '/never-created-rc';
-  r = inst(h3, ['--check', '--shell-rc=' + never]);
-  assert.equal(r.code, 1);
-  assert.match(r.stdout, new RegExp('^MISSING ' + esc(never), 'm'));
-  assert.ok(!exists(never));
-  fs.mkdirSync(h3 + '/rc-is-a-dir');
-  assert.equal(inst(h3, ['--shell-rc=' + h3 + '/rc-is-a-dir']).code, 3);
-  r = inst(h3, ['--shell-rc=relative-rc']);
-  assert.equal(r.code, 2);
-  assert.ok(!exists(h3 + '/relative-rc'));
-  // bash gets ~/.bashrc; uninstall deletes the ~/.bashrc install created.
-  const hb = dir('home-bash');
-  assert.equal(inst(hb, [], { SHELL: '/bin/bash' }).code, 0);
-  assert.equal(read(hb + '/.bashrc'), blockOf(hb));
-  assert.ok(!exists(hb + '/.zshrc'));
-  assert.equal(inst(hb, ['--uninstall'], { SHELL: '/bin/bash' }).code, 0);
-  assert.ok(!exists(hb + '/.bashrc'));
-  // A start-up file that is a symbolic link to nothing is refused visibly, and the later steps still run.
-  const hdl = dir('home-dangling-rc');
-  fs.symlinkSync(hdl + '/missing-dotfiles/zshrc', hdl + '/.zshrc');
-  r = inst(hdl);
-  assert.equal(r.code, 3);
-  assert.ok(hasLine(r.out, 'REFUSE  ' + hdl + '/.zshrc is a symbolic link to a missing file; nothing written. Fix or remove the link, or add this line yourself:'));
-  assert.ok(fs.lstatSync(hdl + '/.zshrc').isSymbolicLink() && !exists(hdl + '/missing-dotfiles') && exists(hdl + '/.claude/settings.json'));
-  assert.match(r.out, /^FLOOR {3}/m);
-  assert.doesNotMatch(r.out, /no such file|cannot create|directory nonexistent/i);
+  assert.equal(read(h3 + '/.zshrc'), owner);
+  assert.equal(read(h3 + '/.zshrc.pmhwc-backup'), before);
+  assert.equal(mode(h3 + '/.zshrc.pmhwc-backup'), '600');
+  assert.equal(read(h3 + '/.bash_profile'), 'export P=1\n');
+  assert.ok(!exists(data(h3) + '/paste-filter.sh'));
+  assert.ok(r.out.includes('CHANGED ' + h3 + '/.zshrc: paste-wrapper start-up block present -> absent ('), r.out);
+  assert.ok(r.out.includes('REMOVED ' + data(h3) + "/paste-filter.sh (the paste wrapper's shell snippet, removed (#590"), r.out);
+  assert.equal(inst(h3, ['--check']).code, 0);
+  // A second install changes nothing and keeps the backup it wrote.
+  const again = inst(h3);
+  assert.equal(again.code, 0);
+  assert.ok(!again.out.includes('.zshrc'), again.out);
+  assert.equal(read(h3 + '/.zshrc.pmhwc-backup'), before);
 });
 
-test('2c\'\'. the bash login start-up file (macOS) and ZDOTDIR', { skip }, () => {
-  const hl = dir('home-bash-login');
-  fs.writeFileSync(hl + '/.bash_profile', 'export OWNER_LOGIN=1\n[ -r ~/.bashrc ] && . ~/.bashrc\n', { mode: 0o644 });
-  const lsum = read(hl + '/.bash_profile');
-  let r = inst(hl, [], { SHELL: '/bin/bash' });
-  assert.equal(r.code, 0);
-  if (process.platform === 'darwin') {
-    assert.equal(cat(hl + '/.bash_profile'), 'export OWNER_LOGIN=1\n[ -r ~/.bashrc ] && . ~/.bashrc\n' + block(hl));
-    assert.equal(read(hl + '/.bash_profile.pmhwc-backup'), lsum);
-    assert.equal(mode(hl + '/.bash_profile.pmhwc-backup'), '600');
-    assert.equal(read(hl + '/.bashrc'), blockOf(hl));
-    assert.ok(hasLine(r.stdout, 'CHANGED ' + hl + '/.bash_profile: paste-wrapper start-up block absent -> present (previous file kept as ' + hl + '/.bash_profile.pmhwc-backup); new shells clean pastes'));
-    const t = spawnSync('/bin/bash', ['-l', '-c', 'type claude'], { encoding: 'utf8', env: { HOME: hl, PATH: '/usr/bin:/bin' } });
-    assert.match((t.stdout + t.stderr).split('\n')[0], /function/);
-    assert.equal(inst(hl, ['--check'], { SHELL: '/bin/bash' }).code, 0);
-    assert.equal(inst(hl, ['--uninstall'], { SHELL: '/bin/bash' }).code, 0);
-    assert.equal(read(hl + '/.bash_profile'), lsum);
-    const hl2 = dir('home-bash-login2');
-    fs.writeFileSync(hl2 + '/.bash_login', 'export OWNER_BASH_LOGIN=1\n');
-    assert.equal(inst(hl2, [], { SHELL: '/bin/bash' }).code, 0);
-    assert.ok(!exists(hl2 + '/.bash_profile') && hasLine(/** @type {string} */ (read(hl2 + '/.bash_login')), RC_END));
-    const hl3 = dir('home-bash-profile-only');
-    fs.writeFileSync(hl3 + '/.profile', 'export OWNER_PROFILE=1\n');
-    r = inst(hl3, [], { SHELL: '/bin/bash' });
-    assert.equal(r.code, 0);
-    assert.equal(read(hl3 + '/.profile'), 'export OWNER_PROFILE=1\n');
-    for (const f of ['.profile.pmhwc-backup', '.bash_profile', '.bash_login']) assert.ok(!exists(hl3 + '/' + f), f);
-    assert.match(r.stdout, /^NOTE {4}automatic paste cleaning: no bash login start-up file is written \(for a bash login shell: only ~\/\.profile is there/m);
-    const hl4 = dir('home-bash-login-none');
-    assert.equal(inst(hl4, [], { SHELL: '/bin/bash' }).code, 0);
-    assert.equal(read(hl4 + '/.bash_profile'), blockOf(hl4));
-    r = inst(hl4, ['--uninstall'], { SHELL: '/bin/bash' });
-    assert.equal(r.code, 0);
-    assert.ok(!exists(hl4 + '/.bash_profile') && !exists(hl4 + '/.bashrc'));
-    assert.ok(hasLine(r.out, 'REMOVED ' + hl4 + '/.bash_profile (install created it and only the paste-wrapper block was in it)'));
-    const hl5 = dir('home-bash-login-empty');
-    fs.writeFileSync(hl5 + '/.bash_profile', '');
-    assert.equal(inst(hl5, [], { SHELL: '/bin/bash' }).code, 0);
-    assert.equal(inst(hl5, ['--uninstall'], { SHELL: '/bin/bash' }).code, 0);
-    assert.equal(read(hl5 + '/.bash_profile'), '');
-  } else {
-    assert.equal(read(hl + '/.bash_profile'), lsum);
-    assert.ok(!exists(hl + '/.bash_profile.pmhwc-backup'));
-  }
-  const hz = dir('home-zdotdir');
-  fs.mkdirSync(hz + '/zdot');
-  assert.equal(inst(hz, [], { ZDOTDIR: hz + '/zdot' }).code, 0);
-  assert.ok(exists(hz + '/zdot/.zshrc') && !exists(hz + '/.zshrc'));
-  // PR #146 lens H1: an inherited ZDOTDIR outside HOME is never written, by install or by uninstall.
-  const hs2 = dir('home-zdot-outside');
-  const zs = dir('zdotdir-sentinel');
-  fs.writeFileSync(zs + '/.zshrc', 'export OWNER_ZSH=1\n' + block(BASE + '/elsewhere') + '\n');
-  const zsum = read(zs + '/.zshrc');
-  r = inst(hs2, [], { ZDOTDIR: zs });
-  assert.equal(r.code, 0);
-  assert.equal(inst(hs2, ['--uninstall'], { ZDOTDIR: zs }).code, 0);
-  assert.equal(read(zs + '/.zshrc'), zsum);
-  assert.equal(files(zs).length, 1);
-  assert.ok(r.out.includes('no shell start-up file is written (ZDOTDIR=' + zs + ' is outside HOME=' + hs2 + ')'));
-  for (const c of ['fish', 'none']) {
-    const hn = dir('home-noshell-' + c);
-    r = c === 'fish' ? inst(hn, [], { SHELL: '/usr/local/bin/fish' }) : inst(hn, ['--shell-rc=none']);
-    assert.equal(r.code, 0, c);
-    assert.equal(fs.readdirSync(hn).filter((n) => n.startsWith('.') && n.endsWith('rc')).length, 0, c);
-    assert.match(r.stdout, /^NOTE {4}automatic paste cleaning: no shell start-up file is written/m);
-    assert.ok(r.stdout.includes('. "' + data(hn) + '/paste-filter.sh"'), c);
-  }
+test('2c\'\'\'. #590: an existing start-up file backup is never overwritten; the removal backup takes the next free name', { skip }, () => {
+  const h4 = dir('home-old-backup');
+  fs.writeFileSync(h4 + '/.zshrc.pmhwc-backup', 'the backup an earlier install kept\n');
+  fs.writeFileSync(h4 + '/.zshrc', 'export A=1\n' + blockOf(h4));
+  const r = inst(h4);
+  assert.equal(r.code, 0, r.out);
+  assert.equal(read(h4 + '/.zshrc.pmhwc-backup'), 'the backup an earlier install kept\n');
+  assert.equal(read(h4 + '/.zshrc.pmhwc-backup.1'), 'export A=1\n' + blockOf(h4));
+  assert.equal(mode(h4 + '/.zshrc.pmhwc-backup.1'), '600');
+  assert.equal(read(h4 + '/.zshrc'), 'export A=1\n');
+  assert.ok(r.out.includes('previous file kept as ' + h4 + '/.zshrc.pmhwc-backup.1'), r.out);
+  // A file an earlier install created holding only the block is removed; the explicit --shell-rc file too.
+  const h5 = dir('home-old-created');
+  fs.mkdirSync(data(h5), { recursive: true });
+  fs.writeFileSync(data(h5) + '/shell-rc-created.list', h5 + '/.zshrc\n');
+  fs.writeFileSync(h5 + '/.zshrc', blockOf(h5));
+  fs.writeFileSync(h5 + '/custom-rc', 'c\n' + blockOf(h5));
+  const u = inst(h5, ['--shell-rc=' + h5 + '/custom-rc']);
+  assert.equal(u.code, 0, u.out);
+  assert.ok(!exists(h5 + '/.zshrc'));
+  assert.ok(!exists(data(h5) + '/shell-rc-created.list'));
+  assert.equal(read(h5 + '/custom-rc'), 'c\n');
 });
 
 /** A string as a literal regular expression. @param {string} s */
@@ -1303,15 +1124,17 @@ test('19c. the MCP active set, through the installer', { skip }, () => {
   assert.ok(r.out.includes('turned back on out-b (1)'));
 });
 
-test('20. uninstall after a default install gives the owner\'s ~/.zshrc back byte for byte', { skip }, () => {
+test('20. install and uninstall leave the owner\'s ~/.zshrc byte for byte; an old block is taken out on uninstall too (#590)', { skip }, () => {
   const hu = dir('home-uninstall-rc');
   fs.writeFileSync(hu + '/.zshrc', 'export MINE=1\nalias ll="ls -l"\n');
   const z = read(hu + '/.zshrc');
   assert.equal(inst(hu).code, 0);
-  const t = /** @type {string} */ (read(hu + '/.zshrc'));
-  assert.ok(hasLine(t, RC_BEGIN) && t.split(RC_END).length === 2);
+  assert.equal(read(hu + '/.zshrc'), z, 'install adds no block');
+  assert.ok(!exists(hu + '/.zshrc.pmhwc-backup'));
+  fs.appendFileSync(hu + '/.zshrc', blockOf(hu));
   assert.equal(inst(hu, ['--uninstall']).code, 0);
   assert.equal(read(hu + '/.zshrc'), z);
+  assert.equal(read(hu + '/.zshrc.pmhwc-backup'), z + blockOf(hu));
 });
 
 test('21. every backup of a harness config the installer writes is owner-only (0600)', { skip }, () => {
@@ -1320,7 +1143,8 @@ test('21. every backup of a harness config the installer writes is owner-only (0
   fs.mkdirSync(hb + '/.codex');
   fs.writeFileSync(hb + '/.claude/settings.json', '{"model": "owner-model", "permissions": {"allow": ["Bash(find:*)"]}}\n', { mode: 0o644 });
   fs.writeFileSync(hb + '/.codex/config.toml', 'model_reasoning_effort = "high"\n', { mode: 0o644 });
-  fs.writeFileSync(hb + '/.zshrc', 'export MINE=1\n', { mode: 0o644 });
+  // An earlier install's paste-wrapper block (#590): its removal keeps a backup too.
+  fs.writeFileSync(hb + '/.zshrc', 'export MINE=1\n' + blockOf(hb), { mode: 0o644 });
   assert.equal(inst(hb, ['--overlay=' + REPO_OVERLAY]).code, 0);
   const backups = files(hb).filter((f) => /\.pmhwc-.*backup$/.test(f));
   assert.equal(backups.length, 5, backups.join(' '));
@@ -1343,9 +1167,16 @@ test('22. the uninstall backup of ~/.claude/settings.json is owner-only too', { 
 test('23. the README states each #145 behaviour still carried', () => {
   const readme = /** @type {string} */ (read(path.join(ROOT, 'README.md')));
   for (const needle of ['install writes the pin over any value', 'uninstall restores the value it replaced',
-    'install also removes the user-level `Bash(find:*)` and `Bash(awk:*)`', 'one marked block that sources it in the start-up file', '`mhw uninstall` removes exactly']) {
+    'install also removes the user-level `Bash(find:*)` and `Bash(awk:*)`']) {
     assert.ok(readme.includes(needle), needle);
   }
+  // #590: the start-up block #145 wrote is struck, and the README says plainly what replaced it and where
+  // nothing does.
+  for (const needle of ['There is no\npaste wrapper and nothing cleans a paste when you paste it.', '*«Só hook no envio»*',
+    '**Kiro CLI gets no paste protection at all:**', 'so an existing backup is never overwritten']) {
+    assert.ok(readme.includes(needle), needle);
+  }
+  assert.ok(!readme.includes('`mhw uninstall` removes exactly'), 'the #145 block is no longer described as installed');
 });
 
 test('24. the Kiro deny floor merges beside the owner\'s rule; uninstall takes back only what it added', { skip }, () => {

@@ -139,5 +139,29 @@
     "head": "(?!)",
     "replace": "",
     "why": "#600: the admin layer no longer stages `mhw hook prompt`'s entry and module (bin/hook/src/commands/hook-entry.js and hook-prompt.js; an --apply deletes them as legacy files), so the original's lines naming either file, and the two names in its summary lines, are taken out of the base side. The count of differing targets is already normalised."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "[^\\n]*NOTE {4}automatic paste cleaning[^\\n]*\\n[^\\n]*\\n|[^\\n]*(?:personal-multi-harness-workstation-configuration/paste-filter\\.sh|paste-wrapper start-up block|activates the paste wrapper)[^\\n]*\\n",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#590 (the CLI native baseline PRD, slice 4): the paste wrapper is removed, so install no longer writes or checks its shell snippet (paste-filter.sh) or its start-up block, and prints no NOTE asking the owner to add the start-up line by hand. `mhw check` therefore prints no OK, MISSING or DRIFT line for either; one an earlier install left is named STALE and removed by install (test/install/install-user.test.js, test/render/shell-rc.test.js). Every such line is taken out of the original's side."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "paste wrapper, ",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#590: with the snippet and the start-up block no longer install targets, a HOME without them has no drift in the 'paste wrapper' category, so a drift list no longer names it."
   }
 ]

@@ -1,8 +1,0 @@
-{
-  "name": "node-pty",
-  "version": "1.1.0",
-  "license": "MIT",
-  "type": "commonjs",
-  "main": "./lib/index.js",
-  "description": "Vendored by mhw (#487): LICENSE, the five lib/ files the POSIX path loads and the macOS prebuilds (pty.node, spawn-helper) are byte-identical to the npm package node-pty@1.1.0 (test/vendor.test.js). spawn-helper is committed executable, which the npm tarball does not carry. This manifest is mhw's own, reduced to the fields it needs; the upstream manifest is not copied."
-}

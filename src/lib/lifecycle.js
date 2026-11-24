@@ -184,20 +184,10 @@ export function adminAccess(asking, env, io) {
 export function ownerSteps(lines) {
   /** @type {string[]} */
   const steps = [];
-  lines.forEach((line, i) => {
-    // Issue #145: install writes the paste wrapper's block into ~/.zshrc or ~/.bashrc itself. Only when it
-    // chose no file (another shell, --shell-rc=none, a ZDOTDIR outside HOME) is the line the owner's;
-    // the installer gives the reason in parentheses, and the step repeats it rather than guessing one.
-    if (line.startsWith('NOTE    automatic paste cleaning') && i + 1 < lines.length) {
-      // re.search(r"\((.*)\); add this line"): from the first '(' to the last '); add this line'.
-      const open = line.indexOf('(');
-      const close = line.lastIndexOf('); add this line');
-      const why = open >= 0 && close > open ? ' (' + line.slice(open + 1, close) + ')' : '';
-      // macOS bash: ~/.bashrc got the block, only the login file did not (only ~/.profile is there).
-      const which = line.includes('no bash login start-up file') ? 'bash login start-up file' : 'shell start-up file';
-      steps.push('mhw wrote no ' + which + why + '. To clean pasted text automatically, add this line to yours:\n       '
-        + lines[i + 1].trim());
-    }
+  lines.forEach((line) => {
+    // Until #590 a step here repeated the installer's 'automatic paste cleaning' NOTE (no start-up file chosen
+    // for the paste wrapper's block, Issue #145). The wrapper is removed and install only takes that block out,
+    // so the installer prints no such line and the owner has no line to add.
     if (line.startsWith('RESTART REQUIRED') && line.includes('/hooks')) {
       steps.push('In Codex, approve the mhw hooks once: type /hooks in a new session.');
     }

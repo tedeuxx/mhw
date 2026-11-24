@@ -208,5 +208,26 @@
     "pattern": "^\\.claude/settings\\.json$|^\\.claude/CLAUDE\\.md$|^\\.codex/AGENTS\\.md$|^\\.kiro/steering/workstation-global-brief\\.md$|^\\.local/share/personal-multi-harness-workstation-configuration/clipboard\\.conf$|pattern-check/src/lib/clean\\.js$",
     "whenBaseHas": "src/lib/salt.js",
     "why": "#589 (ADR-0047): third-party terms are judged by the model, so the settings carry one more UserPromptSubmit entry (the prompt-type term check), the three rendered global briefs gain rule 4's sentence on judging third-party terms, the fixed-pattern check's installed copy of the cleaning core (src/lib/clean.js) loses its term-list readers, and the installed clipboard.conf loses the term-list and salt comments and the owner overlay's two no-salt notices. Those files are compared by kind and mode only in the live arm while the base still ships src/lib/salt.js; test/hooks/pattern-check-install.test.js and test/render/settings-merge.test.js hold the entry, and the brief is the source file itself."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree-drop",
+    "pattern": "^\\.local/share/personal-multi-harness-workstation-configuration/paste-filter\\.sh$|^\\.local/share/personal-multi-harness-workstation-configuration/shell-rc-created\\.list$|^\\.zshrc$",
+    "whenBaseHas": "src/commands/paste-wrapper.js",
+    "why": "#590: the paste wrapper is removed, so install writes no shell snippet (paste-filter.sh), no shell start-up block in ~/.zshrc and no list of the start-up files it created; on a HOME an earlier install left them in, install removes them with a backup (test/render/shell-rc.test.js and test/install/install-user.test.js hold that). Left out of the comparison on both sides only while the base still ships src/commands/paste-wrapper.js."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "stdout",
+    "pattern": "^    CHANGED <HOME>/\\.zshrc: paste-wrapper start-up block absent -> present \\(new file\\); new shells clean pastes$|^  - Your settings in Claude Code, Codex and Kiro: [0-9]+ file\\(s\\) to write \\(no password needed\\)$",
+    "whenBaseHas": "src/commands/paste-wrapper.js",
+    "why": "#590: install no longer writes the paste wrapper's start-up block, so its CHANGED line is gone, and the plan counts two files fewer (the snippet and ~/.zshrc). Only while the base still ships src/commands/paste-wrapper.js."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree",
+    "pattern": "^\\.local/share/personal-multi-harness-workstation-configuration/pattern-check/src/lib/clean\\.js$",
+    "whenBaseHas": "src/commands/paste-wrapper.js",
+    "why": "#590: the installed copy of the cleaning core differs only in two comments, which no longer name the removed paste wrapper as a reader of the core and say its notice settings are unread since; no code changed (test/clean/ holds its behaviour). Compared by kind and mode only while the base still ships src/commands/paste-wrapper.js."
   }
 ]

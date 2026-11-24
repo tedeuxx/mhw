@@ -6,10 +6,13 @@
 - **Date:** 2026-11-24
 - **Deciders:** the owner (written by agents-lead)
 - **Supersedes:** the term part of [ADR-0033](0033-paste-cleaning-wrapper-primary-hook-safety-net.md):
-  the hashed employer, client, health and colleague lists, their salt and `mhw add-term`. ADR-0033's
+  the hashed employer, client, health and colleague lists, their salt and `mhw add-term`. ~~ADR-0033's
   paste-wrapper part is not touched here; slice 4 ([#590](https://github.com/tedeuxx/mhw/issues/590))
-  removes the wrapper and amends this record for it.
-- **Issue:** [#589](https://github.com/tedeuxx/mhw/issues/589) (slice 3 of 10 of the PRD)
+  removes the wrapper and amends this record for it.~~ *Amended 2026-11-24 (#590):* also ADR-0033's
+  paste-wrapper part, and [ADR-0042](0042-node-pty-vendored-for-the-paste-wrapper.md); see the amendment
+  "the paste wrapper is removed" below.
+- **Issue:** [#589](https://github.com/tedeuxx/mhw/issues/589) (slice 3 of 10 of the PRD);
+  [#590](https://github.com/tedeuxx/mhw/issues/590) (slice 4, the wrapper)
 
 ## Context and problem
 
@@ -73,7 +76,8 @@ Chosen: option 1.
 - **Removed.** `mhw add-term` is an unknown subcommand. `src/commands/add-term.js` and `src/lib/salt.js` are
   deleted. The cleaning core no longer exports a term reader, a hash or a salt reader, and no longer reads
   `terms_file=`, `health_terms_file=`, `colleague_terms_file=`, `salt_file=` or `salt_store=`. The CI scan
-  (`.github/scripts/outbound-scan.js`) and the paste wrapper match patterns only, with no term NOTE. The
+  (`.github/scripts/outbound-scan.js`) and the paste wrapper match patterns only, with no term NOTE
+  *(the wrapper is removed since #590; see the amendment below)*. The
   `employer-client-term` category name stays valid in `block_categories`, so an owner setting naming it
   still reads, but nothing produces it.
 - **Leftovers.** Install, reinstall and uninstall move each of `clipboard-salt`, `clipboard-terms`,
@@ -142,13 +146,87 @@ and colleague-name, matched against hashed lists that `mhw add-term` wrote, keye
 (before #488, a Keychain item). Their one consequence that still shapes this design: a list catches only
 registered spellings, which is why the replacement judges instead of matching.
 
+## Amendment 2026-11-24: the paste wrapper is removed; a paste is caught only on submit ([#590](https://github.com/tedeuxx/mhw/issues/590), proposed)
+
+Slice 4 of the PRD. The significance gate fires (a control is removed, and a recorded decision is reversed),
+and this record is amended rather than a new one written: ADR-0033's own amendments already name this record
+as the one that supersedes its term part, and the PRD's section 9 asks for one superseding record covering
+"no paste wrapper; terms by model judgment", so both halves are recorded here.
+
+**The owner's decision.** ADR-0033 rested on his requirement *"tem que ser limpo sozinho"* (it has to be
+cleaned on its own), which the paste wrapper met by cleaning a bracketed paste before the agent harness saw
+it. He reversed it in the PRD's section 6 with *«Só hook no envio»* (only the hook on submit): no cleaning at
+paste time; the hook on submit blocks and shows a redacted copy, and he resends it.
+
+**Decision.**
+
+- **Removed.** `mhw paste-wrapper` is an unknown subcommand. `src/commands/paste-wrapper.js`, `src/lib/pty.js`,
+  the vendored `src/vendor/node-pty` with its macOS and Linux prebuilds, the `node-pty` devDependency and its
+  shrinkwrap entries (with `node-addon-api`), and the `node-pty-linux.yml` workflow are deleted.
+  [ADR-0042](0042-node-pty-vendored-for-the-paste-wrapper.md) (node-pty vendored for the wrapper) is
+  superseded. `mhw status` prints no PASTE line.
+- **Install writes nothing for it, and takes out what an earlier install wrote.** No shell snippet
+  (`<data dir>/paste-filter.sh`) and no start-up block. In every mode `src/render/shell-rc.js` now only
+  looks for the block, its earlier one-line form and the unmarked two-line form in `~/.zshrc` (`$ZDOTDIR/.zshrc`
+  when that is inside HOME), `~/.bashrc`, `~/.bash_profile`, `~/.bash_login` and a `--shell-rc` file:
+  install and uninstall remove it, keeping the previous file as `<file>.pmhwc-backup` (0600), or as
+  `<file>.pmhwc-backup.N` with the first free N when a backup is already there, so an existing backup is
+  never overwritten; a file an earlier install created holding only the block is removed. `--check` names a
+  block still there, and the snippet, as `STALE` (drift); `--dry-run` says what install would change.
+  Damaged markers are refused and nothing is changed. `~/.profile` was never written and is never read.
+- **What catches a paste now.** Only the fixed-pattern check's prompt hook ([#588](https://github.com/tedeuxx/mhw/issues/588)),
+  on submit, on Claude Code and Codex: it blocks a prompt carrying a credential, e-mail address, card, CPF,
+  CNPJ or phone number and shows a redacted copy. Third-party terms are the model's to judge (the decision
+  above), on Claude Code also through the `prompt`-type hook.
+- **Kiro CLI: no paste protection.** Kiro CLI V3 does not block on a prompt-submit hook's exit 2 (measured
+  once on kiro-cli 3.5.0, #588, PRD open question 2): Kiro passes the hook's message to the model as a note.
+  So on Kiro a pasted secret reaches the model, where until now the wrapper had cleaned a synthetic paste
+  (measured once on 3.1.0, #462). The brief and the README must not imply any paste protection there.
+
+**Considered options.**
+
+1. **Remove the wrapper; the hook on submit is the only check (chosen, the owner's ruling).** Trade-off: the
+   secret reaches the agent harness's input box and its local history before the block; on Kiro CLI it
+   reaches the model. In exchange there is no pty, no vendored native binary, no shell start-up block and no
+   wrapper code to keep in step with each harness's terminal handling.
+2. **Keep the wrapper as the primary cleaner (ADR-0033 as accepted).** Rejected by the owner. It also kept a
+   vendored native binary per OS and architecture (ADR-0042), a CI job to rebuild the Linux ones, and a
+   block in his shell start-up files.
+3. **Keep the wrapper on Kiro CLI only, where nothing blocks on submit.** Not chosen: the ruling is one rule
+   for every harness, and it would keep the whole pty stack for one harness whose V3 engine was measured once.
+
+**Consequences.**
+
+- Good: no native binary, no pty and no shell start-up block are shipped or installed; the CLI's public
+  surface is smaller (a breaking change, `semver:major`).
+- Bad: **a pasted secret is in the session before it is blocked**: in the input box, and in whatever the
+  agent harness keeps of a blocked prompt. On Claude Code and Codex it does not reach the model; that it is
+  not kept anywhere is not measured.
+- Bad: **Kiro CLI has no paste protection at all**, and on Codex the hook runs only after the owner trusts it
+  in `/hooks`. Typed text was never checked by the wrapper; it is checked by the hook, as before.
+- Bad: the reference machine still runs the v10.1.0 wrapper and its start-up block until the owner installs
+  this release; that install takes the block out with a backup.
+
+**Evidence level.** *Written and tested* in throwaway homes: a fresh install writes no snippet and no block;
+an install over a HOME holding the old block and snippet removes both, keeps a 0600 backup, and never
+overwrites an existing backup (it takes `.pmhwc-backup.N`); `--check` reports them STALE; `mhw paste-wrapper`
+exits 2 as unknown; `mhw status` prints no PASTE line. Not installed on the reference machine. The Kiro
+statement is the #588 measurement, not re-measured here.
+
+**What this replaced.** ADR-0033's wrapper (2026-10-05, on #58), moved to Node on node-pty by #487 (ADR-0042):
+it started each CLI on a pseudo-terminal and replaced a finding in a bracketed paste before the CLI saw it,
+and marked the session so the prompt hook stayed silent (until #600). The one consequence that still shapes
+this design: typed text was never the wrapper's to check, so moving every check to submit loses only the
+paste-time cleaning, not a check of typed text.
+
 ## Links
 
 - [CLI native baseline PRD](../mhw-product-requirements-document-cli-native-baseline.md), sections 5, 6
   and 7. The cloud environments PRD's *"terms via variable"* is amended as without object in the same
   pull request.
 - [ADR-0033](0033-paste-cleaning-wrapper-primary-hook-safety-net.md) (the paste wrapper; its term part
-  superseded here). [ADR-0008](0008-personal-workstation-no-confidential-persistence.md) (no
+  superseded here, and its wrapper part by the 2026-11-24 amendment).
+  [ADR-0042](0042-node-pty-vendored-for-the-paste-wrapper.md) (the wrapper's pty, superseded by that amendment). [ADR-0008](0008-personal-workstation-no-confidential-persistence.md) (no
   persistence). [ADR-0025](0025-hook-layers-in-the-native-admin-layer.md) (admin layer).
 - Issues: [#589](https://github.com/tedeuxx/mhw/issues/589), [#588](https://github.com/tedeuxx/mhw/issues/588)
   (fixed patterns), [#590](https://github.com/tedeuxx/mhw/issues/590) (the wrapper), and
