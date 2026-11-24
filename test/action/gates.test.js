@@ -18,6 +18,9 @@ const ACTION = path.join(ROOT, 'actions', 'delivery-gates', 'action.yml');
 const FIXTURE = path.join(ROOT, 'global', 'project-policy', 'reference', 'fixture');
 const SHA = 'a'.repeat(40);
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'mhw-action-'));
+/** A minimal environment; Windows needs SystemRoot for a child node. @type {Record<string, string>} */
+const ENV = { PATH: process.env.PATH || '', HOME: tmp, USERPROFILE: tmp };
+if (process.env.SystemRoot) ENV.SystemRoot = process.env.SystemRoot;
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
 /** @param {Record<string, string>} values */
@@ -33,7 +36,7 @@ function runsOf(input) {
 /** The Action's step, as action.yml runs it. @param {Record<string, string>} values @param {Record<string, string>} [extra] */
 function step(values, extra = {}) {
   /** @type {Record<string, string>} */
-  const env = { PATH: process.env.PATH || '', HOME: tmp, ...extra };
+  const env = { ...ENV, ...extra };
   for (const [k, v] of Object.entries(values)) env['MHW_INPUT_' + k.toUpperCase().replaceAll('-', '_')] = v;
   const p = spawnSync(process.execPath, [ENGINE, '--action'], { cwd: ROOT, env, encoding: 'utf8', timeout: 60000 });
   return { code: p.status, out: p.stdout, err: p.stderr };
@@ -115,20 +118,22 @@ test('the step: classify writes its outputs, an unknown gate and a missing input
 
 test('the three commands are unknown to the CLI; onboard stays', () => {
   for (const argv of [['policy', 'check'], ['delivery-gate', 'contract'], ['docs-baseline', 'check'], ['policy']]) {
-    const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), ...argv], { cwd: tmp, env: { PATH: process.env.PATH || '', HOME: tmp }, encoding: 'utf8' });
+    const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), ...argv], { cwd: tmp, env: ENV, encoding: 'utf8' });
     assert.equal(p.status, 2, argv.join(' '));
     assert.equal(p.stdout, '', argv.join(' '));
-    assert.match(p.stderr, new RegExp('^mhw: unknown (subcommand|argument for) ' + argv[0] + '\\b'), argv.join(' '));
+    // POSIX: the lifecycle parser's refusal; Windows: the Windows plan's (src/cli.js, windowsPlan).
+    assert.match(p.stderr, new RegExp('^mhw: (?:unknown (?:subcommand|argument for) ' + argv[0] + '\\b|' + argv[0] + ' is not available on Windows)'), argv.join(' '));
   }
-  const usage = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), '--help'], { cwd: tmp, env: { PATH: process.env.PATH || '', HOME: tmp }, encoding: 'utf8' });
+  const usage = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), '--help'], { cwd: tmp, env: ENV, encoding: 'utf8' });
   assert.doesNotMatch(usage.stdout, /policy check|delivery-gate|docs-baseline/);
-  const onboard = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'onboard', '--project=' + path.join(tmp, 'absent')], { cwd: tmp, env: { PATH: process.env.PATH || '', HOME: tmp }, encoding: 'utf8' });
+  const onboard = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'onboard', '--project=' + path.join(tmp, 'absent')], { cwd: tmp, env: ENV, encoding: 'utf8' });
   assert.equal(onboard.status, 2);
   assert.match(onboard.stderr, /^mhw onboard: not a directory/);
 });
 
 test('the Action: pinned, no secret, no token, inputs only through env', () => {
-  const body = fs.readFileSync(ACTION, 'utf8');
+  // A Windows checkout writes CRLF (core.autocrlf); the YAML is read as LF.
+  const body = fs.readFileSync(ACTION, 'utf8').replaceAll('\r\n', '\n');
   const yaml = body.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
   const uses = [...yaml.matchAll(/^\s*- uses: (\S+)$/gm)].map((m) => m[1]);
   assert.ok(uses.length >= 1);
@@ -152,7 +157,7 @@ test('the Action: pinned, no secret, no token, inputs only through env', () => {
 
 test('this repository\'s workflows call the Action at their own ref', () => {
   /** @param {string} f */
-  const wf = (f) => fs.readFileSync(path.join(ROOT, '.github', 'workflows', f), 'utf8');
+  const wf = (f) => fs.readFileSync(path.join(ROOT, '.github', 'workflows', f), 'utf8').replaceAll('\r\n', '\n');
   assert.match(wf('docs-baseline.yml'), /^ {8}uses: \.\/actions\/delivery-gates\n {8}with:\n {10}gate: docs-baseline$/m);
   assert.doesNotMatch(wf('docs-baseline.yml'), /bin\/mhw\.js/);
   const gate = wf('reference-delivery-gate.yml');

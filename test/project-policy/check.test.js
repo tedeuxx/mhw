@@ -440,7 +440,7 @@ test('mhw policy left the CLI (#592): bin/mhw.js answers it as an unknown subcom
     const p = spawnSync(process.execPath, [MHW, ...argv], { encoding: 'utf8' });
     assert.equal(p.status, 2, argv.join(' '));
     assert.equal(p.stdout, '', argv.join(' '));
-    assert.match(p.stderr, /^mhw: unknown (subcommand|argument for) policy/, argv.join(' '));
+    assert.match(p.stderr, /^mhw: (?:unknown (?:subcommand|argument for) policy|policy is not available on Windows)/, argv.join(' '));
   }
 });
 

@@ -251,7 +251,7 @@ test('check: through the delivery gates Action\'s engine; onboard through bin/mh
   const gone = run('bin/mhw.js', ['docs-baseline', 'check', '--base=main']);
   assert.equal(gone.status, 2);
   assert.equal(gone.stdout, '');
-  assert.match(gone.stderr, /^mhw: unknown (subcommand|argument for) docs-baseline/);
+  assert.match(gone.stderr, /^mhw: (?:unknown (?:subcommand|argument for) docs-baseline|docs-baseline is not available on Windows)/);
 });
 
 // -- onboard ---------------------------------------------------------------------------------------
