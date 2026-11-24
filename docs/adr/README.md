@@ -55,12 +55,12 @@ Each is raised one at a time, when a slice reaches it.
    ([#592](https://github.com/tedeuxx/mhw/issues/592)): the delivery gates, the contract validator and
    the documentation baseline check as one composite GitHub Action. The destination is already his
    ruling (*"It becomes a reusable GitHub Action."*); the Action's shape is agent-written.~~
-   *Ratified on 2026-11-24 ([«Ratifico»](https://github.com/tedeuxx/mhw/issues/592#issuecomment-7130734920)).*
+   *Ratified on 2026-11-24 ([«Ratifico»](https://github.com/tedeuxx/mhw/issues/592#issuecomment-7130734920); [date corrected](https://github.com/tedeuxx/mhw/issues/592#issuecomment-7134109017)).*
 10. ~~**Ratify [ADR-0047](0047-third-party-terms-judged-by-the-model.md)**
    ([#589](https://github.com/tedeuxx/mhw/issues/589)): third-party terms judged by the model, a Claude
    Code `prompt`-type hook, and the term lists, salt and `mhw add-term` removed. The direction is already
    his (PRD sections 5 and 6); the hook's wording and the leftover handling are the agents'.~~
-    *Ratified on 2026-11-24 ([«Ratifico»](https://github.com/tedeuxx/mhw/issues/589#issuecomment-7132828476)).*
+   *Ratified on 2026-11-24 ([«Ratifico»](https://github.com/tedeuxx/mhw/issues/589#issuecomment-7132828476)).*
 
 ## Index
 
@@ -98,7 +98,7 @@ Each is raised one at a time, when a slice reaches it.
 | [0030](0030-version-key-and-one-entry-point.md) | Version key and the `./workstation` entry point | ~~proposed~~ accepted 2026-11-17 |
 | [0031](0031-pre-authorisation-allow-list-behind-the-admin-floor.md) | Inner-loop pre-authorisation behind the admin floor | ~~proposed~~ accepted 2026-11-17 |
 | [0032](0032-this-repository-is-the-single-source-of-the-working-method.md) | This repository is the single source of the working method | ~~proposed~~ accepted 2026-11-17 |
-| [0033](0033-paste-cleaning-wrapper-primary-hook-safety-net.md) | Paste cleaning: wrapper first, prompt hook as safety net | ~~proposed~~ accepted 2026-11-17; supersedes 0011; its term part superseded by 0047 (proposed) |
+| [0033](0033-paste-cleaning-wrapper-primary-hook-safety-net.md) | Paste cleaning: wrapper first, prompt hook as safety net | ~~proposed~~ accepted 2026-11-17; supersedes 0011; its term part superseded by 0047 (~~proposed~~ accepted 2026-11-24) |
 | [0034](0034-npm-distribution-from-github-by-tag.md) | npm distribution from GitHub by tag, with an archive stamp; the `mhw` command and its postinstall (2026-10-06) | ~~proposed~~ accepted 2026-11-17 |
 | [0035](0035-workstation-blueprint-reconciliation.md) | Workstation harness blueprint reconciled item by item (2026-10-10) | accepted |
 | [0036](0036-kiro-shared-deny-floor-permissions-yaml.md) | Kiro IDE and Kiro CLI share one deny floor in the user-level `permissions.yaml` (2026-10-11) | ~~proposed~~ accepted 2026-10-11 |
@@ -111,5 +111,5 @@ Each is raised one at a time, when a slice reaches it.
 | [0043](0043-backlog-grooming-batch-confirmation-and-scrum-for-mhw.md) | Backlog grooming closes and rewrites the owner's Issues on one batch confirmation, under safeguards; mhw runs `scrum`, scoped by `loop-mode-repos` (2026-11-20) | ~~proposed~~ accepted 2026-11-20 ([ratification](https://github.com/tedeuxx/mhw/issues/522#issuecomment-7050932440)) |
 | [0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md) | A declared documentation baseline kept current by every merge request (`mhw docs-baseline check`, `mhw onboard`), and an add-only test/DoD override in `project-policy.json` with a coverage floor of 85; amends 0015 (2026-11-20) | ~~proposed~~ accepted 2026-11-20 ([ratification](https://github.com/tedeuxx/mhw/issues/523#issuecomment-7053423698)) |
 | [0045](0045-delivery-route-on-github-rulesets-and-a-skill.md) | The delivery route on GitHub rulesets and the `merge-pull-request` skill; the review verdicts as commit statuses posted by a workflow; `mhw delivery` removed; amends 0021 (2026-11-23, #591) | ~~proposed~~ accepted 2026-11-24 ([ratification](https://github.com/tedeuxx/mhw/issues/591#issuecomment-7133422761)) |
-| [0046](0046-delivery-gates-as-a-reusable-github-action.md) | The delivery gates, the contract validator and the documentation baseline check as one reusable composite GitHub Action, `actions/delivery-gates`; `mhw policy`, `mhw delivery-gate` and `mhw docs-baseline` removed (2026-11-23, #592) | ~~proposed~~ accepted 2026-11-24 ([ratification](https://github.com/tedeuxx/mhw/issues/592#issuecomment-7130734920)) |
+| [0046](0046-delivery-gates-as-a-reusable-github-action.md) | The delivery gates, the contract validator and the documentation baseline check as one reusable composite GitHub Action, `actions/delivery-gates`; `mhw policy`, `mhw delivery-gate` and `mhw docs-baseline` removed (2026-11-23, #592) | ~~proposed~~ accepted 2026-11-24 ([ratification](https://github.com/tedeuxx/mhw/issues/592#issuecomment-7130734920); [date corrected](https://github.com/tedeuxx/mhw/issues/592#issuecomment-7134109017)) |
 | [0047](0047-third-party-terms-judged-by-the-model.md) | Third-party terms are judged by the model (the brief, and a Claude Code `prompt`-type hook); the term lists, their salt and `mhw add-term` removed; supersedes 0033's term part (2026-11-24, #589) | ~~proposed~~ accepted 2026-11-24 ([ratification](https://github.com/tedeuxx/mhw/issues/589#issuecomment-7132828476)) |

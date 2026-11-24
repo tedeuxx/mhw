@@ -1,7 +1,7 @@
 # ADR-0046: The delivery gates, the contract validator and the documentation baseline check as one reusable GitHub Action
 
 - **Status:** ~~proposed (agent-written, awaiting the owner's ratification)~~ accepted 2026-11-24, ratified by
-  the owner ([«Ratifico»](https://github.com/tedeuxx/mhw/issues/592#issuecomment-7130734920)). The destination is the
+  the owner ([«Ratifico»](https://github.com/tedeuxx/mhw/issues/592#issuecomment-7130734920); the date is 2026-11-24, [corrected](https://github.com/tedeuxx/mhw/issues/592#issuecomment-7134109017)). The destination is the
   owner's ruling in the CLI native baseline review of 2026-11-23 (*"It becomes a reusable GitHub
   Action."*, *"It goes in the same Action as delivery-gate."*); the Action's shape is the implementing
   agent's design.
