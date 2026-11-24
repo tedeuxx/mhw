@@ -209,7 +209,7 @@ Status unchanged. The owner decided, recorded on PR #233
   declared in `global/github-repo-settings.json`, the review verdicts reach them as commit statuses
   posted by `.github/workflows/review-status.yml`, and the `merge-pull-request` method skill conducts the
   merge with `gh pr merge N --merge --match-head-commit SHA`.
-- **Where it is decided.** [ADR-0045](0045-delivery-route-on-github-rulesets-and-a-skill.md), proposed,
+- **Where it is decided.** [ADR-0045](0045-delivery-route-on-github-rulesets-and-a-skill.md), ~~proposed~~ accepted 2026-11-24,
   with the condition-by-condition mapping and the trust model.
 - **Evidence level.** *Written and tested*; the rulesets are not applied to any repository. Applying them
   is the owner's act, an `owner-action` Issue.
