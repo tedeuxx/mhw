@@ -17,6 +17,9 @@
 //   9. src/commands/launch-line.js: '/tmp/' dropped from the strict filter
 //  10. test/helpers/json-schema.js: additionalProperties no longer asserted (the negative controls go red)
 //  11. test/helpers/json-schema.js: the keys compared unsorted in `const` (the key-order control goes red)
+//  12. SKILL.md check block: '/tmp/|' dropped from the pattern (the check-block test goes red)
+//  13. SKILL.md check block: the corrected_event fields dropped from the list (same test)
+//  14. SKILL.md kiro block: `select(.unit == "credit")` dropped (the Kiro test goes red: a request unit is summed)
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -181,7 +184,7 @@ test('Kiro: credits summed over the turns of the named session, model from sessi
     const d = path.join(home, '.kiro', 'sessions', 'abc123', 'sess_' + id);
     put(path.join(d, 'session.json'), JSON.stringify({ id: 'sess_' + id, modelId: 'claude-sonnet-4.5', workspacePaths: ['/w'] }));
     put(path.join(d, 'messages.jsonl'), [{ id: 1, payload: { type: 'user', content: 'SECRET-PROSE' } },
-      ...credits.map((c) => ({ id: 2, payload: { type: 'usage_summary', promptTurnSummaries: [{ unit: 'credit', unitPlural: 'credits', usage: c }] } }))]
+      ...credits.map((c) => ({ id: 2, payload: { type: 'usage_summary', promptTurnSummaries: [{ unit: 'credit', unitPlural: 'credits', usage: c }, { unit: 'request', unitPlural: 'requests', usage: 100 }] } }))]
       .map((o) => JSON.stringify(o)).join('\n') + '\n');
   };
   session('k-1', [0.25, 0.5]);
@@ -285,6 +288,49 @@ test('the schema refuses machine-local next_act spellings, and launch-line agree
     assert.equal(strictPrivate(text), false, text);
   }
   for (const text of [...PRIVATE_SPELLINGS, ...PUBLIC_SPELLINGS]) assert.equal(strictPrivate(text), strict.test(text), text);
+});
+
+// B1 of the gate on PR #613: the check block between the join and the post refuses the strict
+// private-path filter in every free-text field that is posted, in the event and in a correction's
+// corrected_event, and passes public text. Table-driven: every spelling through every field.
+const CHECK_FIELDS = /** @type {Array<[string, (e: Record<string, any>, t: string) => void]>} */ ([
+  ['evidence', (e, t) => { e.evidence = ['https://github.com/acme/site/pull/8', t]; }],
+  ['acceptance_evidence', (e, t) => { e.acceptance_evidence = [t]; }],
+  ['next_act', (e, t) => { e.next_act = t; }],
+  ['corrected_event.evidence', (e, t) => { e.corrected_event = { evidence: [t] }; }],
+  ['corrected_event.acceptance_evidence', (e, t) => { e.corrected_event = { acceptance_evidence: [t] }; }],
+  ['corrected_event.next_act', (e, t) => { e.corrected_event = { next_act: t }; }],
+]);
+
+test('the check block refuses private spellings in every posted field and passes public ones', { skip: NEED }, () => {
+  const scratch = fresh();
+  const script = block('# worklog-check').split('<scratchpad>').join(scratch);
+  const base = JSON.parse(fill(template()));
+  const check = (/** @type {Record<string, any>} */ event) => {
+    put(path.join(scratch, 'worklog-event.json'), JSON.stringify(event));
+    return spawnSync(/** @type {string} */ (SH), ['-c', script], { encoding: 'utf8', env: { PATH: process.env.PATH || '', HOME: scratch } });
+  };
+  assert.equal(check(base).status, 0, 'the clean template is refused');
+  for (const [field, set] of CHECK_FIELDS) {
+    for (const text of PRIVATE_SPELLINGS) {
+      const e = structuredClone(base);
+      set(e, text);
+      const r = check(e);
+      assert.equal(r.status, 5, field + ': ' + text + ' was not refused');
+      assert.ok(!r.stderr.includes(text) && !r.stdout.includes(text), 'the refusal names the matched text');
+    }
+    for (const text of PUBLIC_SPELLINGS) {
+      const e = structuredClone(base);
+      set(e, text);
+      assert.equal(check(e).status, 0, field + ': ' + text + ' was refused');
+    }
+  }
+  // The block's pattern agrees with launch-line's strictPrivate on both lists.
+  for (const text of [...PRIVATE_SPELLINGS, ...PUBLIC_SPELLINGS]) {
+    const e = structuredClone(base);
+    e.next_act = text;
+    assert.equal(check(e).status !== 0, strictPrivate(text), text);
+  }
 });
 
 test('mhw worklog is an unknown command', () => {

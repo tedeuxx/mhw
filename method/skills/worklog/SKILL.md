@@ -117,9 +117,12 @@ README, *Accounting*). Every `<…>` is a value you fill; nothing else changes s
 }
 ```
 
-**Public only.** `evidence` and `next_act` never carry a machine-local path (`/Users/`, `/private/`,
-`/tmp/`, `~/`, `file://`), a `.brand` reference or copied private content; the schema refuses the paths
-and nothing can see copied content.
+**Public only.** `evidence`, `acceptance_evidence` and `next_act` never carry a machine-local path
+(`/tmp/`, `~/`, `/var/folders/`, `/home/`, `/Users/`, `/private/`, `file://`, a Windows drive such as
+`C:\`), a `.brand` reference or copied private content. The check block in Step 3 refuses the paths and
+`.brand`; nothing runs the schema in the session, and the schema's own `evidence` filter is narrower
+(it misses `~/`, `/tmp/` and a path inside parentheses, for example). **Copied content is detected by
+nothing**: a sentence copied out of a private file carries none of these strings.
 
 ## Step 3. Post it
 
@@ -129,6 +132,22 @@ Join the two files; the output is the event with its `usage`, keys sorted:
 # worklog-join
 jq -S --slurpfile usage "<scratchpad>/worklog-usage.json" '. + {usage: $usage[0]}' "<scratchpad>/worklog-event.json"
 ```
+
+Then check the event for machine-local and private paths, in every field that is posted as free text,
+in the event and in a correction's `corrected_event`. **If this block exits non-zero, do not post**: fix
+the field and run it again. It prints `true` and exits 0 when the event is clean; it names no matched
+text.
+
+```sh
+# worklog-check
+jq -e '[.evidence[]?, .acceptance_evidence[]?, .next_act?, .corrected_event.evidence[]?, .corrected_event.acceptance_evidence[]?, .corrected_event.next_act?]
+  | map(select(type == "string" and test("/tmp/|~/|/var/folders/|/home/|/users/|/private/|file://|\\.brand(?![a-z0-9_-])|\\b[a-z]:\\\\"; "i")))
+  | if length > 0 then error("private or machine-local material in a posted field") else true end' "<scratchpad>/worklog-event.json"
+```
+
+This is the strict filter `mhw worklog prepare-event` applied before mhw#594, spelled as the schema's
+`next_act` pattern, case-insensitive. It is a string check, held by you running it: nothing stops a
+`gh issue comment` that skips it.
 
 Write the comment body with the `Write` tool, in the session scratchpad, as `worklog-comment.md`: the
 marker alone on the first line, then a `json` fence holding the joined event, exactly:
@@ -174,6 +193,7 @@ gh issue view <n> --repo <owner/repo> --json comments | jq '[.comments[].body
 **Instructions, held by you.** Nothing makes a session record usage, and nothing compares the numbers
 with the harness. The shape is fixed by the blocks above, and mhw's test
 (`test/method/worklog-skill.test.js`) runs them on synthetic logs and validates the result against the
-schema; an event edited by hand after that is checked by nothing. The log layouts are each vendor's
+schema, and runs the check block on private and public spellings. In the session, the check block is
+the only thing that runs on the event; the schema does not. The log layouts are each vendor's
 undocumented files: a release can change them silently, and the block then records `unavailable` or a
 wrong number with nothing to notice.
