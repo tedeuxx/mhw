@@ -2,8 +2,8 @@
 # capability a change touches, per docs/documentation-baseline.json, must also change one of its
 # documents by more than whitespace, or the pull-request body must carry a column-0
 # `docs-baseline: none — <reason>` or `docs-baseline: in #N` line. A changed path outside every
-# capability fails whatever the body says. It is not among delivery-ci's needs in tests.yml; mhw delivery
-# merge requires it by name (REQUIRED in src/commands/delivery.js), so a red or a missing run refuses.
+# capability fails whatever the body says. It is not among delivery-ci's needs in tests.yml; the delivery
+# rulesets require it by name (global/github-repo-settings.json, #591; mhw delivery merge did until then).
 # It runs again when the body is edited, so adding an escape line re-decides. It is a check, not a
 # hook: nothing stops a push, and a trivial doc edit or a dishonest escape still passes (ADR-0044).
 # The command imports only node: modules, so nothing is installed from a registry here.

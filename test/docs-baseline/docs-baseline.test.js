@@ -11,8 +11,6 @@ import {
   globMatches, badPath, manifestErrors, parseBody, decide, defaultManifest, scaffoldFiles, runCheck, runOnboard,
   validate, MANIFEST, inAdrLibrary, loosenings,
 } from '../../src/commands/docs-baseline.js';
-import { checksPass, Pending } from '../../src/commands/delivery.js';
-import { SLICE, RC } from '../helpers/delivery-cases.js';
 import { throwawayHome, which } from '../helpers/home.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -561,11 +559,3 @@ test('check: a base revision without a manifest is noted, and the head manifest 
   assert.equal(res.code, 0, res.out);
 });
 
-test('delivery: docs-baseline is a required check on both bases, so a missing run refuses', () => {
-  for (const pr of [SLICE, RC]) {
-    assert.doesNotThrow(() => checksPass(/** @type {any} */ (pr), []), pr.baseRefName + ': control');
-    const without = { ...pr, statusCheckRollup: pr.statusCheckRollup.filter((c) => c.name !== 'docs-baseline') };
-    assert.throws(() => checksPass(/** @type {any} */ (without), []),
-      (e) => e instanceof Pending && /required CI not successful: docs-baseline/.test(e.message), pr.baseRefName);
-  }
-});

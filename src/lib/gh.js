@@ -1,4 +1,5 @@
-// The forge and version-control tools the delivery route runs: gh and git (#474, S03 of #470).
+// The forge and version-control tools a forge script runs: gh and git (#474, S03 of #470). Since #591 its
+// one user is .github/scripts/review-status.js, the review statuses the delivery rulesets require.
 // node: modules only.
 //
 // These two are TOOLS the owner installs, not interpreters this package ships, so they are found on PATH,

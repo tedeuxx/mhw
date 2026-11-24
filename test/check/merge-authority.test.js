@@ -13,7 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as ma from '../../src/lib/merge-authority.js';
 import { splitFrontMatter } from '../../src/render/method.js';
-import { MERGE_LITERALS, RETIRED_LITERALS } from '../../src/commands/delivery.js';
+import { MERGE_LITERALS, RETIRED_LITERALS } from '../../.github/scripts/review-status.js';
 import { throwawayHome } from '../helpers/home.js';
 import { BLOCK, CORRECTED_SECTION, HISTORY, LEGACY_SECTION, RC_BRIEF, brief } from './briefs.js';
 
@@ -193,7 +193,7 @@ describe('one clearance literal (#134)', () => {
     const flat = ma.flatten(text);
     for (const needle of ['The owner-check: line is mandatory, on line 4, in every verdict whatever its literal (#134).',
       'When the value is not none, post it verbatim on each Issue the PR references, before you merge',
-      'A verdict without the line is malformed, and mhw delivery merge refuses it.']) assert.ok(flat.includes(needle), needle.slice(0, 40));
+      'A verdict without the line is malformed, and the review/quality-assurance status refuses it']) assert.ok(flat.includes(needle), needle.slice(0, 40));
     assert.ok(read('workspace/README.md').includes('APPROVE-AND-MERGE\n   head: <the full 40-character head SHA>\n   owner-check: none\n'));
   });
 

@@ -276,5 +276,22 @@
     "head": "System-wide protections: \\d+ file\\(s\\) to update",
     "replace": "System-wide protections: <N> file(s) to update",
     "why": "#588: the install plan's count of admin-layer files to update grows by the fixed-pattern check's root-owned copy (bin/hook/src/hooks/pattern-check.js), so the count is read as <N> on both sides; the rest of the plan line, and every other line, is still compared."
+  },
+  {
+    "case": [
+      "install-user-layer"
+    ],
+    "stream": [
+      "home/.agents/skills/merge-pull-request",
+      "home/.agents/skills/merge-pull-request/SKILL.md",
+      "home/.claude/skills/merge-pull-request",
+      "home/.claude/skills/merge-pull-request/SKILL.md",
+      "home/.kiro/skills/merge-pull-request",
+      "home/.kiro/skills/merge-pull-request/SKILL.md"
+    ],
+    "base": "^<absent>$",
+    "head": "^(dir 755|file 644)$",
+    "replace": "<the merge-pull-request skill, new since the recording>",
+    "why": "#591 adds the method skill merge-pull-request, which replaced mhw delivery (ADR-0045). The method install renders it into the three skill directories as it renders every other method skill: a directory 755 and a SKILL.md 644. The original never had the skill, so its side is absent; every other written path is compared unchanged."
   }
 ]

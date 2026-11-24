@@ -69,9 +69,12 @@
       "id": "delivery-contract",
       "code": [
         "workspace/**",
-        "src/commands/delivery.js",
         "test/delivery/**",
-        "test/helpers/delivery-*.js",
+        ".github/scripts/review-status.js",
+        ".github/workflows/review-status.yml",
+        ".github/workflows/semver-label.yml",
+        "global/github-repo-settings*.json",
+        "test/review-status/**",
         ".github/scripts/prod-canary.js",
         "test/ci/prod-canary*.test.js",
         "test/helpers/s31*.js",
@@ -83,7 +86,8 @@
       "docs": [
         "workspace/README.md",
         "AGENTS.md",
-        "docs/adr/0021-*.md"
+        "docs/adr/0021-*.md",
+        "docs/adr/0045-*.md"
       ]
     },
     {
