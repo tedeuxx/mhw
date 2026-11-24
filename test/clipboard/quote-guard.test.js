@@ -36,10 +36,11 @@ const envFor = (home, more = {}) => ({ HOME: home, PATH: path.dirname(process.ex
 function noHook(home) {
   const settings = path.join(home, '.claude', 'settings.json');
   if (fs.existsSync(settings)) {
-    assert.ok(!fs.readFileSync(settings, 'utf8').includes('hook prompt --harness'), 'a Claude Code prompt hook was registered');
+    assert.ok(!fs.readFileSync(settings, 'utf8').includes('prompt --harness'), 'a Claude Code prompt hook was registered');
   }
   assert.ok(!fs.existsSync(path.join(home, '.codex', 'hooks.json')), 'a Codex hooks.json was written');
-  assert.ok(!fs.existsSync(path.join(home, '.kiro', 'hooks', NAME + '-paste-filter.json')), 'a Kiro hook file was written');
+  // The prompt hook is the fixed-pattern check since #600 (its own Kiro file); the retired one stays absent too.
+  for (const f of ['-pattern-check.json', '-paste-filter.json']) assert.ok(!fs.existsSync(path.join(home, '.kiro', 'hooks', NAME + f)), 'a Kiro hook file was written: ' + f);
 }
 
 test('mhw install-user refuses a data directory holding a single quote: REFUSE, exit 2, no prompt hook', { skip: !POSIX && 'POSIX' }, () => {
@@ -78,7 +79,7 @@ test('mhw install-admin refuses a rendered node path holding a single quote: REF
   fs.copyFileSync(path.join(ROOT, 'package.json'), path.join(tree, 'package.json'));
   const node = path.join(d, "no'de");
   const cmd = "/bin/sh -c '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \"" + node
-    + "\" \"/x/bin/mhw.js\" hook prompt --harness claude --config \"/x/clipboard.conf\" || exit 0'";
+    + "\" \"/x/pattern-check/src/hooks/pattern-check.js\" prompt --harness claude --config \"/x/clipboard.conf\" || exit 0'";
   const settings = JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [{ type: 'command', command: cmd, timeout: 30 }] }] },
     permissions: { deny: ['Bash(sudo:*)'] } });
   fs.mkdirSync(path.join(tree, 'bin'));

@@ -1,14 +1,15 @@
 // S15 (#486): what the scan transcripts cannot show. The declared differences from the Python original
 // (test/golden/S15/expected-differences.json) each with a test; the keychain salt read; that the file
 // opened is always git's own entry; that no matched text reaches stdout or stderr; the entries that
-// reach the Node command (./mhw, workstation.py, outbound-scan.yml); and unit tests of the helpers.
+// reach the script (outbound-scan.yml; since #600 no `mhw scan` and no ./mhw route); and unit tests of the
+// helpers.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { run, addedBlocks, withoutAttributionTrailer, pyRealpath, validBase, scanText } from '../../src/commands/scan.js';
+import { run, addedBlocks, withoutAttributionTrailer, pyRealpath, validBase, scanText } from '../../.github/scripts/outbound-scan.js';
 import * as core from '../../src/lib/clean.js';
 import { readGolden } from '../helpers/golden.js';
 import { which } from '../helpers/home.js';
@@ -70,7 +71,7 @@ test('without git on PATH a git mode exits 2 and says so; --file needs no git', 
   const env = { ...b.env, PATH: path.join(b.dir, 'no-such-bin') };
   for (const args of [[], ['a.txt'], ['--base=base']]) {
     const r = run(args, { cwd: b.repo, env });
-    assert.deepEqual([r.code, r.stdout, r.stderr], [2, '', 'mhw scan: git was not found on PATH; mhw scan needs it in this mode\n'], JSON.stringify(args));
+    assert.deepEqual([r.code, r.stdout, r.stderr], [2, '', 'outbound-scan: git was not found on PATH; outbound-scan needs it in this mode\n'], JSON.stringify(args));
   }
   const r = run(['--file=' + path.join(b.dir, 'post.txt')], { cwd: b.repo, env });
   assert.equal(r.code, 0);
@@ -176,7 +177,7 @@ test('no matched text reaches stdout or stderr, in any mode', { skip: !GIT && 'n
   b.git(['commit', '-q', '-m', 'all ' + EMAIL]);
   const outs = [run([], { cwd: b.repo, env: b.env }), run(['all.txt'], { cwd: b.repo, env: b.env }),
     run(['--file=all.txt'], { cwd: b.repo, env: b.env }), run(['--base=' + AWS], { cwd: b.repo, env: b.env })];
-  assert.match(outs[0].stdout, /mhw scan: 17 finding\(s\)/);
+  assert.match(outs[0].stdout, /outbound-scan: 17 finding\(s\)/);
   for (const r of outs.slice(0, 3)) {
     for (const v of values) {
       for (let i = 0; i + 5 <= v.length; i++) assert.ok(!(r.stdout + r.stderr).includes(v.slice(i, i + 5)), 'an excerpt of ' + v.length + ' chars');
@@ -186,28 +187,63 @@ test('no matched text reaches stdout or stderr, in any mode', { skip: !GIT && 'n
   assert.equal(outs[3].code, 2);
 });
 
-test('./mhw runs the Node command for scan, and runs nothing when node is missing', { skip: !POSIX && './mhw is the POSIX entry' }, () => {
+test('mhw scan and mhw hook are unknown commands; the CLI carries neither module (#600)', { skip: !POSIX && './mhw is the POSIX entry' }, () => {
   const b = box();
   fs.writeFileSync(path.join(b.dir, 'post.txt'), 'x ' + CPF + '\n');
-  const r = spawnSync(path.join(ROOT, 'mhw'), ['scan', '--file=' + path.join(b.dir, 'post.txt')], { env: b.env, encoding: 'utf8' });
+  for (const args of [['scan', '--file=' + path.join(b.dir, 'post.txt')], ['scan'], ['hook', 'prompt', '--harness', 'claude'], ['hook', 'check-config'], ['hook']]) {
+    for (const entry of [[path.join(ROOT, 'mhw')], [process.execPath, path.join(ROOT, 'bin', 'mhw.js')]]) {
+      const r = spawnSync(entry[0], [...entry.slice(1), ...args], { input: '{"prompt": "x"}', env: b.env, encoding: 'utf8' });
+      assert.equal(r.status, 2, args.join(' ') + ': ' + r.stderr);
+      assert.equal(r.stdout, '', args.join(' '));
+      assert.match(r.stderr, /^mhw: unknown (subcommand|argument for) (scan|hook)\b/, args.join(' '));
+      assert.doesNotMatch(r.stderr, /cpf|finding/, args.join(' '));
+    }
+  }
+  for (const f of ['src/commands/scan.js', 'src/commands/hook-entry.js', 'src/commands/hook-prompt.js']) assert.ok(!fs.existsSync(path.join(ROOT, f)), f);
+  const cli = fs.readFileSync(path.join(ROOT, 'src', 'cli.js'), 'utf8');
+  assert.doesNotMatch(cli, /commands\/(scan|hook-entry|hook-prompt)\.js/);
+  assert.doesNotMatch(fs.readFileSync(path.join(ROOT, 'bin', 'mhw.js'), 'utf8'), /hook-entry/);
+  // The script runs as the workflow runs it, outside the CLI, and reports the fixture's finding.
+  const r = spawnSync(process.execPath, [path.join(ROOT, '.github', 'scripts', 'outbound-scan.js'), '--file=' + path.join(b.dir, 'post.txt')], { env: b.env, encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /post\.txt:1: cpf, 14 chars\n/);
-  if (!fs.existsSync('/usr/bin/node') && !fs.existsSync('/bin/node')) {
-    const n = spawnSync(path.join(ROOT, 'mhw'), ['scan'], { env: { ...b.env, PATH: '/usr/bin:/bin' }, encoding: 'utf8' });
-    assert.notEqual(n.status, 0);
-    assert.equal(n.stdout, '');
-  }
+  assert.ok(!r.stdout.includes(CPF));
+});
+
+test('the program names itself outbound-scan where mhw scan named itself (#600)', { skip: !GIT && 'needs git' }, () => {
+  const b = box();
+  const r = run(['--base=no-such-ref'], { cwd: b.repo, env: b.env });
+  assert.deepEqual([r.code, r.stderr], [2, 'outbound-scan: --base=no-such-ref is not a commit\n']);
+  assert.match(run([], { cwd: b.repo, env: b.env }).stdout, /^outbound-scan: 0 finding\(s\);/m);
 });
 
 test('workstation.py, which once forwarded scan, is gone (#495)', () => {
   assert.ok(!fs.existsSync(path.join(ROOT, 'global', 'workstation.py')));
 });
 
-test('outbound-scan.yml runs the Node command on Node 26 and never blocks on a finding', () => {
+test('outbound-scan.yml runs the engine script on Node 26, not the CLI, and never blocks on a finding', () => {
   const yml = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'outbound-scan.yml'), 'utf8').replaceAll('\r\n', '\n');
   assert.match(yml, /uses: actions\/setup-node@[0-9a-f]{40}\n\s+with:\n\s+node-version: 26\.\d+\.\d+/);
-  assert.match(yml, /run: node bin\/mhw\.js scan "--base=origin\/\$BASE_REF"/);
-  assert.doesNotMatch(yml, /python|sh mhw scan|continue-on-error/);
+  assert.match(yml, /run: node \.github\/scripts\/outbound-scan\.js "--base=origin\/\$BASE_REF"/);
+  assert.doesNotMatch(yml.split('\n').filter((l) => !l.trimStart().startsWith('#')).join('\n'), /python|bin\/mhw|mhw scan|continue-on-error/);
+});
+
+test('the workflow command reports a synthetic fixture finding on a pull-request-shaped branch, calling the engine without the CLI', { skip: !GIT && 'needs git' }, () => {
+  // The run: line of outbound-scan.yml, taken from the workflow itself, against a branch over `base`.
+  const yml = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'outbound-scan.yml'), 'utf8').replaceAll('\r\n', '\n');
+  const line = /run: node (\S+) "--base=origin\/\$BASE_REF"/.exec(yml);
+  assert.ok(line, 'no run line');
+  const b = box();
+  fs.writeFileSync(path.join(b.repo, 'notes.txt'), 'write to ' + EMAIL + '\n');
+  b.git(['add', '-A']);
+  b.git(['commit', '-q', '-m', 'notes']);
+  b.git(['update-ref', 'refs/remotes/origin/base', 'base']);
+  const r = spawnSync(process.execPath, [path.join(ROOT, line[1]), '--base=origin/base'], { cwd: b.repo, env: { ...b.env, BASE_REF: 'base' }, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^notes\.txt:1: email, \d+ chars$/m);
+  assert.match(r.stdout, /^[0-9a-f]{7,}:notes\.txt:1: email, \d+ chars$/m);
+  assert.match(r.stdout, /^outbound-scan: 2 finding\(s\);/m);
+  assert.ok(!r.stdout.includes(EMAIL) && !r.stderr.includes(EMAIL));
 });
 
 test('the Python original and its suite are gone; nothing runs them', () => {

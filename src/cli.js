@@ -8,9 +8,9 @@
 //                    answered here; install --admin and uninstall do not exist there.
 // Moved commands (the strangler's later steps) are answered here on every OS: `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477),
 // `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
-// `mhw scan` (#486), `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux), `mhw check`
-// (#494; macOS and Linux; on Windows both run `mhw install-windows --check`, #497), and `mhw hook prompt`, `mhw hook
-// check-config` and `mhw add-term` (#488); new in Node:
+// `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux), `mhw check`
+// (#494; macOS and Linux; on Windows both run `mhw install-windows --check`, #497), and `mhw add-term`
+// (#488); new in Node:
 // `mhw onboard` (#523), and
 // `mhw install-user` (#503, S25; macOS and Linux), the user-layer installer install, update, uninstall,
 // check and status run (it was global/install.sh), `mhw install-admin` (#496, S26; macOS and Linux), the
@@ -18,9 +18,11 @@
 // and `mhw install-windows` (#497, S27), the user layer on Windows (it was global/install.ps1).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // this file runs go by absolute path, never looked up on PATH. A moved command may look a program up on
-// PATH through src/lib/onpath.js (absolute entries only) and then run it by that absolute path: mhw scan
-// does so for git. node: modules only (convention 5 of #470; test/deps-graph.test.js holds that). `mhw hook prompt` normally never reaches
-// this file: bin/mhw.js sends it to src/commands/hook-entry.js first (#488).
+// PATH through src/lib/onpath.js (absolute entries only) and then run it by that absolute path. node: modules
+// only (convention 5 of #470; test/deps-graph.test.js holds that).
+// `mhw scan` and `mhw hook` left the CLI at #600 (CLI native baseline PRD, section 5): the outbound check is
+// the fixed-pattern check's hook (src/hooks/pattern-check.js, #588), and CI runs the scan's engine from
+// .github/scripts/outbound-scan.js. Both words are unknown subcommands like any other.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -37,11 +39,8 @@ import { main as installUserMain } from './commands/install-user.js';
 import { main as installWindowsMain } from './commands/install-windows.js';
 import { main as mcpLaunchMain } from './commands/mcp-launch.js';
 import { main as mcpCheckMain } from './commands/mcp-check.js';
-import { main as scanMain } from './commands/scan.js';
 import { main as pasteWrapperMain, statusLine as pasteStatusLine } from './commands/paste-wrapper.js';
 import { onboardMain } from './commands/docs-baseline.js';
-import { runHook } from './commands/hook-entry.js';
-import { checkConfig } from './commands/hook-prompt.js';
 import { main as addTermMain } from './commands/add-term.js';
 import { main as statusMain } from './commands/status.js';
 import { main as checkMain } from './commands/check.js';
@@ -50,8 +49,8 @@ import { updateLines } from './commands/update.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const USAGE = [
-  'mhw install [--method] [--overlay=DIR|none] | check | status | update [vX.Y.Z] | scan [--base=REF | PATH... | --file=PATH]',
-  '(Windows: install --admin, scan and uninstall are macOS and Linux only)',
+  'mhw install [--method] [--overlay=DIR|none] | check | status | update [vX.Y.Z]',
+  '(Windows: install --admin and uninstall are macOS and Linux only)',
 ];
 
 /**
@@ -143,23 +142,19 @@ const MOVED = {
   // it there.
   'install-windows': installWindowsMain,
   // #496, S26: the admin-layer installer, moved from global/install-managed.sh. A child process, not an
-  // import: it loads the vendored TOML parser, which must stay off the import graph of `mhw hook prompt`
+  // import: it loads the vendored TOML parser, which must stay off the import graph of the hook path
   // (convention 5 of #470, test/deps-graph.test.js).
   'install-admin': (argv, env) => exitWith(runAbsolute(process.execPath, [path.join(ROOT, 'src', 'commands', 'install-admin.js'), ...argv], { stdio: 'inherit', env })),
   // #483, S12: `mhw mcp launch`, the MCP launcher the renderer installs a copy of; #484, S13: `mhw mcp render`;
   // #595: `mhw mcp check`, the connection test (`mhw status --mcp-connect` until v11).
   mcp: mcpMain,
-  scan: scanMain, // #486, S15: the outbound scan, on the cleaning core (src/lib/clean.js)
   // #487, S16: the paste wrapper the shell functions run. A relayed session resolves later and exits
   // by itself (process.exit); the 0 returned here is replaced then.
   'paste-wrapper': (argv, env) => {
     const r = pasteWrapperMain(argv, env);
     return typeof r === 'number' ? r : 0;
   },
-  // #488, S17: the prompt hook (bin/mhw.js answers it before loading this file; this route is the same
-  // entry, for a caller that reaches main()), the settings check, and add-term. Both async commands exit
-  // by themselves once answered (process.exit); the 0 returned here is replaced then.
-  hook: hookMain,
+  // #488, S17: add-term. It exits by itself once answered (process.exit); the 0 returned here is replaced then.
   'add-term': (argv, env) => {
     addTermMain(argv, env).then((code) => process.exit(code), (e) => {
       fs.writeSync(2, 'mhw add-term: ' + (e instanceof Error ? e.name : 'Error') + '\n');
@@ -172,27 +167,6 @@ const MOVED = {
   // word is an unknown subcommand like any other.
   onboard: onboardMain,
 };
-
-/**
- * `mhw hook prompt --harness H [--config FILE]` and `mhw hook check-config [--config FILE]` (#488).
- * @param {string[]} argv
- * @param {Record<string, string | undefined>} env
- */
-function hookMain(argv, env) {
-  if (argv[0] === 'prompt') {
-    runHook(argv.slice(1), env).then((code) => process.exit(code), () => process.exit(0)); // runHook reports its own failures
-    return 0;
-  }
-  if (argv[0] === 'check-config') {
-    const r = checkConfig(argv.slice(1), env);
-    if (r.stdout) fs.writeSync(1, r.stdout);
-    if (r.stderr) fs.writeSync(2, r.stderr);
-    return r.code;
-  }
-  console.error('usage: mhw hook prompt --harness claude|codex|kiro [--config FILE]   the UserPromptSubmit hook (payload on stdin)\n'
-    + '       mhw hook check-config [--config FILE]                          the effective non-secret settings');
-  return 2;
-}
 
 // `mcp check` tests connections (it starts processes); `mcp render --check` checks drift (it starts none).
 export const MCP_USAGE = 'usage: mhw mcp check [--timeout=SECONDS]   connection test: start each MCP active-set server and say\n'
@@ -211,7 +185,7 @@ export const MCP_USAGE = 'usage: mhw mcp check [--timeout=SECONDS]   connection 
 function mcpMain(argv, env) {
   if (argv[0] === 'launch') return mcpLaunchMain(argv.slice(1), env);
   // A child process, not an import: the renderer loads the vendored TOML parser, which must stay off the
-  // import graph of `mhw hook prompt` (convention 5 of #470, test/deps-graph.test.js).
+  // import graph of the hook path (convention 5 of #470, test/deps-graph.test.js).
   if (argv[0] === 'render') {
     return exitWith(runAbsolute(process.execPath, [path.join(ROOT, 'src', 'render', 'mcp.js'), ...argv.slice(1)], { stdio: 'inherit', env }));
   }
@@ -229,7 +203,8 @@ function mcpMain(argv, env) {
  */
 export function main(argv, platform, env, opts = {}) {
   // `mhw delivery` (#474) left the CLI at #591 (ADR-0045): GitHub rulesets and the merge-pull-request skill
-  // carry the delivery route, so the word is an unknown subcommand like any other.
+  // carry the delivery route, so the word is an unknown subcommand like any other; so did `mhw scan` and
+  // `mhw hook` at #600.
   // own keys only, so `mhw constructor` is forwarded like any unknown word
   if (argv.length && Object.hasOwn(MOVED, argv[0])) return MOVED[argv[0]](argv.slice(1), env);
   if (argv[0] === 'status') {

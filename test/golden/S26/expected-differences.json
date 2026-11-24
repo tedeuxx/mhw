@@ -55,5 +55,40 @@
     "stream": "tree",
     "pattern": null,
     "why": "Not a difference: kept on purpose, and named so it is not mistaken for an oversight. The Claude Code drop-in's key, the Codex requirements' first line, hook/package.json and the Kiro document ('source: global/install-managed.sh via src/render/kiro-permissions.js') still carry 'source: global/install-managed.sh' in their managed-by text, byte for byte as before. --check compares the installed files byte for byte after removing only the stamp: a new source word would read every admin layer installed by an earlier release as DRIFT, and its repair is a sudo act. The source words are corrected when those files next change for another reason."
+  },
+  {
+    "name": "#600: mhw hook prompt's entry and module leave the admin layer",
+    "case": "foreign-codex",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600: the admin layer no longer stages `mhw hook prompt`'s entry and module (bin/hook/src/commands/hook-entry.js and hook-prompt.js; --apply deletes them as legacy files and --check names them STALE), and its Claude Code drop-in and Codex requirements carry only the fixed-pattern check's entries, without --defer-to-paste-filter. That moves this scenario's MISSING, OK and STAMP lines, its trees, and the sha256 of the two admin documents (stored by hash), and install-managed.sh, the original, is deleted and its live arm retired. So the scenario is declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install-managed.sh one stays <scenario>.json. Checked before recording: every differing line names one of the two removed files or a hash of a document that held their entry; test/install/admin.test.js holds the new documents and the legacy removal."
+  },
+  {
+    "name": "#600: mhw hook prompt's entry and module leave the admin layer",
+    "case": "foreign-kiro",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600: the admin layer no longer stages `mhw hook prompt`'s entry and module (bin/hook/src/commands/hook-entry.js and hook-prompt.js; --apply deletes them as legacy files and --check names them STALE), and its Claude Code drop-in and Codex requirements carry only the fixed-pattern check's entries, without --defer-to-paste-filter. That moves this scenario's MISSING, OK and STAMP lines, its trees, and the sha256 of the two admin documents (stored by hash), and install-managed.sh, the original, is deleted and its live arm retired. So the scenario is declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install-managed.sh one stays <scenario>.json. Checked before recording: every differing line names one of the two removed files or a hash of a document that held their entry; test/install/admin.test.js holds the new documents and the legacy removal."
+  },
+  {
+    "name": "#600: mhw hook prompt's entry and module leave the admin layer",
+    "case": "legacy-leftovers",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600: the admin layer no longer stages `mhw hook prompt`'s entry and module (bin/hook/src/commands/hook-entry.js and hook-prompt.js; --apply deletes them as legacy files and --check names them STALE), and its Claude Code drop-in and Codex requirements carry only the fixed-pattern check's entries, without --defer-to-paste-filter. That moves this scenario's MISSING, OK and STAMP lines, its trees, and the sha256 of the two admin documents (stored by hash), and install-managed.sh, the original, is deleted and its live arm retired. So the scenario is declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install-managed.sh one stays <scenario>.json. Checked before recording: every differing line names one of the two removed files or a hash of a document that held their entry; test/install/admin.test.js holds the new documents and the legacy removal."
+  },
+  {
+    "name": "#600: mhw hook prompt's entry and module leave the admin layer",
+    "case": "lifecycle",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600: the admin layer no longer stages `mhw hook prompt`'s entry and module (bin/hook/src/commands/hook-entry.js and hook-prompt.js; --apply deletes them as legacy files and --check names them STALE), and its Claude Code drop-in and Codex requirements carry only the fixed-pattern check's entries, without --defer-to-paste-filter. That moves this scenario's MISSING, OK and STAMP lines, its trees, and the sha256 of the two admin documents (stored by hash), and install-managed.sh, the original, is deleted and its live arm retired. So the scenario is declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install-managed.sh one stays <scenario>.json. Checked before recording: every differing line names one of the two removed files or a hash of a document that held their entry; test/install/admin.test.js holds the new documents and the legacy removal."
+  },
+  {
+    "name": "#600: mhw hook prompt's entry and module leave the admin layer",
+    "case": "tampered-stage",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600: the admin layer no longer stages `mhw hook prompt`'s entry and module (bin/hook/src/commands/hook-entry.js and hook-prompt.js; --apply deletes them as legacy files and --check names them STALE), and its Claude Code drop-in and Codex requirements carry only the fixed-pattern check's entries, without --defer-to-paste-filter. That moves this scenario's MISSING, OK and STAMP lines, its trees, and the sha256 of the two admin documents (stored by hash), and install-managed.sh, the original, is deleted and its live arm retired. So the scenario is declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install-managed.sh one stays <scenario>.json. Checked before recording: every differing line names one of the two removed files or a hash of a document that held their entry; test/install/admin.test.js holds the new documents and the legacy removal."
   }
 ]

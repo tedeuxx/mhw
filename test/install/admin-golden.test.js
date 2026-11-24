@@ -200,7 +200,8 @@ function baseTree() {
 test('golden: mhw install-admin matches the transcripts recorded from install-managed.sh', { skip: SKIP || (UPDATE && 'MHW_UPDATE_GOLDEN=1'), timeout: 1800000 }, () => {
   assertTranscriptInventory(SLICE, SCENARIOS);
   for (const sc of SCENARIOS) {
-    const want = readGolden(SLICE, 'transcripts/' + sc.name + '.json');
+    // A declared scenario (#600) has its Node transcript as <scenario>.node.json; expected-differences.json says why.
+    const want = readGolden(SLICE, 'transcripts/' + sc.name + (sc.declared ? '.node.json' : '.json'));
     const node = runScenario(sc, ROOT, 'node');
     assert.deepEqual(fold(node.runs, sc.name), fold(want, sc.name), sc.name);
     assert.ok(node.digests.every(Boolean), sc.name + ': a RUN line names a hash that is not its stage\'s digest');
@@ -221,6 +222,7 @@ test('live: install-managed.sh at the base revision, and mhw install-admin here,
       continue;
     }
     assert.deepEqual(shell.runs, readGolden(SLICE, 'transcripts/' + sc.name + '.json'), sc.name + ': the base no longer matches its golden');
+    if (sc.declared) continue; // its difference is declared (#600)
     const node = runScenario(sc, ROOT, 'node');
     assert.deepEqual(fold(node.runs, sc.name), fold(shell.runs, sc.name), sc.name);
     // The hash is the one number the owner's sudo line carries: each side's is the digest of its own stage.
@@ -233,4 +235,5 @@ test('every expected difference names a scenario or none and says why', () => {
     assert.ok(e.why.length > 40 && (!e.case || SCENARIOS.some((x) => x.name === e.case)), e.name);
     if (e.pattern) assert.doesNotThrow(() => new RegExp(/** @type {string} */ (e.pattern), 'gm'), e.name);
   }
+  for (const sc of SCENARIOS.filter((x) => x.declared)) assert.ok(expected.some((e) => e.case === sc.name), sc.name + ' has no expected-differences entry');
 });

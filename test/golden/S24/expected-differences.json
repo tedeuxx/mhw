@@ -296,6 +296,92 @@
   },
   {
     "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "[^\\n]*personal-multi-harness-workstation-configuration-paste-filter\\.json[^\\n]*\\n",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, and with it the Kiro CLI V3 hook file that ran it, ~/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json. Install no longer writes or checks it (it retires one an earlier release left), so every line naming it in the original's transcript (MISSING, OK, DRIFT, WOULD WRITE, REMOVED) is taken out of the base side here; the fixed-pattern check's own Kiro file carries the prompt half (its lines are taken out of the head by the #588 entry). Every other line is still compared."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": ", hook-(?:entry|prompt)\\.js(?=[,\\n])",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#600: the admin layer no longer stages `mhw hook prompt`'s entry and module (bin/hook/src/commands/hook-entry.js and hook-prompt.js; an --apply deletes them as legacy files), so the original's lines naming either file, and the two names in its summary lines, are taken out of the base side. The count of differing targets is already normalised."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "[^\\n]*hook/src/commands/hook-(?:entry|prompt)\\.js[^\\n]*\\n",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#600: the admin layer no longer stages `mhw hook prompt`'s entry and module (bin/hook/src/commands/hook-entry.js and hook-prompt.js; an --apply deletes them as legacy files), so the original's lines naming either file, and the two names in its summary lines, are taken out of the base side. The count of differing targets is already normalised."
+  },
+  {
+    "case": [
+      "usage-and-refusals"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "    \\./mhw scan \\[--base=REF \\| PATH\\.\\.\\.\\][^\\n]*\\n(?: {42}[^\\n]*\\n)*    \\./mhw scan --file=PATH[^\\n]*\\n(?: {42}[^\\n]*\\n)*",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#600 took `mhw scan` out of the CLI (CLI native baseline PRD, section 5: CI calls the engine directly, and the fixed-pattern check's hook carries the outbound check). The usage text no longer lists its two entries, `./mhw scan [--base=REF | PATH...]` and `./mhw scan --file=PATH`, so the original's ten lines for them (each entry and its 42-column continuations) are taken out of the base side. Every other line of the usage, the DOC paragraphs and the exit codes are still compared."
+  },
+  {
+    "case": [
+      "usage-and-refusals"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "check, scan, policy check",
+    "head": "(?!)",
+    "replace": "check, policy check",
+    "why": "#600: the unknown-subcommand refusal lists the subcommands mhw has, and scan is no longer one of them. Only that word is taken out of the original's list; the refusal's wording, stream and exit code are still compared."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "home/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json"
+    ],
+    "base": "^file 644$",
+    "head": "^<absent>$",
+    "replace": "<retired by #600>",
+    "why": "#600: install no longer writes the Kiro CLI V3 hook file that ran `mhw hook prompt` (and retires one an earlier release left); the fixed-pattern check's own Kiro file, which #588 added, carries the prompt half there. Only this file's presence is declared; every other file of the tree is still compared."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/hook/src/commands",
+      "admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/hook/src/commands/hook-entry.js",
+      "admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/hook/src/commands/hook-prompt.js"
+    ],
+    "base": "^(dir 755|file 644)$",
+    "head": "^<absent>$",
+    "replace": "<retired by #600>",
+    "why": "#600: the admin layer no longer stages `mhw hook prompt`'s entry and module (bin/hook/src/commands/hook-entry.js and hook-prompt.js); --apply deletes them as legacy files and removes the emptied directory. Only these three paths are declared; every other file of the admin tree is still compared."
+  },
+  {
+    "case": [
       "usage-and-refusals"
     ],
     "stream": [
@@ -313,9 +399,9 @@
     "stream": [
       "stderr"
     ],
-    "base": "scan, policy check, update",
+    "base": "check, policy check, update",
     "head": "(?!)",
-    "replace": "scan, update",
-    "why": "A break of the public interface (#592, v11, section 5 of the CLI native baseline PRD, ADR-0046): `mhw policy check`, `mhw delivery-gate` and `mhw docs-baseline check` left the CLI for the delivery gates Action (actions/delivery-gates), so the usage text drops the seven lines of `./mhw policy check` (its command line and six description lines) and the unknown-subcommand refusal (step 4) no longer lists `policy check` among the commands; the rest of the line and the exit code are unchanged."
+    "replace": "check, update",
+    "why": "A break of the public interface (#592, v11, section 5 of the CLI native baseline PRD, ADR-0046): `mhw policy check`, `mhw delivery-gate` and `mhw docs-baseline check` left the CLI for the delivery gates Action (actions/delivery-gates), so the usage text drops the seven lines of `./mhw policy check` (its command line and six description lines) and the unknown-subcommand refusal (step 4) no longer lists `policy check` among the commands; the rest of the line and the exit code are unchanged. Applied after the #600 entry, which already took scan out of the same list."
   }
 ]

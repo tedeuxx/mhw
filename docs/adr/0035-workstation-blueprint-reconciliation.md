@@ -169,8 +169,11 @@ should only be used to mitigate existential risks).
 
 ### 7. Outbound scan
 
-A new `mhw scan` command. The agent runs it by rule before every push and PR, and a CI check runs it
-on every PR.
+~~A new `mhw scan` command. The agent runs it by rule before every push and PR, and a CI check runs it
+on every PR.~~ *(Amended 2026-11-23, [#600](https://github.com/tedeuxx/mhw/issues/600): `mhw scan` and the
+rule that ran it, brief rule 8, are removed; the native hook of #588 runs before a push or pull request in
+an agent harness, and the CI check runs the engine from `.github/scripts/outbound-scan.js`. See that
+amendment below.)*
 
 - Design proposed by the agent, not the owner's words: it reuses the paste filter's detection engine,
   and it reports `file:line`, the rule and the match length. It never prints the matched text
@@ -948,7 +951,7 @@ details below are the agents' and await his ratification at the release candidat
   reads them, with the vendor no-reply address of the attribution trailer excepted. `gh pr create` checks
   the commits HEAD would send too, since it can push the branch. Only the fixed-format categories.
 - **It blocks.** A finding stops the call on every harness: exit 2, the findings on stderr as
-  `<where>: <category>, <N> chars`, never the matched text (ADR-0005). The fix it names is brief rule 8's:
+  `<where>: <category>, <N> chars`, never the matched text (ADR-0005). The fix it names is ~~brief rule 8's~~ the one brief rule 8 named (the rule itself is removed by #600):
   rewrite the unpushed commit that introduced it, not a follow-up commit.
 - **It fails closed.** A check that cannot run blocks the call and says why: no git, a payload it cannot
   read, more to read than the size limit allows (`max_bytes` for one file's added lines, four times it for
@@ -978,13 +981,50 @@ details below are the agents' and await his ratification at the release candidat
   field names are read from the 3.1.0 bundle, not observed. Codex asks to trust the changed hooks again,
   which is the owner's act.
 
+## Amendment 2026-11-23: `mhw scan` leaves the CLI; CI calls the engine; brief rule 8 is removed ([#600](https://github.com/tedeuxx/mhw/issues/600), proposed)
+
+Status of the record unchanged (accepted). Slice 2b of the
+[CLI native baseline PRD](../mhw-product-requirements-document-cli-native-baseline.md) (section 5:
+*"the detectors stay an internal engine; CI calls the engine directly; brief rule 8 is removed"*; the
+owner: *"You should not depend on calling the CLI to implement this mechanism."*). The removal is the
+owner's decision; the details below are the agents' and await his ratification at the release candidate.
+
+- **`mhw scan` is an unknown command.** ~~Decision 7 above: the new `mhw scan` subcommand.~~ The scan's
+  code moved, unchanged in what it detects and prints, to `.github/scripts/outbound-scan.js`, a script of
+  this repository's CI. It imports the engine (`src/lib/clean.js`, `src/lib/base-url.js`) and the -U0 patch
+  reader and attribution-trailer rule of the fixed-pattern check (`src/hooks/pattern-check.js`, #588), so
+  the CI check and the push hook read a commit the same way. It is not in the npm package (`.github/` is
+  not in `files`), so no installed command carries it. Its summary line now names it (`outbound-scan:`)
+  instead of `mhw scan:`.
+- **The `outbound-scan` CI check** runs `node .github/scripts/outbound-scan.js --base=origin/<base>` on
+  every pull request. Unchanged otherwise: it informs, exits 0 with findings, goes red only when it cannot
+  run, and the delivery rulesets still require its job, `scan`, by name. No term list on the runner.
+- **Brief rule 8 is removed** from the global brief (`global/AGENTS.md`), the owner overlay's rendering of it
+  (`overlay/desktop-instructions.md`), and so from every brief `mhw install` renders. ~~*"Before every push
+  and pull request, run `mhw scan`"*.~~ What carries the act now is the fixed-pattern check's `PreToolUse`
+  hook (the amendment above, #588), which blocks before `git push` and `gh pr create` in an agent harness;
+  its fix notice keeps the rule's one instruction that still applies (rewrite the unpushed commit, not a
+  follow-up commit). The vendor no-reply address of the attribution trailer stays exempt there.
+- **What is lost, said plainly.** (1) A push from the owner's own terminal is checked by nothing on the
+  workstation; the CI check still reports on the pull request. (2) `mhw scan --file`, which
+  `content-publishing` step 10 ran on each social post before posting (#34), has no installed carrier: the
+  step now tells the agent to read the post for the fixed-format categories itself and names the gap; a
+  publication hook is the PRD's open item. (3) Employer and client terms in outbound text are the model's
+  judgement only (#589). From a checkout, `node .github/scripts/outbound-scan.js` still runs every mode the
+  command had (`--base=REF`, paths, `--file=PATH`, and the owner's term lists where readable); that is a
+  script in a checkout, not an installed control.
+- **Evidence level.** Written and tested: the S15 transcripts now run against the script, and a synthetic
+  fixture finding is reported by the script and by the workflow's own command line. Not installed anywhere;
+  the CI check runs on this pull request.
+
 ## Links
 
 - Issues: none (owner request in session, 2026-10-10);
   [#145](https://github.com/tedeuxx/mhw/issues/145) (install applies every setting itself, 2026-10-11);
   [#34](https://github.com/tedeuxx/mhw/issues/34) (decision 7 reaches a post before it is published,
   2026-11-01); [#36](https://github.com/tedeuxx/mhw/issues/36) (five more detection categories,
-  2026-11-01)
+  2026-11-01); [#588](https://github.com/tedeuxx/mhw/issues/588) (a native carrier that blocks, 2026-11-23);
+  [#600](https://github.com/tedeuxx/mhw/issues/600) (`mhw scan` and brief rule 8 removed, 2026-11-23)
 - Pull requests: #118 (slice A), #119 (slice B), #120 (slice F), #121 (decision 9, owner-action queue),
   #126 (decisions 6 and 10), #132 (decision 1, mhw sphere line)
 - Amends: [ADR-0007](0007-session-start-model-and-effort-defaults.md),

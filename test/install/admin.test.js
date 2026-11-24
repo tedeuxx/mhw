@@ -104,7 +104,7 @@ test('mhw status flags an owner-writable node in the installed admin hook', { sk
   }
 });
 
-test('the Claude Code drop-in registers the paste filter and the fixed-pattern check from the admin bin, and no other hook; no HITL guard', { skip: SKIP }, () => {
+test('the Claude Code drop-in registers the fixed-pattern check from the admin bin, and no other hook; no HITL guard, no mhw hook prompt', { skip: SKIP }, () => {
   const d = JSON.parse(fs.readFileSync(t.claude, 'utf8'));
   assert.deepEqual(Object.keys(d).sort(), ['hooks', 'permissions', NAME].sort());
   // #588: the fixed-pattern check before the prompt, and before the Bash tool.
@@ -112,40 +112,43 @@ test('the Claude Code drop-in registers the paste filter and the fixed-pattern c
   for (const ev of ['UserPromptSubmit', 'PreToolUse']) {
     assert.ok(d.hooks[ev].every((/** @type {any} */ g) => g.hooks.every((/** @type {any} */ h) => h.command.includes(t.bin))), ev);
   }
-  assert.deepEqual(d.hooks.UserPromptSubmit[0].hooks.map((/** @type {any} */ h) => /hook-entry\.js|pattern-check\.js/.exec(h.command)?.[0]), ['hook-entry.js', 'pattern-check.js']);
+  // #600: `mhw hook prompt`'s entry (hook-entry.js) is gone; the check's prompt half is the only prompt hook.
+  assert.deepEqual(d.hooks.UserPromptSubmit[0].hooks.map((/** @type {any} */ h) => /hook-entry\.js|pattern-check\.js/.exec(h.command)?.[0]), ['pattern-check.js']);
   assert.equal(d.hooks.PreToolUse.length, 1);
   assert.equal(d.hooks.PreToolUse[0].matcher, 'Bash');
   assert.ok(d.hooks.PreToolUse[0].hooks[0].command.includes(t.bin + '/hook/src/hooks/pattern-check.js" pre-tool --harness claude'));
   const req = fs.readFileSync(t.codex, 'utf8');
-  for (const s of ['AskUserQuestion', 'hitl-escalation-guard', 'restart_guard', 'breaking_glass']) {
+  for (const s of ['AskUserQuestion', 'hitl-escalation-guard', 'restart_guard', 'breaking_glass', 'hook-entry', 'hook-prompt', 'hook prompt', 'defer-to-paste-filter']) {
     assert.ok(!JSON.stringify(d).includes(s) && !req.includes(s), s);
   }
-  for (const f of ['hitl-escalation-guard.sh', 'hitl.conf', 'restart_guard.py', 'breaking_glass.py', 'clipboard_guard.py']) assert.ok(!fs.existsSync(t.bin + '/' + f), f);
+  for (const f of ['hitl-escalation-guard.sh', 'hitl.conf', 'restart_guard.py', 'breaking_glass.py', 'clipboard_guard.py', 'hook/src/commands']) assert.ok(!fs.existsSync(t.bin + '/' + f), f);
   assert.ok(!fs.existsSync(t.switches));
 });
 
 test('the admin hook command is the user layer\'s start-fallback form, on the node install-user rendered', { skip: SKIP }, () => {
   const d = JSON.parse(fs.readFileSync(t.claude, 'utf8'));
   const cmd = d.hooks.UserPromptSubmit[0].hooks[0].command;
+  // The fixed-pattern check's prompt half (#600: no --defer-to-paste-filter, no hook-entry.js beside it).
   const want = pasteWrap('claude', '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + process.execPath + '" "'
-    + t.bin + '/hook/src/commands/hook-entry.js" --harness claude --config "' + t.bin + '/clipboard.conf"');
+    + t.bin + '/hook/src/hooks/pattern-check.js" prompt --harness claude --config "' + t.bin + '/clipboard.conf"');
   assert.equal(cmd, want);
   const codex = parseToml(fs.readFileSync(t.codex, 'utf8'));
   assert.equal(codex.hooks.UserPromptSubmit[0].hooks[0].command, pasteWrap('codex', '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "'
-    + process.execPath + '" "' + t.bin + '/hook/src/commands/hook-entry.js" --harness codex --config "' + t.bin + '/clipboard.conf"'));
+    + process.execPath + '" "' + t.bin + '/hook/src/hooks/pattern-check.js" prompt --harness codex --config "' + t.bin + '/clipboard.conf"'));
   assert.equal(renderedNode(path.join(base, 'no-such-settings.json')), '');
 });
 
-test('the Codex requirements carry our marker, the paste filter and fixed-pattern hooks only, no hooks-only lock, and parse as TOML', { skip: SKIP }, () => {
+test('the Codex requirements carry our marker, the fixed-pattern hooks only, no hooks-only lock, and parse as TOML', { skip: SKIP }, () => {
   const req = fs.readFileSync(t.codex, 'utf8');
   assert.ok(req.split('\n')[0].includes('managed-by: ' + NAME));
   assert.ok(!/^\s*(allow_managed_hooks_only|\[features\])/m.test(req));
-  // The paste filter, then the fixed-pattern check before the prompt and before a tool call (#588).
-  assert.equal(req.match(/^\[\[hooks\.[A-Za-z]*\.hooks\]\]/gm)?.length, 3);
+  // The fixed-pattern check before the prompt and before a tool call (#588); since #600 no paste filter entry.
+  assert.equal(req.match(/^\[\[hooks\.[A-Za-z]*\.hooks\]\]/gm)?.length, 2);
+  assert.ok(!req.includes('hook-entry') && !req.includes('defer-to-paste-filter'));
   const d = parseToml(req);
   assert.deepEqual(Object.keys(d.hooks).sort(), ['PreToolUse', 'UserPromptSubmit', 'managed_dir']);
-  assert.equal(d.hooks.UserPromptSubmit[0].hooks.length, 2);
-  assert.ok(d.hooks.UserPromptSubmit[0].hooks[1].command.includes('/hook/src/hooks/pattern-check.js" prompt --harness codex'));
+  assert.equal(d.hooks.UserPromptSubmit[0].hooks.length, 1);
+  assert.ok(d.hooks.UserPromptSubmit[0].hooks[0].command.includes('/hook/src/hooks/pattern-check.js" prompt --harness codex'));
   assert.ok(d.hooks.PreToolUse[0].hooks[0].command.includes('/hook/src/hooks/pattern-check.js" pre-tool --harness codex'));
   assert.equal(d.hooks.PreToolUse[0].matcher, undefined, 'no matcher: the script passes any call that is not an outbound act');
   assert.equal(d.hooks.managed_dir, t.bin);
@@ -197,12 +200,12 @@ test('the Node hook\'s files and the conf are installed, none executable, root-o
     const st = fs.statSync(t.bin + '/' + f);
     assert.ok(st.isFile() && (st.mode & 0o777) === 0o644, f);
   }
-  for (const d of [t.base, t.bin, t.bin + '/hook', t.bin + '/hook/src', t.bin + '/hook/src/commands', t.bin + '/hook/src/lib', t.bin + '/hook/src/hooks']) {
+  for (const d of [t.base, t.bin, t.bin + '/hook', t.bin + '/hook/src', t.bin + '/hook/src/lib', t.bin + '/hook/src/hooks']) {
     assert.equal(fs.statSync(d).mode & 0o777, 0o755, d);
   }
   // Each hook file is its source with one stamp line before it.
-  const entry = fs.readFileSync(t.bin + '/hook/src/commands/hook-entry.js', 'utf8');
-  assert.equal(entry.slice(entry.indexOf('\n') + 1), fs.readFileSync(path.join(ROOT, 'src', 'commands', 'hook-entry.js'), 'utf8'));
+  const entry = fs.readFileSync(t.bin + '/hook/src/hooks/pattern-check.js', 'utf8');
+  assert.equal(entry.slice(entry.indexOf('\n') + 1), fs.readFileSync(path.join(ROOT, 'src', 'hooks', 'pattern-check.js'), 'utf8'));
 });
 
 test('the installed admin hook blocks a finding, passes a clean prompt, and a planted NODE_OPTIONS --require never runs', { skip: SKIP }, () => {
@@ -268,8 +271,8 @@ test('check after apply is clean, names each of the ten files with the source\'s
   const git = which('git');
   const head = git ? spawnSync(git, ['-C', ROOT, 'rev-parse', '--verify', 'HEAD'], { encoding: 'utf8' }).stdout.trim() : 'unknown';
   assert.match(src, new RegExp('^release: .*; commit: ' + head + '(-dirty)?$'));
-  assert.equal(c.out.split('\n').filter((l) => /^OK .*\(release: /.test(l)).length, 10); // #588: the fixed-pattern check's file
-  for (const f of [t.claude, t.codex, t.kiro, t.bin + '/hook/src/commands/hook-entry.js', t.bin + '/hook/package.json', t.bin + '/clipboard.conf']) {
+  assert.equal(c.out.split('\n').filter((l) => /^OK .*\(release: /.test(l)).length, 8); // #588 added the check's file; #600 removed hook-entry.js and hook-prompt.js
+  for (const f of [t.claude, t.codex, t.kiro, t.bin + '/hook/src/hooks/pattern-check.js', t.bin + '/hook/package.json', t.bin + '/clipboard.conf']) {
     assert.ok(fs.readFileSync(f, 'utf8').includes('; ' + src + ';'), f);
   }
 });
@@ -325,6 +328,30 @@ test('--help prints the usage text and exits 0; an earlier unknown argument wins
   const u = admin(['--nope', '--help']);
   assert.equal(u.code, 2);
   assert.equal(u.err, 'unknown argument: --nope\n');
+});
+
+test('an admin layer from before #600: --check names hook-entry.js and hook-prompt.js STALE, --apply deletes them and their directory', { skip: SKIP }, () => {
+  // Its own root, so the shared layer the other tests read stays as installed.
+  const own = path.join(base, 'root-600');
+  fs.mkdirSync(own);
+  const ot = targetsOf(own);
+  const rr = admin(['--root=' + own]);
+  const m = /^RUN {5}.* --apply="([^"]+)" --sha256=([0-9a-f]+)/m.exec(rr.out);
+  assert.ok(m, rr.out + rr.err);
+  assert.equal(admin(['--apply=' + m[1], '--sha256=' + m[2], '--root=' + own]).code, 0);
+  const old = ['hook-entry.js', 'hook-prompt.js'].map((f) => ot.bin + '/hook/src/commands/' + f);
+  fs.mkdirSync(path.dirname(old[0]), { recursive: true });
+  for (const f of old) fs.writeFileSync(f, '// managed-by: ' + NAME + '; source: src/commands/x; old\n');
+  const c = admin(['--check', '--root=' + own]);
+  assert.equal(c.code, 1, c.out);
+  for (const f of old) assert.ok(c.out.includes('STALE   ' + f + ": a removed hook's file (#600); --apply deletes it"), c.out);
+  const r2 = admin(['--root=' + own]);
+  const m2 = /^RUN {5}.* --apply="([^"]+)" --sha256=([0-9a-f]+)/m.exec(r2.out);
+  assert.ok(m2, r2.out + r2.err);
+  assert.equal(admin(['--apply=' + m2[1], '--sha256=' + m2[2], '--root=' + own]).code, 0);
+  for (const f of old) assert.ok(!fs.existsSync(f), f);
+  assert.ok(!fs.existsSync(ot.bin + '/hook/src/commands'), 'the emptied directory is left behind');
+  assert.equal(admin(['--check', '--root=' + own]).code, 0, 'check is clean after the cleanup');
 });
 
 test('codex execpolicy: the admin token lists forbid workflow run and force-push, and leave a branch push alone', { skip: SKIP || (!which('codex') && 'codex not on PATH') }, () => {

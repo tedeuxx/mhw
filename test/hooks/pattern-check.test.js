@@ -92,30 +92,26 @@ test('prompt: the configured block_categories and notices apply', () => {
   assert.match(JSON.parse(hook(['prompt', '--harness', 'claude', '--config', conf], { prompt: TOKEN }).stdout).reason, /^BLOQUEADO credential/);
 });
 
-test('one prompt yields one block message while `mhw hook prompt` still runs beside this hook', () => {
+test('the check is the only prompt hook since #600: it blocks in every session, and the deferral flag is gone', () => {
   const payload = { prompt: 'key ' + TOKEN + ' and ' + EMAIL };
-  const env = { PATH: process.env.PATH || '', HOME: path.join(BASE, 'nohome') };
   /** @param {string} harness @param {{ code: number | null, stdout: string }} r */
   const blocks = (harness, r) => (harness === 'kiro' ? r.code === 2 : /"decision": "block"/.test(r.stdout));
   for (const harness of ['claude', 'codex', 'kiro']) {
-    // Outside a wrapped session, and on Kiro with the marker set too: `mhw hook prompt` blocks, this one defers.
-    for (const marker of /** @type {Array<Record<string, string>>} */ (harness === 'kiro' ? [{}, { PMHWC_PASTE_WRAPPER: '1' }] : [{}])) {
-      const o = spawnSync(process.execPath, [MHW, 'hook', 'prompt', '--harness', harness], { input: JSON.stringify(payload), encoding: 'utf8', env: { ...env, ...marker } });
-      const now = hook(['prompt', '--harness', harness, '--defer-to-paste-filter'], payload, marker);
-      assert.ok(blocks(harness, { code: o.status, stdout: o.stdout }), harness + ': the paste filter blocks');
-      assert.deepEqual(now, { code: 0, stdout: '', stderr: '' }, harness + ': the fixed-pattern check defers to it');
+    // The paste wrapper's session marker silences nothing: `mhw hook prompt`, which let a wrapped session's
+    // prompts through, left the CLI, and the check blocks what is typed there as everywhere else.
+    for (const marker of /** @type {Array<Record<string, string>>} */ ([{}, { PMHWC_PASTE_WRAPPER: '1' }])) {
+      assert.ok(blocks(harness, hook(['prompt', '--harness', harness], payload, marker)), harness + ' ' + JSON.stringify(marker));
     }
-    // Without the flag the fixed-pattern check blocks too: the flag is what keeps it to one message.
-    assert.ok(blocks(harness, hook(['prompt', '--harness', harness], payload)), harness + ': the check alone blocks');
+    // --defer-to-paste-filter is an unknown argument now: refused with the usage error, never a silent pass.
+    const r = hook(['prompt', '--harness', harness, '--defer-to-paste-filter'], payload);
+    assert.equal(r.code, 2, harness);
+    assert.match(r.stderr, /unknown or incomplete argument: --defer-to-paste-filter/, harness);
   }
-  // In a session the paste wrapper started, the paste filter lets the prompt through on Claude Code and
-  // Codex; the fixed-pattern check then still blocks what was typed. Still one message.
-  for (const harness of ['claude', 'codex']) {
-    const marker = { PMHWC_PASTE_WRAPPER: '1' };
-    const o = spawnSync(process.execPath, [MHW, 'hook', 'prompt', '--harness', harness], { input: JSON.stringify(payload), encoding: 'utf8', env: { ...env, ...marker } });
-    assert.equal(o.stdout + o.stderr, '', harness + ': the paste filter is silent in a wrapped session');
-    assert.ok(blocks(harness, hook(['prompt', '--harness', harness, '--defer-to-paste-filter'], payload, marker)), harness + ': the check blocks there');
-  }
+  // And mhw itself no longer answers a hook: `mhw hook prompt` is an unknown command.
+  const o = spawnSync(process.execPath, [MHW, 'hook', 'prompt', '--harness', 'claude'], { input: JSON.stringify(payload), encoding: 'utf8', env: { PATH: process.env.PATH || '', HOME: path.join(BASE, 'nohome') } });
+  assert.equal(o.status, 2);
+  assert.equal(o.stdout, '');
+  assert.ok(!o.stderr.includes(TOKEN));
 });
 
 // ------------------------------------------------------------------------------------------- parsing

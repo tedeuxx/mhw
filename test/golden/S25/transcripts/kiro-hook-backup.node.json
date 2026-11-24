@@ -1,0 +1,302 @@
+[
+  {
+    "run": "--check",
+    "code": 1,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nMISSING <T>/home/.claude/CLAUDE.md\nMISSING <T>/home/.codex/AGENTS.md\nMISSING <T>/home/.kiro/steering/workstation-global-brief.md\nMISSING <T>/home/.codex/rules/workstation-deny-floor.rules\nMISSING <T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\nMISSING <T>/home/.codex/hooks.json\nSTALE   <T>/home/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json: the Kiro prompt hook that ran mhw hook prompt, removed (#600); install removes it\nMISSING <T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\nMISSING <T>/home/.zshrc: no paste-wrapper start-up block; install adds it\nMISSING <T>/home/.claude/settings.json\nMISSING <T>/home/.kiro/settings/permissions.yaml\nSKIP    claude-code: not installed (<T>/home/.claude absent)\nSKIP    MCP active set: no local MCP definition at <T>/home/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json, so nothing is turned off (MCP active set)\nSKIP    <CHROME_LOCAL_STATE>: no Chrome Local State (Chrome not installed or never started) (Chrome remote debugging)\nRISK    admin deny floor incomplete (Claude Code: narrow, Codex: narrow tier): an allow list without the admin barrier is limited to reading; ./mhw install (it asks for your administrator password once) widens it\nMISSING <T>/home/.codex/rules/workstation-allow-list.rules\nMISSING <T>/home/.codex/workstation.config.toml\nMISSING <T>/home/.kiro/agents/workstation.json\nALLOW   Claude Code: narrow tier · Codex: narrow tier, profile workstation · Kiro: narrow tier, agent workstation (Kiro CLI 2.x reads no deny floor; the floor is in permissions.yaml, IDE and CLI V3, ADR-0036)\nMETHOD  not installed (opt-in: ./mhw install --method; off by default until the plugin cutover, #63 #64)\nFLOOR   Claude Code: user layer 0/185 rules; admin layer 0/185 rules\nFLOOR   Codex: user rules file absent; admin requirements 0/161 prefix rules\nFLOOR   Kiro: user permissions.yaml absent (read by Kiro IDE and Kiro CLI V3, documented; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   Kiro: admin managed-settings.json absent (read by Kiro IDE 1.2.56 and the Kiro CLI V3 engine as the administration scope, read from their bundles; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   carried by: NO complete layer; run ./mhw install\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": ".kiro",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/hooks",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"version\": \"v1\",\n  \"hooks\": [\n    {\n      \"description\": \"managed-by: personal-multi-harness-workstation-configuration; source: x\",\n      \"timeout\": 1\n    }\n  ]\n}\n"
+      }
+    ]
+  },
+  {
+    "run": "install",
+    "code": 0,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.claude/CLAUDE.md (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.codex/AGENTS.md (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.kiro/steering/workstation-global-brief.md (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.codex/rules/workstation-deny-floor.rules (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.codex/hooks.json (release: <RELEASE>; commit: <COMMIT>\nREMOVED <T>/home/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json (the Kiro prompt hook that ran mhw hook prompt, removed (#600))\nWROTE   <T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh (release: <RELEASE>; commit: <COMMIT>\nCHANGED <T>/home/.zshrc: paste-wrapper start-up block absent -> present (new file); new shells clean pastes\nMERGED  <T>/home/.claude/settings.json\nMERGED  <T>/home/.kiro/settings/permissions.yaml (new file; 185 deny-floor patterns)\nCHANGED <T>/home/.claude.json: chrome-devtools absent -> /bin/sh -c 'exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux' (policy MCP servers, ADR-0038)\nSKIP    MCP active set: no local MCP definition at <T>/home/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json, so nothing is turned off (MCP active set)\nSKIP    <CHROME_LOCAL_STATE>: no Chrome Local State (Chrome not installed or never started) (Chrome remote debugging)\nRISK    admin deny floor incomplete (Claude Code: narrow, Codex: narrow tier): an allow list without the admin barrier is limited to reading; ./mhw install (it asks for your administrator password once) widens it\nOK      <T>/home/.claude/settings.json: no allow entry the policy retired\nMERGED  <T>/home/.claude/settings.json (allow list: narrow tier, 10 allow rules; permission mode default (none set))\nWROTE   <T>/home/.codex/rules/workstation-allow-list.rules (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.codex/workstation.config.toml (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.kiro/agents/workstation.json (release: <RELEASE>; commit: <COMMIT>\nALLOW   Claude Code: narrow tier · Codex: narrow tier, profile workstation · Kiro: narrow tier, agent workstation (Kiro CLI 2.x reads no deny floor; the floor is in permissions.yaml, IDE and CLI V3, ADR-0036)\nMETHOD  not installed (opt-in: ./mhw install --method; off by default until the plugin cutover, #63 #64)\nFLOOR   Claude Code: user layer 185/185 rules; admin layer 0/185 rules\nFLOOR   Codex: user rules file present; admin requirements 0/161 prefix rules\nFLOOR   Kiro: user permissions.yaml 185/185 floor patterns (read by Kiro IDE and Kiro CLI V3, documented; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   Kiro: admin managed-settings.json absent (read by Kiro IDE 1.2.56 and the Kiro CLI V3 engine as the administration scope, read from their bundles; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   carried by: the user layer only; a session flag can drop it (--setting-sources project, measured); install the admin copy with ./mhw install\nRESTART REQUIRED: open fresh Claude Code, Codex and Kiro sessions before further work; Codex hook trust remains an owner action in /hooks.\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/CLAUDE.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:65aa208fd43b6b35b4d0ca6b336631b624d036722119a7926bbc7da06e7901e4"
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:414792cb43c1e185bf7c89d92cf5ea220440be097b6b540afc85f072f72445ca"
+      },
+      {
+        "path": ".claude.json",
+        "kind": "file",
+        "mode": "600",
+        "data": "{\n  \"mcpServers\": {\n    \"chrome-devtools\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/sh\",\n      \"args\": [\n        \"-c\",\n        \"exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux\"\n      ]\n    }\n  }\n}\n"
+      },
+      {
+        "path": ".codex",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/AGENTS.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:65aa208fd43b6b35b4d0ca6b336631b624d036722119a7926bbc7da06e7901e4"
+      },
+      {
+        "path": ".codex/hooks.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"description\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh (paste filter, ADR-0011); release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"hooks\": {\n    \"UserPromptSubmit\": [\n      {\n        \"hooks\": [\n          {\"type\": \"command\", \"command\": \"/bin/sh -c '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \\\"<NODE>\\\" \\\"<T>/home/.local/share/personal-multi-harness-workstation-configuration/pattern-check/src/hooks/pattern-check.js\\\" prompt --harness codex --config \\\"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\\\" || { printf \\\"%s\\\\n\\\" \\\"{\\\\\\\"systemMessage\\\\\\\": \\\\\\\"Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.\\\\\\\"}\\\"; exit 0; }'\", \"timeout\": 30}\n        ]\n      }\n    ]\n  }\n}\n"
+      },
+      {
+        "path": ".codex/rules",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/rules/workstation-allow-list.rules",
+        "kind": "file",
+        "mode": "644",
+        "data": "# managed-by: personal-multi-harness-workstation-configuration; source: global/allow-list.conf; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n# The workstation allow list, narrow tier (ADR-0031). A forbidden rule (the deny floor) beats an allow\n# rule whatever file holds it (measured, codex execpolicy check). Test runners have no rule here:\n# they run inside the workspace-write sandbox of the \"workstation\" profile without one.\nprefix_rule(pattern=[\"git\", \"status\"], decision=\"allow\")\nprefix_rule(pattern=[\"git\", \"rev-parse\"], decision=\"allow\")\nprefix_rule(pattern=[\"git\", \"describe\"], decision=\"allow\")\nprefix_rule(pattern=[\"git\", \"worktree\", \"list\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"issue\", \"view\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"issue\", \"list\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"pr\", \"view\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"pr\", \"list\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"pr\", \"diff\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"pr\", \"checks\"], decision=\"allow\")\n"
+      },
+      {
+        "path": ".codex/rules/workstation-deny-floor.rules",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:adb9ff71ee3ad8f3b4dbb86176115a2ebed013954d87fdfd1fe5a551329dc919"
+      },
+      {
+        "path": ".codex/workstation.config.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "# managed-by: personal-multi-harness-workstation-configuration; source: global/allow-list.conf; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n# The workstation permission profile, narrow tier (ADR-0031). Use it with: codex --profile workstation\napproval_policy = \"on-request\"\nsandbox_mode = \"read-only\"\n"
+      },
+      {
+        "path": ".kiro",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/agents",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/agents/workstation.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"name\": \"workstation\",\n  \"description\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/allow-list.conf; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"tools\": [\n    \"*\"\n  ],\n  \"allowedTools\": [\n    \"fs_read\"\n  ],\n  \"toolsSettings\": {\n    \"execute_bash\": {\n      \"allowedCommands\": [\n        \"^git status( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^git rev-parse( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^git describe( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^git worktree list( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^gh issue view( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^gh issue list( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^gh pr view( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^gh pr list( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^gh pr diff( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^gh pr checks( [^;&|<>$`(){}\\\\n\\\\r]*)?$\"\n      ],\n      \"autoAllowReadonly\": false\n    }\n  },\n  \"permissions\": {\n    \"rules\": [\n      {\n        \"capability\": \"shell\",\n        \"match\": [\n          \"git status *\",\n          \"git status\",\n          \"git rev-parse *\",\n          \"git rev-parse\",\n          \"git describe *\",\n          \"git describe\",\n          \"git worktree list *\",\n          \"git worktree list\",\n          \"gh issue view *\",\n          \"gh issue view\",\n          \"gh issue list *\",\n          \"gh issue list\",\n          \"gh pr view *\",\n          \"gh pr view\",\n          \"gh pr list *\",\n          \"gh pr list\",\n          \"gh pr diff *\",\n          \"gh pr diff\",\n          \"gh pr checks *\",\n          \"gh pr checks\"\n        ],\n        \"exclude\": [\n          \"*;*\",\n          \"*&*\",\n          \"*|*\",\n          \"*<*\",\n          \"*>*\",\n          \"*$*\",\n          \"*`*\",\n          \"*(*\",\n          \"*)*\",\n          \"*{*\",\n          \"*}*\",\n          \"*\\n*\",\n          \"*\\r*\"\n        ],\n        \"effect\": \"allow\"\n      },\n      {\n        \"capability\": \"fs_read\",\n        \"effect\": \"allow\"\n      }\n    ]\n  }\n}\n"
+      },
+      {
+        "path": ".kiro/hooks",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/settings",
+        "kind": "dir",
+        "mode": "700",
+        "data": ""
+      },
+      {
+        "path": ".kiro/settings/permissions.yaml",
+        "kind": "file",
+        "mode": "600",
+        "data": "sha256:26e76c8c5dd394d7eca8933f1bcd8b822a369b719d730a826912f39c195f1f06"
+      },
+      {
+        "path": ".kiro/steering",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/steering/workstation-global-brief.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:2ed94369b8ae1104fb1e6e1c4a30e3ff5b7f35f9071b287bfa03080ae3c39c7e"
+      },
+      {
+        "path": ".local",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:c21671ca8041060a9f5d450b019b01b0065200dcf764dc4eb81c3336b2ba0273"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json",
+        "kind": "file",
+        "mode": "600",
+        "data": "sha256:1499ac6d4ae10aa86cc8a3f78821d1d880c4150b406e63776e3ba1a623d01c2f"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/mcp-managed.json",
+        "kind": "file",
+        "mode": "600",
+        "data": "{\n  \"version\": 1,\n  \"surfaces\": {},\n  \"stamps\": {},\n  \"policy\": {\n    \"claude-code\": [\n      \"chrome-devtools\"\n    ]\n  },\n  \"policy_stamps\": {\n    \"claude-code\": \"release: <RELEASE>; commit: <COMMIT>\"\n  }\n}\n"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/paste-filter.sh",
+        "kind": "file",
+        "mode": "644",
+        "data": "# managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh (paste wrapper, ADR-0011); release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n# The paste filter at the harness-CLI paste boundary (ADR-0011). install.sh sources it from a\n# managed block in your shell start-up file (~/.zshrc, or ~/.bashrc and on macOS ~/.bash_profile;\n# Issue #145), which reads:\n#   [ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# Then claude, codex and kiro-cli run through the wrapper, which cleans bracketed pastes before the\n# CLI sees them and marks the session (PMHWC_PASTE_WRAPPER=1), so the prompt hook lets its prompts\n# through. \"command claude\" (or codex, kiro-cli) runs a CLI without it, and the hook then checks.\nclaude() { \"<NODE>\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- claude \"$@\"; }\ncodex() { \"<NODE>\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- codex \"$@\"; }\nkiro-cli() { \"<NODE>\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- kiro-cli \"$@\"; }\n"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/shell-rc-created.list",
+        "kind": "file",
+        "mode": "644",
+        "data": "<T>/home/.zshrc\n"
+      },
+      {
+        "path": ".zshrc",
+        "kind": "file",
+        "mode": "644",
+        "data": "# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+      }
+    ]
+  },
+  {
+    "run": "--uninstall",
+    "code": 0,
+    "stdout": "REMOVED <T>/home/.codex/rules/workstation-allow-list.rules\nREMOVED <T>/home/.codex/workstation.config.toml\nREMOVED <T>/home/.kiro/agents/workstation.json\nUNMERGED <T>/home/.claude/settings.json (the allow rules and permission mode this installer added)\nCHANGED <T>/home/.claude.json: chrome-devtools /bin/sh -c 'exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux' -> absent (policy MCP servers, ADR-0038; previous file kept as <T>/home/.claude.json.pmhwc-mcp-policy-backup)\nREMOVED <T>/home/.local/share/personal-multi-harness-workstation-configuration/mcp-managed.json (it recorded only the policy MCP servers)\nSKIP    <CHROME_LOCAL_STATE>: no Chrome Local State (Chrome not installed or never started) (Chrome remote debugging)\nREMOVED <T>/home/.kiro/settings/permissions.yaml (mhw created it and only its deny-floor rules were in it; kept as <T>/home/.kiro/settings/permissions.yaml.pmhwc-backup)\nREMOVED <T>/home/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json\nREMOVED <T>/home/.zshrc (install created it and only the paste-wrapper block was in it)\nREMOVED <T>/home/.claude/CLAUDE.md\nREMOVED <T>/home/.codex/AGENTS.md\nREMOVED <T>/home/.kiro/steering/workstation-global-brief.md\nREMOVED <T>/home/.codex/rules/workstation-deny-floor.rules\nREMOVED <T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\nREMOVED <T>/home/.codex/hooks.json\nREMOVED <T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\nREMOVED <T>/home/.local/share/personal-multi-harness-workstation-configuration (empty)\nUNMERGED <T>/home/.claude/settings.json (our hook entries, the deny-floor rules this installer added, and our two keys removed; previous version kept as <T>/home/.claude/settings.json.pmhwc-backup)\nNOTE    the admin layer is not touched here; ./mhw uninstall prints its sudo line\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{}\n"
+      },
+      {
+        "path": ".claude/settings.json.pmhwc-backup",
+        "kind": "file",
+        "mode": "600",
+        "data": "sha256:7e715994c9a058b0c66938e15b45b0817eab0acf3bc8f0eff9b8ae8a20a31a56"
+      },
+      {
+        "path": ".claude.json",
+        "kind": "file",
+        "mode": "600",
+        "data": "{\n  \"mcpServers\": {}\n}\n"
+      },
+      {
+        "path": ".claude.json.pmhwc-mcp-policy-backup",
+        "kind": "file",
+        "mode": "600",
+        "data": "{\n  \"mcpServers\": {\n    \"chrome-devtools\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/sh\",\n      \"args\": [\n        \"-c\",\n        \"exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux\"\n      ]\n    }\n  }\n}\n"
+      },
+      {
+        "path": ".codex",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/rules",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/agents",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/hooks",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/settings",
+        "kind": "dir",
+        "mode": "700",
+        "data": ""
+      },
+      {
+        "path": ".kiro/settings/permissions.yaml.pmhwc-backup",
+        "kind": "file",
+        "mode": "600",
+        "data": "sha256:26e76c8c5dd394d7eca8933f1bcd8b822a369b719d730a826912f39c195f1f06"
+      },
+      {
+        "path": ".kiro/steering",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  }
+]

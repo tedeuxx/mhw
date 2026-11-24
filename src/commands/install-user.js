@@ -247,19 +247,9 @@ export function toolWrap(cmd) {
 export function patternCmd(harness, mode, node, script, conf) {
   const cmd = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + node + '" "' + script + '" ' + mode
     + ' --harness ' + harness + ' --config "' + conf + '"';
-  // While `mhw hook prompt` is registered beside it (until #600), the prompt half leaves to it what it blocks
-  // itself, so one prompt yields one block message (#588).
-  return mode === 'prompt' ? pasteWrap(harness, cmd + ' --defer-to-paste-filter') : toolWrap(cmd);
-}
-
-/**
- * The paste filter's hook command (ADR-0033; Node since #488): `mhw hook prompt`, by absolute paths, with
- * NODE_OPTIONS, NODE_ICU_DATA, NODE_PATH and NODE_COMPILE_CACHE cleared by /usr/bin/env.
- * @param {string} harness @param {string} node @param {string} mhw @param {string} conf
- */
-export function pasteCmd(harness, node, mhw, conf) {
-  return pasteWrap(harness, '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "'
-    + node + '" "' + mhw + '" hook prompt --harness ' + harness + ' --config "' + conf + '"');
+  // Since #600 the prompt half is the only prompt hook: `mhw hook prompt`, which it deferred to with
+  // --defer-to-paste-filter while both ran (#588), left the CLI, and the flag with it.
+  return mode === 'prompt' ? pasteWrap(harness, cmd) : toolWrap(cmd);
 }
 
 /** A rendered command as a JSON string's body: backslashes first, then double quotes. @param {string} s */
@@ -275,7 +265,7 @@ export const jsonBody = (s) => s.replaceAll('\\', '\\\\').replaceAll('"', '\\"')
  *   floor: string, floorFrom: string, floorClaude: string, floorCodex: string, floorCodexWords: string[],
  *   clipConf: Buffer, allowNode: string | null, allowWhy: string, settingsWhy: string, mergeRefused: boolean,
  *   codexFloorRefused: boolean, kiroFloorRefused: boolean, pasteOk: boolean, wrapNode: string, wrapRefused: boolean,
- *   wrapMhw: string, startupBody: string, processRefused: boolean, cmd: string, uname?: string, patternOff?: boolean
+ *   wrapMhw: string, startupBody: string, processRefused: boolean, cmd: string, uname?: string, patternOff?: boolean, legacyPasteCmd?: string
  * }} Ctx
  */
 
@@ -551,7 +541,7 @@ function cleanup(ctx) {
 
 /**
  * One managed file's bytes.
- * @param {Ctx} ctx @param {string} kind plain|kiro|codexrules|clipconf|snippet|codexhooks|kirohook
+ * @param {Ctx} ctx @param {string} kind plain|kiro|codexrules|clipconf|snippet|codexhooks|patpkg|patfile:F|kiropattern
  * @returns {Buffer}
  */
 export function render(ctx, kind) {
@@ -594,7 +584,8 @@ export function render(ctx, kind) {
     // hook's currentHash unchanged, so a new stamp does not ask for re-trust.
     return Buffer.from('{\n  "description": "' + MARKER_ID + '; source: global/install.sh (paste filter, ADR-0011); ' + stamp + '; do not edit, re-run the installer",\n'
       + '  "hooks": {\n    "UserPromptSubmit": [\n      {\n        "hooks": [\n'
-      + '          {"type": "command", "command": "' + jsonBody(pasteCmd('codex', ctx.wrapNode, ctx.wrapMhw, conf)) + '", "timeout": 30},\n'
+      // `mhw hook prompt` was the first entry here until #600; the file is rendered whole, so an earlier
+      // install's entry goes with the next install.
       + '          {"type": "command", "command": "' + jsonBody(patternCmd('codex', 'prompt', ctx.wrapNode, ctx.paths.patternScript, conf)) + '", "timeout": 30}\n'
       + '        ]\n      }\n    ],\n'
       // The fixed-pattern check before a tool call (#588). No matcher: the script passes any call that is not
@@ -626,16 +617,6 @@ export function render(ctx, kind) {
       + '      "timeout": 30\n    }';
     return Buffer.from('{\n  "version": "v1",\n  "hooks": [\n' + hook('fixed-pattern check, prompt', 'UserPromptSubmit', 'prompt') + ',\n'
       + hook('fixed-pattern check, outbound', 'PreToolUse', 'pre-tool') + '\n  ]\n}\n', 'utf8');
-  }
-  if (kind === 'kirohook') {
-    // Kiro CLI V3's hook file format, read from the bundle (kas 2.35.2). The marker and the stamp sit in
-    // "description" and land on line 5, inside is_managed's first five lines.
-    return Buffer.from('{\n  "version": "v1",\n  "hooks": [\n    {\n'
-      + '      "description": "' + MARKER_ID + '; source: global/install.sh (paste filter, ADR-0033); ' + stamp + '; do not edit, re-run the installer",\n'
-      + '      "name": "paste filter (' + NAME + ')",\n'
-      + '      "trigger": "UserPromptSubmit",\n'
-      + '      "action": {"type": "command", "command": "' + jsonBody(pasteCmd('kiro', ctx.wrapNode, ctx.wrapMhw, conf)) + '"},\n'
-      + '      "timeout": 30\n    }\n  ]\n}\n', 'utf8');
   }
   throw new Error('unknown kind ' + kind);
 }
@@ -810,7 +791,11 @@ export function mergeSettings(ctx) {
   const args = [ctx.scriptDir + '/../src/render/settings-merge.js', '--phase=merge', '--mode=' + ctx.mode, '--settings=' + settings,
     '--floor-claude=' + ctx.floorClaude, '--stamp=' + ctx.stamp];
   if (ctx.pasteOk && ctx.hooksMode !== 'managed') {
-    args.push('--paste-cmd=' + pasteCmd('claude', ctx.wrapNode, ctx.wrapMhw, ctx.paths.clipConfDest));
+    // No --paste-cmd since #600: without it the merge removes a `mhw hook prompt` entry an earlier install
+    // left, as it removes every entry of ours it is not given. legacyPasteCmd is a step driver's switch
+    // (test/helpers/install-step-driver.js), never set by prepare(): the S20 goldens of this step were
+    // recorded with that entry, and the merge still places one when given --paste-cmd.
+    if (ctx.legacyPasteCmd) args.push('--paste-cmd=' + ctx.legacyPasteCmd);
     // patternOff is a step driver's switch (test/helpers/install-step-driver.js), never set by prepare(): the S20
     // goldens of this step predate #588, which test/hooks/ and settings-merge.test.js hold instead.
     if (!ctx.patternOff) {
@@ -1103,14 +1088,15 @@ function pasteFiles(ctx) {
   if (!ctx.pasteOk) {
     raise(ctx, 2);
     say(ctx, 'SKIP    ' + p.codexHooks + ': the paste filter cannot run here (see the REFUSE line above)');
-    say(ctx, 'SKIP    ' + p.kiroHook + ': the paste filter cannot run here either');
     say(ctx, 'SKIP    ' + p.patternDir + ' and ' + p.kiroPattern + ': the fixed-pattern check cannot run here either (#588)');
     say(ctx, 'SKIP    ' + p.wrapDest + ' and ' + p.snippetDest + ': the paste wrapper cannot run here either');
     return;
   }
   if (ctx.hooksMode === 'user') processTarget(ctx, 'codexhooks', p.codexHooks);
   else retire(ctx, p.codexHooks, 'the user-level Codex hooks, now registered in the admin layer (ADR-0025)');
-  processTarget(ctx, 'kirohook', p.kiroHook, true);
+  // The Kiro hook file that ran `mhw hook prompt` (#455), retired with that command (#600); the fixed-pattern
+  // check's own Kiro file carries the prompt half there.
+  retire(ctx, p.kiroHook, 'the Kiro prompt hook that ran mhw hook prompt, removed (#600)');
   patternFiles(ctx);
   retire(ctx, p.wrapDest, 'the Python paste wrapper, replaced by mhw paste-wrapper (Node, #487)');
   // pasteOk holds only with an absolute wrap node, so the snippet and its start-up block always follow.
@@ -1172,7 +1158,7 @@ export function run(ctx) {
   restartState(ctx);
   processTarget(ctx, 'codexrules', p.codexRules);
   ctx.codexFloorRefused = ctx.processRefused; // the Codex allow list is not written beside a refused floor (#491)
-  retire(ctx, p.clipDest, 'the Python prompt hook core, replaced by mhw hook prompt (Node, #488)');
+  retire(ctx, p.clipDest, 'the Python prompt hook core, replaced by mhw hook prompt (Node, #488; removed by #600)');
   processTarget(ctx, 'clipconf', p.clipConfDest);
   saltNotice(ctx);
   pasteFiles(ctx);

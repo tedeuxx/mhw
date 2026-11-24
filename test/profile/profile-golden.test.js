@@ -46,7 +46,7 @@ const PY_MATRIX = [
   'print(json.dumps(out))',
 ].join('\n');
 
-/** @type {Array<{ case: string[], stream: 'stdout' | 'stderr', base: string, replace: string, why: string }>} */
+/** @type {Array<{ case: string[], stream: 'stdout' | 'stderr' | 'tree', base: string, replace: string, why: string }>} */
 const expected = readGolden(SLICE, 'expected-differences.json');
 const cleanups = /** @type {Array<() => void>} */ ([]);
 after(() => cleanups.forEach((c) => c()));
@@ -220,7 +220,11 @@ function differences(name, original, head, runner) {
     // The goldens were recorded on POSIX; Windows has no mode bits, so there the mode is not compared.
     /** @param {string[]} tree */
     const comparable = (tree) => (POSIX ? tree : tree.map((l) => l.replace(/^(\S+ (?:file|dir)) \S+/, '$1 -')));
-    const [ot, ht] = [comparable(o.tree), comparable(h.tree)];
+    // A "tree" entry of expected-differences.json rewrites tree lines on both sides, as the stream entries do.
+    /** @param {string[]} tree */
+    const declared = (tree) => tree.map((l) => expected.filter((x) => x.case.includes(name) && x.stream === 'tree')
+      .reduce((t, e) => t.replace(new RegExp(e.base), e.replace), l));
+    const [ot, ht] = [declared(comparable(o.tree)), declared(comparable(h.tree))];
     if (JSON.stringify(ot) !== JSON.stringify(ht)) {
       diffs.push(where + ': tree differs\n--- original\n' + ot.join('\n') + '\n--- head\n' + ht.join('\n'));
     }

@@ -63,5 +63,152 @@
     "stream": "stdout",
     "pattern": null,
     "why": "#588 (the fixed-pattern check, ADR-0033 and ADR-0035 decision 7 amendments of 2026-11-23): install now also writes the check's script and core under <data dir>/pattern-check, its Kiro hook file, a second UserPromptSubmit entry and a PreToolUse group in ~/.claude/settings.json, and the same two in the Codex hooks.json. Every scenario's Node run has those taken out before it is compared (test/helpers/s588.js: the check's own paths, the lines naming them, and its entries in the shared files), so the rest is still held to the install.sh transcript. A dry run's semantic diff of settings.json cannot be taken apart that way (its hunk headers and context move with the added lines), so this scenario is declared: its Node transcript, recorded at this slice's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json. test/hooks/pattern-check-install.test.js holds the check's entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "drift-and-stamp",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "dry-run-fresh",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "hooks-managed-and-method",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "kiro-hook-backup",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "lifecycle-generic",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "lifecycle-overlay",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "node-missing",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "node-not-executable",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "node-that-is-not-node",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "quote-in-data-dir",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "retirements-foreign",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "retirements",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "settings-nested-300-deep",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "settings-owner",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "settings-permissions-array",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "settings-unparseable",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "shell-rc-explicit",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "uninstall-without-node-after-install",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "unmanaged-in-the-way",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "workstation-overlay-env",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
+  },
+  {
+    "name": "#600: mhw hook prompt's entries and its Kiro hook file are gone",
+    "case": "xdg-and-codex-home",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, so install no longer merges its UserPromptSubmit entry into ~/.claude/settings.json, no longer renders it into the Codex hooks.json, and retires the Kiro CLI V3 hook file that ran it (<project>-paste-filter.json) instead of writing it; the fixed-pattern check's prompt entry drops --defer-to-paste-filter. Those changes move this scenario's output lines and the sha256 of files its tree stores by hash (settings.json past 2 KiB), which no line-level declaration can take apart, and install.sh, the original, is deleted and its live arm retired, so it cannot be re-recorded. The scenario is therefore declared: its Node transcript, recorded at #600's head, is <scenario>.node.json, and the install.sh one stays <scenario>.json as the record of what the original did. Checked before recording: every line that differs from the install.sh transcript names the removed entry, the retired Kiro file, or a hash of a file holding one; test/hooks/pattern-check-install.test.js and test/install/install-user.test.js (cases 12 and 24) hold the new entries themselves."
   }
 ]

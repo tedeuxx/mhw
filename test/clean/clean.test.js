@@ -181,7 +181,7 @@ test('the merges join overlapping findings only; touching ones stay apart, as Py
 });
 
 test('scanText reports exactly findSpans\' categories and lengths (scan_test.py ScanText, both tests)', async () => {
-  const { scanText } = await import('../../src/commands/scan.js');
+  const { scanText } = await import('../../.github/scripts/outbound-scan.js');
   const { AWS, EMAIL, CPF } = await import('../scan/cases.js');
   // test_returns_positions_never_text
   const found = scanText('x\n\ny ' + AWS + '\n');
