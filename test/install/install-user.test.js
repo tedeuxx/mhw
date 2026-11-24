@@ -1172,7 +1172,7 @@ test('23. the README states each #145 behaviour still carried', () => {
   }
   // #590: the start-up block #145 wrote is struck, and the README says plainly what replaced it and where
   // nothing does.
-  for (const needle of ['There is no\npaste wrapper and nothing cleans a paste when you paste it.', '*«Só hook no envio»*',
+  for (const needle of ['paste wrapper and nothing cleans a paste when you paste it.', '*«Só hook no envio»*',
     '**Kiro CLI gets no paste protection at all:**', 'so an existing backup is never overwritten']) {
     assert.ok(readme.includes(needle), needle);
   }

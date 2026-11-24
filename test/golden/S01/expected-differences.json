@@ -212,16 +212,16 @@
   {
     "case": "install-user-layer",
     "stream": "tree-drop",
-    "pattern": "^\\.local/share/personal-multi-harness-workstation-configuration/paste-filter\\.sh$|^\\.local/share/personal-multi-harness-workstation-configuration/shell-rc-created\\.list$|^\\.zshrc$",
+    "pattern": "^\\.local/share/personal-multi-harness-workstation-configuration/paste-filter\\.sh$|^\\.local/share/personal-multi-harness-workstation-configuration/shell-rc-created\\.list$|^\\.zshrc$|^\\.bashrc$|^\\.bash_profile$|^\\.bash_login$",
     "whenBaseHas": "src/commands/paste-wrapper.js",
-    "why": "#590: the paste wrapper is removed, so install writes no shell snippet (paste-filter.sh), no shell start-up block in ~/.zshrc and no list of the start-up files it created; on a HOME an earlier install left them in, install removes them with a backup (test/render/shell-rc.test.js and test/install/install-user.test.js hold that). Left out of the comparison on both sides only while the base still ships src/commands/paste-wrapper.js."
+    "why": "#590: the paste wrapper is removed, so install writes no shell snippet (paste-filter.sh), no shell start-up block in ~/.zshrc, ~/.bashrc or the bash login file (which one the base wrote follows the runner's login shell: zsh on a macOS desk, bash on the macOS runner) and no list of the start-up files it created; on a HOME an earlier install left them in, install removes them with a backup (test/render/shell-rc.test.js and test/install/install-user.test.js hold that). Left out of the comparison on both sides only while the base still ships src/commands/paste-wrapper.js."
   },
   {
     "case": "install-user-layer",
     "stream": "stdout",
-    "pattern": "^    CHANGED <HOME>/\\.zshrc: paste-wrapper start-up block absent -> present \\(new file\\); new shells clean pastes$|^  - Your settings in Claude Code, Codex and Kiro: [0-9]+ file\\(s\\) to write \\(no password needed\\)$",
+    "pattern": "^    CHANGED <HOME>/\\.(?:zshrc|bashrc|bash_profile|bash_login): paste-wrapper start-up block absent -> present \\(new file\\); new shells clean pastes$|^  - Your settings in Claude Code, Codex and Kiro: [0-9]+ file\\(s\\) to write \\(no password needed\\)$",
     "whenBaseHas": "src/commands/paste-wrapper.js",
-    "why": "#590: install no longer writes the paste wrapper's start-up block, so its CHANGED line is gone, and the plan counts two files fewer (the snippet and ~/.zshrc). Only while the base still ships src/commands/paste-wrapper.js."
+    "why": "#590: install no longer writes the paste wrapper's start-up block, so its CHANGED line for each start-up file the base chose (by the login shell) is gone, and the plan counts two files fewer (the snippet and ~/.zshrc). Only while the base still ships src/commands/paste-wrapper.js."
   },
   {
     "case": "install-user-layer",
@@ -229,5 +229,13 @@
     "pattern": "^\\.local/share/personal-multi-harness-workstation-configuration/pattern-check/src/lib/clean\\.js$|^\\.local/share/personal-multi-harness-workstation-configuration/clipboard\\.conf$",
     "whenBaseHas": "src/commands/paste-wrapper.js",
     "why": "#590: the installed copy of the cleaning core differs only in two comments, which no longer name the removed paste wrapper as a reader of the core and say its notice settings are unread since; and the installed clipboard.conf only in the comments of block_categories and report_categories, which no longer say the paste wrapper replaces or forwards a paste. No code and no value changed (test/clean/ holds the core's behaviour). Compared by kind and mode only while the base still ships src/commands/paste-wrapper.js."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "stdout",
+    "pattern": "^([0-9]+)\\. mhw wrote no [^\\n]*start-up file[^\\n]*\\n {7}\\[ -r [^\\n]*paste-filter\\.sh[^\\n]*\\n([0-9]+)\\. (In Codex[^\\n]*)\\n[0-9]+\\. ",
+    "replace": "$1. $3\n$2. ",
+    "whenBaseHas": "src/commands/paste-wrapper.js",
+    "why": "#590: with no shell chosen (SHELL unset, as on the CI runners), the base's next steps include one asking the owner to add the paste wrapper's start-up line by hand. The wrapper is removed, so the head has no such step, and the steps after it are numbered one lower. On the original's side the step is taken out and the two steps after it are renumbered to what the head prints, so their text is still compared. Only while the base still ships src/commands/paste-wrapper.js."
   }
 ]
