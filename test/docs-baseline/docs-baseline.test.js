@@ -1,6 +1,8 @@
-// mhw docs-baseline check and mhw onboard (#523). Each case builds a throwaway git repository under a
-// throwaway HOME (test/helpers/home.js) and runs the command in this process, except the cases marked
-// cli, which go through bin/mhw.js. Nothing here reads or writes the real HOME.
+// The docs-baseline check (#523; the delivery gates Action's docs-baseline gate since #592). Each case
+// builds a throwaway git repository under a throwaway HOME (test/helpers/home.js) and runs the check in
+// this process, except the cases marked cli, which go through the Action's engine or bin/mhw.js. Nothing
+// here reads or writes the real HOME. `mhw onboard` and its suite left at #599: onboarding is the method
+// skill `onboard`, and test/action/gates.test.js asserts the command is unknown.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -8,12 +10,33 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import {
-  globMatches, badPath, manifestErrors, parseBody, decide, defaultManifest, scaffoldFiles, runCheck, runOnboard,
-  validate, MANIFEST, inAdrLibrary, loosenings,
+  globMatches, badPath, manifestErrors, parseBody, decide, runCheck, readManifest, MANIFEST, loosenings,
 } from '../../src/commands/docs-baseline.js';
 import { throwawayHome, which } from '../helpers/home.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+/**
+ * The default manifest for a project named name (Issue #523's default proposal; `defaultManifest` of
+ * src/commands/docs-baseline.js until #599 moved it into the onboard skill).
+ * @param {string} name
+ */
+function defaultManifest(name) {
+  const prd = 'docs/' + name + '-product-requirements-document-project.md';
+  return {
+    schema_version: 1,
+    baseline: { readme: 'README.md', prd, adr_library: 'docs/adr', architecture: 'docs/architecture.md', sequences: 'docs/sequences.md' },
+    capabilities: [{ id: 'project', code: ['**'], docs: ['README.md', prd, 'docs/**'] }],
+  };
+}
+
+/** The default manifest as the onboard skill prints it, with <name> filled. */
+function skillDefault() {
+  const text = fs.readFileSync(path.join(ROOT, 'method', 'skills', 'onboard', 'SKILL.md'), 'utf8').replaceAll('\r\n', '\n');
+  const m = /### The default manifest\n\n```json\n([\s\S]*?)```/.exec(text);
+  assert.ok(m, 'the onboard skill carries no default manifest');
+  return JSON.parse(m[1].replaceAll('<name>', 'demo'));
+}
 const GIT = which('git');
 const cleanups = /** @type {Array<() => void>} */ ([]);
 after(() => cleanups.forEach((c) => c()));
@@ -120,6 +143,7 @@ test('paths and globs refuse escapes and syntax this matcher does not implement'
 
 test('the manifest: the default is valid, and each defect is named', () => {
   assert.deepEqual(manifestErrors(defaultManifest('demo')), []);
+  assert.deepEqual(manifestErrors(skillDefault()), [], 'the default manifest the onboard skill declares');
   assert.deepEqual(manifestErrors(MANIFEST_DOC), []);
   const bad = (/** @type {(d: any) => void} */ edit) => {
     const d = structuredClone(MANIFEST_DOC);
@@ -237,7 +261,7 @@ test('check: usage, an invalid manifest and a git failure are exit 2, never a pa
   assert.equal(runCheck(['check', '--base=main'], io), 2, 'an invalid manifest');
 });
 
-test('check: through the delivery gates Action\'s engine; onboard through bin/mhw.js (#592)', { skip: !GIT }, () => {
+test('check: through the delivery gates Action\'s engine (#592)', { skip: !GIT }, () => {
   const r = baseRepo();
   r.write('src/core.js', 'export const c = 4;\n');
   r.commit('code only');
@@ -246,145 +270,11 @@ test('check: through the delivery gates Action\'s engine; onboard through bin/mh
     { cwd: r.dir, env: r.env, encoding: 'utf8' });
   assert.equal(run('src/action/gates.js', ['docs-baseline', 'check', '--base=main']).status, 1);
   assert.equal(run('src/action/gates.js', ['docs-baseline']).status, 2);
-  assert.equal(run('bin/mhw.js', ['onboard', '--nope']).status, 2);
   // `mhw docs-baseline check` left the CLI: an unknown subcommand, and nothing ran.
   const gone = run('bin/mhw.js', ['docs-baseline', 'check', '--base=main']);
   assert.equal(gone.status, 2);
   assert.equal(gone.stdout, '');
   assert.match(gone.stderr, /^mhw: (?:unknown (?:subcommand|argument for) docs-baseline|docs-baseline is not available on Windows)/);
-});
-
-// -- onboard ---------------------------------------------------------------------------------------
-
-/** @param {string} dir */
-function snapshot(dir) {
-  /** @type {Record<string, string>} */
-  const out = {};
-  const walk = (/** @type {string} */ d) => {
-    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
-      const p = path.join(d, e.name);
-      if (e.name === '.git') continue;
-      if (e.isSymbolicLink()) out[path.relative(dir, p)] = '-> ' + fs.readlinkSync(p);
-      else if (e.isDirectory()) walk(p);
-      else out[path.relative(dir, p)] = fs.readFileSync(p, 'utf8');
-    }
-  };
-  walk(dir);
-  return out;
-}
-
-/** @param {string} dir */
-function onboard(dir, /** @type {string[]} */ args = []) {
-  const out = /** @type {string[]} */ ([]);
-  const code = runOnboard(['--project=' + dir, ...args], { cwd: dir, env: { PATH: process.env.PATH || '' }, out: (s) => out.push(s), err: (s) => out.push(s) });
-  return { code, out: out.join('') };
-}
-
-test('onboard: validating is read-only and reports every gap', () => {
-  const h = throwawayHome('onboard');
-  cleanups.push(h.cleanup);
-  const dir = path.join(h.dir, 'empty');
-  fs.mkdirSync(dir);
-  fs.writeFileSync(path.join(dir, 'README.md'), 'mine\n');
-  const before = snapshot(dir);
-  const res = onboard(dir);
-  assert.equal(res.code, 1);
-  assert.deepEqual(snapshot(dir), before, 'nothing written without --scaffold');
-  for (const needle of ['GAP   no manifest', 'GAP   requirements document', 'GAP   ADR library index', 'GAP   ADR template',
-    'GAP   architecture diagram', 'GAP   sequences diagram', 'OK    README: README.md']) assert.ok(res.out.includes(needle), needle);
-});
-
-test('onboard --scaffold: writes only the missing files, never a record, never over one that exists', () => {
-  const h = throwawayHome('onboard');
-  cleanups.push(h.cleanup);
-  const dir = path.join(h.dir, 'New Project');
-  fs.mkdirSync(dir);
-  fs.writeFileSync(path.join(dir, 'README.md'), 'mine\n');
-  const res = onboard(dir, ['--scaffold']);
-  assert.equal(res.code, 0, res.out);
-  assert.equal(fs.readFileSync(path.join(dir, 'README.md'), 'utf8'), 'mine\n', 'an existing file is never overwritten');
-  assert.deepEqual(fs.readdirSync(path.join(dir, 'docs', 'adr')).sort(), ['README.md', 'template.md'], 'no ADR record (ADR-0020)');
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'new-project-product-requirements-document-project.md')));
-  assert.match(fs.readFileSync(path.join(dir, 'docs', 'architecture.md'), 'utf8'), /```mermaid\nblock-beta\n {2}columns 1/);
-  assert.match(fs.readFileSync(path.join(dir, 'docs', 'sequences.md'), 'utf8'), /```mermaid\nflowchart LR/);
-  assert.deepEqual(manifestErrors(JSON.parse(fs.readFileSync(path.join(dir, MANIFEST), 'utf8'))), []);
-  assert.match(res.out, /NOTE {2}coverage not checked/);
-  const again = onboard(dir, ['--scaffold']);
-  assert.match(again.out, /NOTE {2}nothing to write/);
-});
-
-test('onboard --scaffold: a not-applicable item is not scaffolded, and a symlinked docs directory is refused', () => {
-  const h = throwawayHome('onboard');
-  cleanups.push(h.cleanup);
-  const dir = path.join(h.dir, 'p');
-  fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
-  const m = structuredClone(MANIFEST_DOC);
-  fs.writeFileSync(path.join(dir, MANIFEST), JSON.stringify(m));
-  onboard(dir, ['--scaffold']);
-  assert.equal(fs.existsSync(path.join(dir, 'docs', 'sequences.md')), false);
-  assert.ok(fs.existsSync(path.join(dir, 'docs', 'architecture.md')));
-  if (process.platform === 'win32') return; // a symlink needs a privilege a Windows runner may lack
-  const outside = path.join(h.dir, 'outside');
-  fs.mkdirSync(outside);
-  const q = path.join(h.dir, 'q');
-  fs.mkdirSync(q);
-  fs.symlinkSync(outside, path.join(q, 'docs'));
-  assert.equal(onboard(q, ['--scaffold']).code, 2);
-  assert.deepEqual(fs.readdirSync(outside), [], 'nothing was written through the link');
-});
-
-// QA B1 on PR #528: mkdir ran before the confinement check, so a baseline directory linked outside the
-// project got directories created through the link before the refusal. One row per baseline directory;
-// each row links the item's top directory outside, and nothing may appear there, nor anything inside.
-test('onboard --scaffold: a baseline directory linked outside the project creates nothing, anywhere', { skip: process.platform === 'win32' }, () => {
-  /** @type {Array<[string, (m: any) => void, string]>} */
-  const rows = [
-    ['adr_library', (m) => { m.baseline.adr_library = 'decisions/adr'; }, 'decisions'],
-    ['prd', (m) => { m.baseline.prd = 'docs/demo-product-requirements-document-project.md'; }, 'docs'],
-    ['readme', (m) => { m.baseline.readme = 'top/README.md'; }, 'top'],
-    ['architecture', (m) => { m.baseline.architecture = 'arch/view/architecture.md'; }, 'arch'],
-    ['sequences', (m) => { m.baseline.sequences = 'seq/flows/sequences.md'; }, 'seq'],
-  ];
-  for (const [item, edit, linked] of rows) {
-    const h = throwawayHome('onboard-link');
-    cleanups.push(h.cleanup);
-    const dir = path.join(h.dir, 'p');
-    const outside = path.join(h.dir, 'outside');
-    fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
-    fs.mkdirSync(outside);
-    const m = structuredClone(/** @type {any} */ (MANIFEST_DOC));
-    edit(m);
-    assert.deepEqual(manifestErrors(m), [], item);
-    fs.writeFileSync(path.join(dir, MANIFEST), JSON.stringify(m));
-    if (linked === 'docs') {
-      // docs itself holds the manifest, so link a fresh project's docs instead.
-      fs.rmSync(path.join(dir, 'docs'), { recursive: true });
-      fs.symlinkSync(outside, path.join(dir, 'docs'));
-    } else {
-      fs.symlinkSync(outside, path.join(dir, linked));
-    }
-    const before = snapshot(dir);
-    const res = onboard(dir, ['--scaffold']);
-    assert.equal(res.code, 2, item + ': ' + res.out);
-    assert.match(res.out, /its directory resolves outside the project/, item);
-    assert.deepEqual(fs.readdirSync(outside), [], item + ': nothing created through the link');
-    assert.deepEqual(snapshot(dir), before, item + ': nothing written inside either, before the refusal');
-  }
-});
-
-test('onboard: an architecture or sequences file without a mermaid block is a gap', () => {
-  const h = throwawayHome('onboard');
-  cleanups.push(h.cleanup);
-  const dir = path.join(h.dir, 'p');
-  fs.mkdirSync(dir);
-  onboard(dir, ['--scaffold']);
-  assert.equal(onboard(dir).code, 0);
-  fs.writeFileSync(path.join(dir, 'docs', 'architecture.md'), '# Architecture\n\n```\nblock-beta\n```\n\n`mermaid`\n');
-  const res = onboard(dir);
-  assert.equal(res.code, 1);
-  assert.match(res.out, /GAP {3}architecture diagram: docs\/architecture\.md carries no ```mermaid block/);
-  fs.writeFileSync(path.join(dir, 'docs', 'architecture.md'), '# A\n\n```mermaid\r\nblock-beta\n```\n');
-  assert.equal(onboard(dir).code, 0, 'a CRLF fence line still counts');
 });
 
 test('check: a malformed escape line is fatal even when every capability is satisfied', { skip: !GIT }, () => {
@@ -413,34 +303,21 @@ test('check: a ref carrying .. is refused before git runs', { skip: !GIT }, () =
   assert.match(err.join(''), /not a ref this check accepts/);
 });
 
-test('the scaffold refuses to put anything but the index and the template in the ADR library', () => {
-  const m = structuredClone(MANIFEST_DOC);
-  m.baseline.readme = 'docs/adr/0001-first.md';
-  assert.throws(() => scaffoldFiles(/** @type {any} */ (m), 'demo', false), /refusing to scaffold a decision record/);
-});
-
-test('onboard: a project-policy additional document that is missing is a gap', { skip: !GIT }, () => {
-  const r = baseRepo();
-  r.write('docs/adr/README.md', '# x\n');
-  r.write('docs/adr/template.md', '# t\n');
-  r.write('docs/architecture.md', '```mermaid\nblock-beta\n```\n');
-  r.write('project-policy.json', JSON.stringify({ baseline_override: { documentation: { additional_docs: [
-    { path: 'docs/runbooks/rollback.md', description: 'kept current' }] } } }));
-  r.commit('docs');
-  const res = validate(fs.realpathSync(r.dir), r.env);
-  assert.ok(res.lines.some((l) => l.startsWith('GAP   additional document (project-policy.json): docs/runbooks/rollback.md')), res.lines.join('\n'));
-  // The fixture's manifest covers src/** and package.json only, so the docs and project-policy.json
-  // are tracked files outside every capability.
-  assert.ok(res.lines.some((l) => /^GAP {3}[0-9]+ tracked file\(s\) outside every capability, first: .*project-policy\.json/.test(l)),
-    res.lines.join('\n'));
-});
-
 // -- this repository passes its own baseline --------------------------------------------------------
 
 test('mhw itself: its manifest is valid and every tracked file belongs to a capability', { skip: !GIT }, () => {
-  const res = validate(fs.realpathSync(ROOT), { PATH: process.env.PATH || '' });
-  assert.equal(res.gaps, 0, res.lines.join('\n'));
-  assert.ok(res.lines.some((l) => /^OK {4}every one of [0-9]+ tracked files belongs to a capability$/.test(l)), res.lines.join('\n'));
+  // The coverage read the onboard skill's step 3 describes, computed here (it was `mhw onboard`'s until #599).
+  const manifest = readManifest(path.join(ROOT, MANIFEST));
+  const p = spawnSync(/** @type {string} */ (GIT), ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(p.status, 0, p.stderr);
+  const tracked = p.stdout.split('\0').filter(Boolean);
+  assert.ok(tracked.length > 100, 'no tracked files were read');
+  /** @param {typeof manifest.capabilities} caps */
+  const outside = (caps) => tracked.filter((f) => !caps.some((c) => [...c.code, ...c.docs].some((g) => globMatches(g, f))));
+  assert.deepEqual(outside(manifest.capabilities), []);
+  // Calibration: the same filter over a manifest covering only the README reports every other file, so
+  // the empty list above is not a dead filter.
+  assert.equal(outside([{ id: 'x', code: ['README.md'], docs: ['README.md'] }]).length, tracked.length - 1);
 });
 
 test('docs-baseline.yml runs the check on every body edit, with the body never interpolated into the script', () => {
@@ -457,41 +334,6 @@ test('docs-baseline.yml runs the check on every body edit, with the body never i
 });
 
 // -- PR #528 lens: the ADR library guard, fences and comments, the base manifest, the delivery route --
-
-test('the ADR library guard: case-folded, and a subdirectory is the library too', () => {
-  for (const [file, want] of /** @type {Array<[string, boolean]>} */ ([
-    ['docs/adr/0001-use-x.md', true], ['docs/ADR/0001-use-x.md', true], ['Docs/Adr/0001.md', true],
-    ['docs/adr/sub/0001-x.md', true], ['docs/adr/README.md', false], ['docs/adr/template.md', false],
-    ['docs/ADR/README.md', false], ['docs/adr/sub/README.md', true], ['docs/adrx/0001.md', false], ['docs/architecture.md', false],
-  ])) assert.equal(inAdrLibrary(file, 'docs/adr'), want, file);
-  for (const architecture of ['docs/ADR/0001-use-x.md', 'docs/adr/sub/0001-x.md']) {
-    const m = structuredClone(/** @type {any} */ (MANIFEST_DOC));
-    m.baseline.architecture = architecture;
-    assert.throws(() => scaffoldFiles(m, 'demo', false), /refusing to scaffold a decision record/, architecture);
-  }
-});
-
-test('onboard --scaffold: a record-shaped item exits 2 and writes nothing; a link into the library is refused', () => {
-  /** @type {Array<[string, string | null]>} */
-  const rows = [['docs/ADR/0001-use-x.md', null], ['docs/adr/sub/0001-x.md', null]];
-  if (process.platform !== 'win32') rows.push(['notes/0001-use-x.md', 'notes']);
-  for (const [architecture, link] of rows) {
-    const h = throwawayHome('onboard-adr');
-    cleanups.push(h.cleanup);
-    const dir = path.join(h.dir, 'p');
-    fs.mkdirSync(path.join(dir, 'docs', 'adr'), { recursive: true });
-    const m = structuredClone(/** @type {any} */ (MANIFEST_DOC));
-    m.baseline.architecture = architecture;
-    fs.writeFileSync(path.join(dir, MANIFEST), JSON.stringify(m));
-    if (link) fs.symlinkSync(path.join(dir, 'docs', 'adr'), path.join(dir, link));
-    const before = snapshot(dir);
-    const res = onboard(dir, ['--scaffold']);
-    assert.equal(res.code, 2, architecture + ': ' + res.out);
-    assert.match(res.out, /decision record|resolves into the ADR library/, architecture);
-    assert.deepEqual(fs.readdirSync(path.join(dir, 'docs', 'adr')), [], architecture + ': nothing in the library');
-    assert.deepEqual(snapshot(dir), before, architecture + ': nothing written anywhere');
-  }
-});
 
 test('the body: CommonMark fences and HTML comments hide an escape line', () => {
   const esc = 'docs-baseline: none — only a quoted example';

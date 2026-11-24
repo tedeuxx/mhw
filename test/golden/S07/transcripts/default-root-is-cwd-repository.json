@@ -1,7 +1,0 @@
-{
-  "name": "default-root-is-cwd-repository",
-  "code": 0,
-  "stdout": "# 2999-99 — funnel review\n\ncommit: <COMMIT>\ncollection: docs/funnel-review/collected/2999-99.tsv\ncap: 2 findings, the ceiling and not a quota\ninternal-traffic: UNDECLARED — figures may include the owner's own sessions\n\nFUNNEL-REVIEW-NOT-COLLECTED\n\nNothing was read this period. Reason: no collection file at that path\n\nThis is NOT \"the funnel is healthy\" and it is NOT \"no findings\". No surface was reached,\nso this report makes no claim about the funnel at all. The collection route is the owner's\nown authenticated browser (owner ruling, 2026-09-10); with no authenticated session there is\nnothing to read, and nothing in this harness can open one.\n\nThere is deliberately no findings section below — a findings section that is absent and one\nthat is empty are different claims, and only the second means the surfaces were read.\n",
-  "stderr": "",
-  "treeUnchanged": true
-}

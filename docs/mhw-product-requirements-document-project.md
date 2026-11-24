@@ -368,7 +368,8 @@ In the owner's words (translated, #52 and #60): "only make pull requests for rel
   ~~the prompt it prints opens with the native `/goal`, so the fresh session anchors the same objective.~~
   *Struck 2026-11-01 ([#198](https://github.com/tedeuxx/mhw/issues/198), owner: a fresh session does
   not start with `/goal`):* the prompt opens with the objective as plain text, and `mhw launch-line` (`launch-line.py` until #476)
-  refuses one whose first line opens with `/goal`.)
+  refuses one whose first line opens with `/goal`. Since [#599](https://github.com/tedeuxx/mhw/issues/599) the command
+  has left the CLI and the session applies that refusal itself (`/handoff`, *Check it*).)
   `/what-else` is [#74](https://github.com/tedeuxx/mhw/issues/74). This continues
   [#11](https://github.com/tedeuxx/mhw/issues/11).
 

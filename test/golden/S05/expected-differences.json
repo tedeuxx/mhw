@@ -1,9 +1,0 @@
-[
-  {
-    "case": "*",
-    "stream": "stderr",
-    "base": "^usage: launch-line\\.py ",
-    "head": "^usage: mhw launch-line ",
-    "why": "The launch-line usage line names the program: launch-line.py was run as a script, mhw launch-line is a CLI verb. The line is dropped from both sides and the exit code (2) is compared; test/method/launch-line.test.js asserts the Node line's text."
-  }
-]

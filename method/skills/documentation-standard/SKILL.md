@@ -268,17 +268,20 @@ A new capability for new code needs no escape: coverage is judged by the head ma
 
 The check is mechanical and narrow: a one-word doc edit passes it, and so does a dishonest `none`.
 Whether the right document changed in the right way stays the gate's judgement. A manifest whose
-catch-all owns most of the tree makes almost any document edit satisfy almost any change; `mhw onboard`
-prints how many tracked files each capability owns, so the proportion is visible.
+catch-all owns most of the tree makes almost any document edit satisfy almost any change; the
+`onboard` skill reports how many tracked files each capability owns, so the proportion is visible.
 
-**Onboarding: `mhw onboard [--project=DIR]`** validates read-only and reports each gap: the manifest,
-the five items, that every tracked file belongs to a capability, and any `additional_docs` a
-`project-policy.json` declares. **`mhw onboard --scaffold`** first writes the missing files of the
-default proposal: never one that exists, never through a directory that resolves outside the project
-(decided for every file before anything is created), and never an ADR record; anything at or under the
-ADR library, compared case-folded on the resolved path, other than its index and template is refused.
-Run it on an existing repository to
-see its gaps; run it with `--scaffold` on a new one. A project adds documents or Definition-of-Done
+**Onboarding: the `onboard` skill** (~~`mhw onboard [--project=DIR]` and `--scaffold`~~, struck
+2026-11-24, mhw#599: the command left the CLI and its procedure is the skill). It validates read-only
+and reports each gap: the manifest, the five items, that every tracked file belongs to a capability,
+and any `additional_docs` a `project-policy.json` declares. Asked to scaffold, it first writes the
+missing files of the default proposal: never one that exists, never through a directory that resolves
+outside the project (decided for every file before anything is created), and never an ADR record;
+anything at or under the ADR library, compared case-folded on the resolved path, other than its index
+and template is refused. Run it on an existing repository to see its gaps, and with scaffolding on a
+new one. **The authority on the manifest is the delivery gates Action**: its `docs-baseline` gate
+validates the manifest on every pull request and its `contract` gate validates `project-policy.json`;
+the skill names both and decides neither. A project adds documents or Definition-of-Done
 criteria on top of this baseline through the optional `baseline_override` section of its
 `project-policy.json`, which may only add (the contract validator refuses anything else).
 

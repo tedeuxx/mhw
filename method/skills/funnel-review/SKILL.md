@@ -17,8 +17,9 @@ purpose: "give published content a feedback loop the loop itself can run, becaus
 > ~~**The scripts this rite runs ship with the method (#170).** `{{method-scripts}}` in this text is the
 > directory the method installs them to, the same for every agent harness, so the rite runs them from
 > any repository.~~ *(Struck 2026-11-21, #489: the method installs no script; the rite runs `mhw`
-> commands.)* Where `{{method-scripts}}` appears in this text, it is the directory the method installs
-> the documents a rite reads to, the same for every agent harness.
+> commands.)* ~~Where `{{method-scripts}}` appears in this text, it is the directory the method installs
+> the documents a rite reads to, the same for every agent harness.~~ *(Struck 2026-11-24, mhw#599: this
+> rite names no installed document; the collection file's contract is in step 1.)*
 
 > **A skill, not a command, since 2026-10-26** (the owner: *"para mim sao skills"*). Invoke it by name:
 > Claude Code `/funnel-review`, Codex `$funnel-review`, Kiro `/funnel-review`. Any agent harness may also load it
@@ -52,8 +53,8 @@ not a posture that could be tightened later — it is what makes the rite admiss
 
 **It is NOT a generator of work.** The prototype produced three tracked items from one sitting; a
 rite producing three items per period is a machine for generating work, which is the failure this
-loop names first. **The cap is two findings**, declared as a number in `mhw funnel-review` (mhw's `src/commands/funnel-review.js`; until mhw#478 the script `method/scripts/funnel-review.sh`) and
-printed into every report.
+loop names first. **The cap is two findings**, declared as a number in this skill's report templates (step 2; in
+`mhw funnel-review` until mhw#599) and printed into every report.
 
 **It is NOT a publisher of unbounded numbers.** Every figure ships with its sample size and the
 ceiling that bounds it, or it is printed as unusable and not as a figure.
@@ -155,8 +156,9 @@ Step 0 states, per host, what is established.
 
    **A rite that quietly does nothing is indistinguishable from one that ran and found nothing.** That
    is this repository's own named worst shape and it is the whole reason the two literals exist.
-   mhw's `test/method/funnel-review.test.js` runs both branches in one pass and asserts each prints its own
-   literal and **not** the other's.
+   Step 2's two report templates carry one literal each, and mhw's `test/method/funnel-review.test.js`
+   asserts that each template carries its own literal and **not** the other's (a check of the text, not
+   of a report a session wrote).
 
 ## The containment is STATED, not implied — ~~measured, at head~~ at this method's real level
 
@@ -273,7 +275,7 @@ Each option states its consequence, and that consequence is the whole preamble:*
   into the not-collected report. **A skip is a result with a reason; an absent file is not.**
 - **He fills the collection file himself** — the owner's alternative, and it needs no browser in the
   loop at all. His file declares `collected: yes <date> owner` and carries `figure:` lines in the
-  store's contract; step 2 runs on it unchanged. **Nothing here can tell his file from a driver's, and
+  collection file's shape (step 1); step 2 reads it unchanged. **Nothing here can tell his file from a driver's, and
   nothing needs to**: both are assertions by whoever wrote them, which is the bound the store already
   carries.
 
@@ -311,9 +313,9 @@ would settle it for that host.
 ### 1 · Collect — where the authenticated browser is, and nowhere else
 
 **The output of this step is a file, not a paragraph:**
-`docs/funnel-review/collected/<period>.tsv` in the consuming repository, in the contract the method
-installs beside its scripts, `{{method-scripts}}/funnel-review-contract/README.md` (#181; its source
-is `method/scripts/funnel-review-contract/README.md`). Until #181 this sentence pointed
+`docs/funnel-review/collected/<period>.tsv` in the consuming repository, in the shape *The collection
+file* below declares. ~~in the contract the method installed beside its scripts~~ *(struck
+2026-11-24, mhw#599: the contract left with the command; its declarations are below.)* Until #181 this sentence pointed
 at a README inside the store, and that README lived only in the deprecated plugin's own store, which
 a rite installed from the method cannot read. The store is the consuming
 repository's; a store kept in another repository before #181 stays there, as history, and the
@@ -333,7 +335,7 @@ Read, for the period:
 - **every per-piece read and engagement figure, per piece × per language**, using the per-piece and
   per-language dimensions the consuming repository declares. Group editions by the key that repository
   derives. Write each one with the qualified metric spelling `<metric>:<piece>:<language>`; whole-site
-  figures stay unqualified. The script prints a language caveat on every qualified figure, because a
+  figures stay unqualified. The report prints a language caveat on every qualified figure, because a
   link pinned to one language sets that value by the link, not by the reader. **A neutral share
   address**, one that carries no language of its own, **stays a page-path figure**: it is reported
   under its path, never assigned a language;
@@ -341,7 +343,7 @@ Read, for the period:
   period, whatever its format — impressions, reactions, comments. *(Widened 2026-11-23, mhw#564: a
   rotation post has no piece behind it, so "each piece" missed it.)* **Each
   post figure carries the post's format code** from `published-voice` rule 26, read from the post
-  record the consuming repository keeps, in the contract's post spelling
+  record the consuming repository keeps, in the post spelling
   `<metric>.<format>.<post>` (for example `reactions.F2.<post>`). A post whose record carries no code is
   written with the format `unlabelled`, **never with a guessed code**;
 - **nothing else.** X analytics are out of scope by name; they were not read even in the prototype.
@@ -360,6 +362,37 @@ include the owner's own sessions. By the state of the property's internal-traffi
   do not compare it with a fully filtered period as if the two were alike;
 - **no marking exists** — declare `none`, and read every figure as including the owner's own sessions.
 
+#### The collection file — its shape, read literally
+
+**This section is the collection file's contract.** ~~The store contract the method installed
+beside its scripts~~ *(struck 2026-11-24, mhw#599: that contract, its fixtures and `mhw funnel-review`
+left the CLI together; what they declared is here.)*
+Each declaration is positional, at column 0, read literally. A token that can also occur inside
+wrapped prose is not a declaration; a **position** is.
+
+```
+collected: yes <date> <provenance>                                   the surfaces were read
+collected: no  <reason>                                              they were not, and this is NOT "no findings"
+internal-traffic: <none|testing-excluded-by-query|active> <effective-date> <how>
+figure: <surface> <metric> <value> <sample-size>
+```
+
+- Lines starting with `#` and blank lines are ignored. Only the first `collected:` and the first
+  `internal-traffic:` line count.
+- **A skipped period** is `collected: no skipped by the owner on <date>: <reason>`; **a file the owner
+  filled in himself** declares `collected: yes <date> owner`.
+- **`<surface>` is a closed set:** `ga4` and `site` (the site's own analytics), `linkedin` and `x`
+  (platform-reported). Any other surface is UNDECLARED (step 2).
+- **`<metric>`** is a whole-site name, or `<metric>:<piece>:<language>` for a per-piece, per-language
+  figure, or `<metric>.<format>.<post>` for a post figure. No part carries a space or a `:` beyond
+  these separators. A post figure carries no language, so it gets no language caveat.
+- **`<sample-size>` is mandatory and is digits only.** A line without one is not a figure.
+- **The period name is any string that sorts.** The prior period is the greatest collected name
+  lexically below this one; lexical on purpose, so mix no two naming conventions in one store.
+- **The two files of a period are different kinds of thing.** `collected/<period>.tsv` is the only
+  record that a surface was read, and what the next period compares against; `<period>.md` is the
+  report, derived from it. Keep both.
+
 ~~**Write `collected: no <reason>` and stop when the browser is not authenticated.**~~ *(Struck
 2026-11-01, #131: it let the not-collected file be written without asking him.)* **When the browser
 is not authenticated, go back to step 0's picker; write `collected: no <reason>` and stop only after
@@ -372,23 +405,115 @@ browser at all is UNMEASURED — that is a hypothesis, in those words**, and thi
 happens wherever the authenticated browser is reachable, and every step after it needs no browser.
 What would settle it is one dispatch attempting the act and reporting what came back.
 
-### 2 · Analyse — no network, no credential, against the committed file
+### 2 · Analyse — you compute it, against the committed file, and every figure cites its line
+
+~~`mhw funnel-review <period>`~~ *(struck 2026-11-24, mhw#599: the command left the CLI. The owner
+accepted the trade on 2026-11-23, «Aceito, com fonte»: the driver computes the figures, each citing its
+source, and the report is no longer byte-for-byte repeatable.)* **No network call, no credential, no
+browser:** read `docs/funnel-review/collected/<period>.tsv` and the prior period's file, both committed,
+and nothing else.
+
+**1. Decide the state from the `collected:` line, and nothing else.**
+
+- No collection file at that path, a file with no column-0 `collected:` line, or one that says neither
+  `yes` nor `no` → **NOT-COLLECTED**, with that reason.
+- `collected: no …` → **NOT-COLLECTED**, quoting the line as the reason. No figure below it is used.
+- `collected: yes …` → **RAN**.
+
+**2. On RAN, turn each `figure:` line into one figure, and cite it.** For every figure, write:
 
 ```
-mhw funnel-review <period>
+- <surface> · <metric> = <value> · n=<sample-size> · <baseline> · <ceiling>[ · <locale caveat>] · source: collected/<period>.tsv line <L>
 ```
 
-It reads the collection file and the prior period's, prints each figure with its sample size and its
-ceiling clause, prints the comparison against the baseline or says there is none, and prints the
-report skeleton. **It makes no network call** — asserted by a suite that puts a recorder on `PATH` in
-place of `curl`, `wget`, `gh`, `nc`, `ssh`, `open` and `osascript` and reads a file that can be
-non-empty, with one direct invocation proving it can.
+- **`source:` is the line number in the committed collection file**, so the owner can check the figure
+  against the line it came from. A figure with no source line is not written. A number you derived
+  yourself (a ratio, a sum, a per-format group) is written as derived and names every source line it
+  used: `derived from collected/<period>.tsv lines <L1>, <L2>`.
+- **`<baseline>`**: the prior period's line with **the same surface and the same metric, compared as
+  plain strings** (a `.` matches only itself): `prior <prior> = <value> (n=<n>), collected/<prior>.tsv
+  line <L>`; `not measured in <prior>` when it has no such line; `no prior period on record` when there
+  is no prior file.
+- **`<ceiling>`**, by surface, and it rides with every figure:
+  - `ga4`, `site`: `consent-ceiling: consenting sessions only — the consent banner gates analytics on
+    this site, so a reader who declined is invisible by design`;
+  - `linkedin`, `x`: `consent-ceiling: does not apply to <surface> — this figure is platform-reported,
+    the consent banner gates nothing there, and the platform's own sampling is unstated and
+    unverifiable from here`;
+  - anything else: `consent-ceiling: UNDECLARED for surface <surface> — read the figure as unbounded,
+    and declare the surface before quoting it`.
+- **The locale caveat**, only on a `<metric>:<piece>:<language>` figure: `locale-caveat: a link pinned
+  to one language sets this value by the link, not by the reader`.
+- **A `figure:` line with fewer than four fields, or a sample size that is not digits, is UNUSABLE**:
+  quote it verbatim under `## Unusable collection lines`, with its line number, and never as a figure.
+  Dropping it would hide that a collection came back wrong.
+
+**3. The internal-traffic line.** Copy the file's `internal-traffic:` line verbatim into the header when
+its state is one of the three and it carries a date and a `<how>`. Otherwise write
+`internal-traffic: UNDECLARED — figures may include the owner's own sessions`, quoting what the file
+declared, if anything.
+
+**Check before you land it**, because nothing else will: every figure's value and n are the ones on its
+source line, every baseline is the prior file's line it names, and no figure lacks a `source:`. The
+figures are your reading of the file, not a computation anyone can re-run byte for byte; the source
+citation is what makes each one checkable.
+
+### The report — two templates, one per state
+
+**NOT-COLLECTED** (no findings section at all):
+
+```
+# <period> — funnel review
+
+commit: <git rev-parse HEAD of the store's repository>
+collection: docs/funnel-review/collected/<period>.tsv
+cap: 2 findings, the ceiling and not a quota
+<the internal-traffic line, or UNDECLARED>
+
+FUNNEL-REVIEW-NOT-COLLECTED
+
+Nothing was read this period. Reason: <the reason>
+
+This is NOT "the funnel is healthy" and it is NOT "no findings". No surface was reached, so this
+report makes no claim about the funnel at all.
+```
+
+**RAN**:
+
+```
+# <period> — funnel review
+
+commit: <git rev-parse HEAD of the store's repository>
+collection: docs/funnel-review/collected/<period>.tsv
+cap: 2 findings, the ceiling and not a quota
+<the internal-traffic line, or UNDECLARED>
+
+FUNNEL-REVIEW-RAN
+
+## Figures
+
+<one line per figure, as above; or "None. The surfaces were read and returned no usable figure.">
+
+## Unusable collection lines
+
+<only when there is one>
+
+## Findings
+
+<at most 2, or "None this period">
+
+## What I would leave alone
+```
+
+The literal is written **at column 0, exactly once**, and the two never appear in one report. The cap
+line is in every report. **The candidate-rule shape (step 3) goes under Findings only, and only at
+column 0 when it is a real candidate**: never paste it as an example, or the planning queue counts it.
 
 ### 3 · Report — at most two findings, into the store
 
 `product-lead` writes `docs/funnel-review/<period>.md`. It is the driver for the same reason it drives
 `/sprint-review`: it holds the reader's and the market's side, and the owner named that view for
-exactly this work. It holds `Write` and `Bash`, so it runs step 2 and lands the file itself; nothing
+exactly this work. It holds `Write` and `Bash`, so it does step 2 and lands the file itself; nothing
 is relayed through the orchestrator, because relaying is what turns a rite's own artifact into
 somebody else's summary of it.
 
@@ -398,8 +523,8 @@ on its own, on **reactions and comments**, which are what a post is measured on;
 context, not the score. Never pool formats into one average, and never compare a rotation post with
 an `F1` post as if alike: one carries a link and an article, the other carries neither. **`unlabelled`
 posts are reported as such and left out of every per-format comparison.** Say the n of each group
-beside it; one post per format is a story about one post. `mhw funnel-review` does not group anything:
-the grouping is the driver's reading of the printed figures.
+beside it; one post per format is a story about one post. A per-format group is a derived figure
+(step 2): it names every source line it used.
 
 **A finding is:** what the numbers show · the figure that shows it · what it costs · the change
 proposed, or the price of leaving it. **At most two, the driver choosing which** — and *"None this
@@ -422,10 +547,10 @@ Evidence: <each `figure:` line it rests on, quoted verbatim from collected/<peri
 - **It is a candidate inside a finding, not a third finding.** The cap is unchanged.
 - **The not-collected branch carries none**, because it carries no findings section at all.
 - **`Candidate rule:` and `Evidence:` are written at COLUMN 0**, exactly as above. The position is
-  what `/sprint-planning` reads the queue by (step 4), and it is also what keeps the shape that
-  `mhw funnel-review` prints as guidance from counting as a candidate. The command indents that
-  template by four spaces, so a report that keeps the template as written contains no phantom open
-  candidate.
+  what `/sprint-planning` reads the queue by (step 4). ~~It is also what keeps the shape that
+  `mhw funnel-review` prints as guidance from counting as a candidate.~~ *(Struck 2026-11-24, mhw#599:
+  the command left the CLI, and no report carries the shape as guidance any more.)* Write the shape
+  only for a real candidate: a pasted example at column 0 is counted as an open one.
 
 **The honest bound on a candidate, stated with it rather than discovered later:** the samples are
 small — #473's own body reports one read event reaching a single-digit number of users over four
@@ -481,8 +606,8 @@ As of 2026-10-10 the plugin's store held three reports: two `FUNNEL-REVIEW-NOT-C
 sprint-04) and one `FUNNEL-REVIEW-RAN` (sprint-05) with no `Candidate rule:` line, so that command
 still printed nothing there. As of 2026-10-16 the consuming repository's `main` holds no file under
 `docs/funnel-review/`, so its store has not run. The zero is real, not a dead pattern:
-the `candidate queue` test of mhw's `test/method/funnel-review.test.js` appends a column-0 candidate to a report
-the command wrote and asserts the selector finds it.
+the `candidate queue` test of mhw's `test/method/funnel-review.test.js` runs the selector over a
+synthetic report with a column-0 candidate and asserts it finds it.
 
 **`held` keeps the candidate open.** It is his explicit *"ask me again next planning"*, and the next
 planning's count includes it. **`adopted` does not edit the ruler either.** An adopted candidate is
@@ -535,6 +660,11 @@ refuses to print a figure that arrived without one.
   no matcher at all.
 - **Nothing pairs a report with its collection.** A report with no collection file beside it passes
   every check in this repository.
+- **Nothing recomputes a figure (mhw#599).** The driver reads each figure off the collection file and
+  cites its line; no command re-derives it, so a misread value or a wrong baseline line passes every
+  check here. The `source:` citation is what lets the owner check one against its line. The owner
+  accepted this on 2026-11-23 (*«Aceito, com fonte»*) in place of `mhw funnel-review`'s byte-for-byte
+  output.
 - **The cap is held over LANDED artifacts only.** mhw's `test/method/funnel-review.test.js` counts
   `## Finding` headings in the reports that exist under the store root; mhw's own tree holds no store, so
   there it counts nothing. A period that was never
@@ -552,7 +682,7 @@ refuses to print a figure that arrived without one.
 - **Nothing observes whether a piece improved after a candidate became a rule.** No layer reads a
   draft against a prior one, and at these sample sizes a movement in the next period is not evidence
   of a cause. A later period's funnel is what there is, and this rite already says it cannot attribute.
-- **Nothing checks that a figure was actually split (#181).** The script prints the language caveat
+- **Nothing checks that a figure was actually split (#181).** The report prints the language caveat
   on every figure spelled `<metric>:<piece>:<language>` and on nothing else, so a per-piece figure
   collected unsplit, under a whole-site name, prints as a whole-site figure with no caveat and no
   warning.
@@ -569,12 +699,14 @@ refuses to print a figure that arrived without one.
   repository is narrow, and it reads strings.** ~~`global/method/method_commands_test.py`~~ `test/render/method-commands.test.js` (#489) asserts that
   it carries the headings `## The steps` and `## What this rite cannot see`. mhw's `test/method/funnel-review.test.js`
   asserts that it carries no verdict literal and no decision field, that it publishes the
-  candidate-queue selector verbatim, and that it cites the store contract. Other suites there check
+  candidate-queue selector verbatim, and that it carries the collection file's shape, both report
+  templates and the source citation. Other suites there check
   every method file for pointers, mentions and rendering. None asserts that a session obeyed any rule
   here.
 
 **By this loop's own test — *would something stop me, or only my memory?* — this rite is an
-instruction.** What it changes is that the analysis is repeatable, the baseline has a home, and the
+instruction.** What it changes is that ~~the analysis is repeatable~~ every figure cites the line it
+came from (struck 2026-11-24, mhw#599: the model computes it now), the baseline has a home, and the
 two states that used to look identical now print different strings — and, since #473 in the plugin
 and #128 here, that the clock counts only the second of them, and that a finding has a written shape by which it can reach the
 owner as a candidate rule.
