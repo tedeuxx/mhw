@@ -45,15 +45,16 @@ Each is raised one at a time, when a slice reaches it.
    vendored as the paste wrapper's pty, with the macOS binaries byte-identical to npm and the Linux ones
    built by this repository's CI from the pinned source (no npm integrity covers those). The Linux build
    is already the owner's decision on PR #521; the record as a whole is proposed.~~
-   *Ratified on 2026-11-20 ([«Ratificar»](https://github.com/tedeuxx/mhw/issues/487#issuecomment-7053800611)). ~~No record in this index is proposed.~~ ADR-0045 is, since #591 (ask 8), and ADR-0046, since #592 (ask 9).*
+   *Ratified on 2026-11-20 ([«Ratificar»](https://github.com/tedeuxx/mhw/issues/487#issuecomment-7053800611)). ~~No record in this index is proposed.~~ ADR-0045 is, since #591 (ask 8)~~, and ADR-0046, since #592 (ask 9)~~.*
 8. **Ratify [ADR-0045](0045-delivery-route-on-github-rulesets-and-a-skill.md)**
    ([#591](https://github.com/tedeuxx/mhw/issues/591)): the review verdicts as commit statuses, their
    trust model, and the rulesets for `rc/next` and `main`. The route itself is already his ruling
    (*"GitHub + skill"*); applying the rulesets is a separate `owner-action` Issue.
-9. **Ratify [ADR-0046](0046-delivery-gates-as-a-reusable-github-action.md)**
+9. ~~**Ratify [ADR-0046](0046-delivery-gates-as-a-reusable-github-action.md)**
    ([#592](https://github.com/tedeuxx/mhw/issues/592)): the delivery gates, the contract validator and
    the documentation baseline check as one composite GitHub Action. The destination is already his
-   ruling (*"It becomes a reusable GitHub Action."*); the Action's shape is agent-written.
+   ruling (*"It becomes a reusable GitHub Action."*); the Action's shape is agent-written.~~
+   *Ratified on 2026-11-24 ([«Ratifico»](https://github.com/tedeuxx/mhw/issues/592#issuecomment-7130734920)).*
 
 ## Index
 
@@ -104,4 +105,4 @@ Each is raised one at a time, when a slice reaches it.
 | [0043](0043-backlog-grooming-batch-confirmation-and-scrum-for-mhw.md) | Backlog grooming closes and rewrites the owner's Issues on one batch confirmation, under safeguards; mhw runs `scrum`, scoped by `loop-mode-repos` (2026-11-20) | ~~proposed~~ accepted 2026-11-20 ([ratification](https://github.com/tedeuxx/mhw/issues/522#issuecomment-7050932440)) |
 | [0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md) | A declared documentation baseline kept current by every merge request (`mhw docs-baseline check`, `mhw onboard`), and an add-only test/DoD override in `project-policy.json` with a coverage floor of 85; amends 0015 (2026-11-20) | ~~proposed~~ accepted 2026-11-20 ([ratification](https://github.com/tedeuxx/mhw/issues/523#issuecomment-7053423698)) |
 | [0045](0045-delivery-route-on-github-rulesets-and-a-skill.md) | The delivery route on GitHub rulesets and the `merge-pull-request` skill; the review verdicts as commit statuses posted by a workflow; `mhw delivery` removed; amends 0021 (2026-11-23, #591) | proposed |
-| [0046](0046-delivery-gates-as-a-reusable-github-action.md) | The delivery gates, the contract validator and the documentation baseline check as one reusable composite GitHub Action, `actions/delivery-gates`; `mhw policy`, `mhw delivery-gate` and `mhw docs-baseline` removed (2026-11-23, #592) | proposed |
+| [0046](0046-delivery-gates-as-a-reusable-github-action.md) | The delivery gates, the contract validator and the documentation baseline check as one reusable composite GitHub Action, `actions/delivery-gates`; `mhw policy`, `mhw delivery-gate` and `mhw docs-baseline` removed (2026-11-23, #592) | ~~proposed~~ accepted 2026-11-24 ([ratification](https://github.com/tedeuxx/mhw/issues/592#issuecomment-7130734920)) |
