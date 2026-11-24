@@ -335,6 +335,42 @@
     "stream": [
       "*"
     ],
+    "base": "PASTE {3}[^\\n]*the paste wrapper[^\\n]*\\n",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#590 (the CLI native baseline PRD, slice 4): the paste wrapper is removed, with its pty library, so `mhw status` no longer prints the PASTE line S16 (#487) added after the NODE line (whether the wrapper's pty library loads). A pasted credential is caught by the fixed-pattern check on submit, which blocks and shows a redacted copy. Every PASTE line of the transcripts is taken out of the original's side; the head prints none."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "[^\\n]*(?:personal-multi-harness-workstation-configuration/paste-filter\\.sh|paste-wrapper start-up block|activates the paste wrapper)[^\\n]*\\n",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#590: install no longer writes the paste wrapper's shell snippet (paste-filter.sh) or its start-up block in ~/.zshrc, so `mhw status --verbose` no longer lists either as OK or MISSING among the check's lines; one an earlier install left is named STALE and removed by install (test/install/install-user.test.js, test/render/shell-rc.test.js). Every line naming them is taken out of the original's side."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "paste wrapper, ",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#590: with the snippet and the start-up block no longer install targets, a HOME without them has no drift in the 'paste wrapper' category, so the summary's drift list no longer names it. The category stays in src/commands/status.js for a leftover an earlier install left, which install removes."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
     "base": "\\b185(?= deny-floor)|\\b185(?=/185 )|(?<=/)185\\b",
     "head": "\\b177(?= deny-floor)|\\b177(?=/177 )|(?<=/)177\\b",
     "replace": "<N>",

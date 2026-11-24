@@ -1,7 +1,8 @@
 // mhw install, update, uninstall and postinstall in Node (#495, S24 of #470): the cases of the deleted
 // global/workstation_test.py that the parity golden (lifecycle-golden.test.js) does not already hold, as
 // node:test. Throwaway HOMEs and admin roots only (WORKSTATION_MANAGED_ROOT, so no sudo ever runs); never a
-// real configuration. The pty arm runs a real terminal through the vendored node-pty.
+// real configuration. The pty arm runs a real terminal through test/helpers/pty-run.py (CPython's pty module),
+// since #590 removed the vendored node-pty with the paste wrapper, its only runtime user.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -9,7 +10,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { throwawayHome, which } from '../helpers/home.js';
-import { loadPty } from '../../src/lib/pty.js';
 import { issues, ownerSteps, show, adminAccess, asRoot, SUDO, confirm } from '../../src/lib/lifecycle.js';
 import { install } from '../../src/commands/install.js';
 import { uninstall } from '../../src/commands/uninstall.js';
@@ -50,26 +50,17 @@ test('install lines: an owner value is a pending write and no owner step; CHANGE
   assert.equal(issues(changed), 0);
   assert.deepEqual(ownerSteps([...drift, ...changed]), []);
   const s = sink();
-  show(['OK      /h/a', 'CHANGED /h/.zshrc: paste-wrapper start-up block absent -> present (new file)', 'WROTE   /h/b'], false, s.io);
-  assert.deepEqual(s.text.split('\n').filter(Boolean), ['    CHANGED /h/.zshrc: paste-wrapper start-up block absent -> present (new file)']);
+  show(['OK      /h/a', 'CHANGED /h/.zshrc: paste-wrapper start-up block present -> absent (previous file kept as /h/.zshrc.pmhwc-backup)', 'WROTE   /h/b'], false, s.io);
+  assert.deepEqual(s.text.split('\n').filter(Boolean), ['    CHANGED /h/.zshrc: paste-wrapper start-up block present -> absent (previous file kept as /h/.zshrc.pmhwc-backup)']);
 });
 
-test("owner steps: install.sh's own acts become next steps, with its reason", () => {
+test("owner steps: install's own acts become next steps; a start-up line is no longer one (#590)", () => {
   const steps = ownerSteps([
     'NOTE    automatic paste cleaning: no shell start-up file is written (--shell-rc=none); add this line to yours:',
     '        [ -r "/h/snippet.sh" ] && . "/h/snippet.sh"',
     'RESTART REQUIRED: open fresh Claude Code and Codex sessions before further work; Codex hook trust remains an owner action in /hooks.']);
-  assert.equal(steps.length, 2);
-  assert.ok(steps[0].includes('[ -r "/h/snippet.sh" ] && . "/h/snippet.sh"'));
-  assert.ok(steps[1].includes('/hooks'));
-  assert.ok(steps[0].includes('(--shell-rc=none)'));
-  assert.ok(!steps[0].includes('neither zsh nor bash'));
-  const fish = ownerSteps(['NOTE    automatic paste cleaning: no shell start-up file is written (your shell (SHELL=/bin/fish) is neither zsh nor bash); add this line to yours:', '        line']);
-  assert.ok(fish[0].includes('(your shell (SHELL=/bin/fish) is neither zsh nor bash)'));
-  const login = ownerSteps(['NOTE    automatic paste cleaning: no bash login start-up file is written (for a bash login shell: only ~/.profile is there, which sh also reads, and a new ~/.bash_profile would stop bash reading it); add this line to yours:', '        line']);
-  assert.equal(login.length, 1);
-  assert.ok(login[0].includes('mhw wrote no bash login start-up file (for a bash login shell: only ~/.profile'));
-  assert.ok(!login[0].includes('no shell start-up file'));
+  // The paste wrapper is removed: even an old installer's NOTE asks the owner to add nothing.
+  assert.deepEqual(steps, ['In Codex, approve the mhw hooks once: type /hooks in a new session.']);
   assert.deepEqual(ownerSteps(['OK      something']), []);
 });
 
@@ -223,52 +214,33 @@ test("the user-level brief's session-start, goal, close and hook sections (Issue
 
 // ------------------------------------------------------------------- the conversation in a real terminal
 
-const PTY = loadPty();
-const ptySkip = (!POSIX && 'POSIX') || (!JQ && 'needs jq') || (!PTY.ok && 'the pty library does not load here: ' + /** @type {any} */ (PTY).reason) || false;
+const PY = which('python3');
+const ptySkip = (!POSIX && 'POSIX') || (!JQ && 'needs jq') || (!PY && 'needs python3 for the pty driver') || false;
 
 /** `./mhw install --overlay=none` on a pty, answering the prompt with key. @param {ReturnType<typeof box>} b @param {string} key */
 function inTerminal(b, key) {
-  const pty = /** @type {any} */ (PTY).pty;
   /** @type {Record<string, string>} */
   const env = { ...b.env, TERM: 'dumb', NO_COLOR: '1' };
   delete env.WORKSTATION_OVERLAY;
-  const term = pty.spawn(process.execPath, [path.join(ROOT, 'mhw'), 'install', '--overlay=none'], { cols: 120, rows: 40, cwd: b.dir, env, encoding: null });
-  cleanups.unshift(() => {
-    try {
-      term.kill('SIGKILL');
-    } catch {
-      // already gone
-    }
-  });
-  return new Promise((resolve, reject) => {
-    let out = Buffer.alloc(0);
-    let sent = false;
-    const timer = setTimeout(() => reject(new Error('no prompt within 120 s: ' + out.toString('utf8').slice(-400))), 120000);
-    term.onData((/** @type {Buffer} */ d) => {
-      out = Buffer.concat([out, d]);
-      if (!sent && out.includes('any other key to abort:')) {
-        sent = true;
-        term.write(key);
-      }
-    });
-    term.onExit((/** @type {{ exitCode: number }} */ e) => {
-      clearTimeout(timer);
-      resolve({ code: e.exitCode, text: out.toString('utf8').replaceAll('\r\n', '\n') });
-    });
-  });
+  const p = spawnSync(/** @type {string} */ (PY), ['-I', '-B', path.join(ROOT, 'test', 'helpers', 'pty-run.py'), Buffer.from(key).toString('hex'), '120', '--',
+    process.execPath, path.join(ROOT, 'mhw'), 'install', '--overlay=none'], { cwd: b.dir, env, encoding: 'utf8', timeout: 150000 });
+  assert.equal(p.status, 0, p.stderr);
+  const r = JSON.parse(p.stdout.trim().split('\n').pop() || '{}');
+  assert.notEqual(r.code, null, 'no exit within 120 s: ' + String(r.text).slice(-400));
+  return { code: /** @type {number} */ (r.code), text: String(r.text).replaceAll('\r\n', '\n') };
 }
 
-test('live: in a real terminal, RETURN installs and another key aborts (Issue #113)', { skip: ptySkip }, async () => {
+test('live: in a real terminal, RETURN installs and another key aborts (Issue #113)', { skip: ptySkip }, () => {
   const b = box('pty');
   const brief = path.join(b.home, '.claude', 'CLAUDE.md');
-  const no = /** @type {{ code: number, text: string }} */ (await inTerminal(b, 'n'));
+  const no = inTerminal(b, 'n');
   assert.equal(no.code, 1, no.text);
   assert.ok(no.text.includes('Aborted; nothing was changed.'), no.text);
   assert.ok(!fs.existsSync(brief));
-  const ctrlC = /** @type {{ code: number, text: string }} */ (await inTerminal(b, '\x03'));
+  const ctrlC = inTerminal(b, '\x03');
   assert.equal(ctrlC.code, 1, ctrlC.text);
   assert.ok(!fs.existsSync(brief));
-  const yes = /** @type {{ code: number, text: string }} */ (await inTerminal(b, '\r'));
+  const yes = inTerminal(b, '\r');
   assert.equal(yes.code, 0, yes.text);
   assert.ok(yes.text.includes('Installation successful!'), yes.text);
   assert.match(yes.text, /^1\. Open new Claude Code, Codex and Kiro sessions/m);

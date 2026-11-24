@@ -77,7 +77,8 @@ resolve them deliberately instead of deleting existing configuration. A successf
 file/configuration agreement, not that every harness loaded or enforced the policy. Its last section
 lists the prerequisite tools and subscriptions, with the manual step for each gap, and fails when a
 required one is missing ([prerequisites](prerequisites.md)). Follow the
-README's separate hook-trust and paste-wrapper activation instructions where applicable.
+README's separate hook-trust ~~and paste-wrapper activation~~ instructions where applicable (the paste wrapper
+is removed since [#590](https://github.com/tedeuxx/mhw/issues/590); there is nothing to activate).
 
 ## Restart after installation
 

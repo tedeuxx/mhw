@@ -8,7 +8,7 @@
 //                    answered here; install --admin and uninstall do not exist there.
 // Moved commands (the strangler's later steps) are answered here on every OS: `mhw rite-cadence` (#477),
 // `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
-// `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux), `mhw check`
+// `mhw status` (#493, after its NODE line; macOS and Linux; the PASTE line left with the paste wrapper, #590), `mhw check`
 // (#494; macOS and Linux; on Windows both run `mhw install-windows --check`, #497); new in Node:
 // `mhw install-user` (#503, S25; macOS and Linux), the user-layer installer install, update, uninstall,
 // check and status run (it was global/install.sh), `mhw install-admin` (#496, S26; macOS and Linux), the
@@ -43,7 +43,6 @@ import { main as installUserMain } from './commands/install-user.js';
 import { main as installWindowsMain } from './commands/install-windows.js';
 import { main as mcpLaunchMain } from './commands/mcp-launch.js';
 import { main as mcpCheckMain } from './commands/mcp-check.js';
-import { main as pasteWrapperMain, statusLine as pasteStatusLine } from './commands/paste-wrapper.js';
 import { main as statusMain } from './commands/status.js';
 import { main as checkMain } from './commands/check.js';
 import { main as lifecycleMain } from './commands/lifecycle.js';
@@ -146,12 +145,8 @@ const MOVED = {
   // #483, S12: `mhw mcp launch`, the MCP launcher the renderer installs a copy of; #484, S13: `mhw mcp render`;
   // #595: `mhw mcp check`, the connection test (`mhw status --mcp-connect` until v11).
   mcp: mcpMain,
-  // #487, S16: the paste wrapper the shell functions run. A relayed session resolves later and exits
-  // by itself (process.exit); the 0 returned here is replaced then.
-  'paste-wrapper': (argv, env) => {
-    const r = pasteWrapperMain(argv, env);
-    return typeof r === 'number' ? r : 0;
-  },
+  // `mhw paste-wrapper` (#487) left the CLI at #590 with the wrapper itself: a pasted credential is caught by
+  // the fixed-pattern check on submit (#588), which blocks and shows a redacted copy, so the word is unknown.
   // `mhw docs-baseline check`, `mhw policy check` and `mhw delivery-gate` left the CLI at #592 (ADR-0046):
   // they are the delivery gates Action (actions/delivery-gates/). `mhw onboard` (#523) left at #599: it is
   // the method skill `onboard`. Each word is an unknown subcommand like any other.
@@ -198,8 +193,6 @@ export function main(argv, platform, env, opts = {}) {
   if (argv.length && Object.hasOwn(MOVED, argv[0])) return MOVED[argv[0]](argv.slice(1), env);
   if (argv[0] === 'status') {
     printNodeLine(opts.nodeVersion || process.version);
-    // #487: whether the paste wrapper's pty library loads here; a FAIL names the reason. Never the exit code.
-    fs.writeSync(1, pasteStatusLine(env, platform) + '\n');
     // #493 (S22): the status view itself is Node on macOS and Linux; on Windows it is install-windows --check (#497).
     if (platform !== 'win32') return statusMain(argv.slice(1), env);
   }

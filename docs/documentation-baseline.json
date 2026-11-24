@@ -128,11 +128,9 @@
         "global/clipboard/**",
         "global/clipboard.conf",
         "global/profile/locales/**",
-        "src/commands/paste-wrapper.js",
-        "src/lib/pty.js",
-        "src/vendor/node-pty/**",
+        "src/render/shell-rc.js",
         "test/clipboard/**",
-        ".github/workflows/node-pty-linux.yml"
+        "test/render/shell-rc.test.js"
       ],
       "docs": [
         "README.md",

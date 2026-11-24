@@ -26,6 +26,7 @@ import { apply as applyChange, baseRevision, assertTranscriptInventory } from '.
 import { extractRevision, normalise } from '../helpers/parity.js';
 import { SCENARIOS } from './cases.js';
 import { patternPath, stripFile, stripOutput } from '../helpers/s588.js';
+import { stripWrapper } from '../helpers/s590.js';
 
 const SLICE = 'S25';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -171,7 +172,8 @@ test('golden: mhw install-user matches the transcripts recorded from install.sh'
   assertTranscriptInventory(SLICE, SCENARIOS);
   for (const sc of SCENARIOS) {
     const want = readGolden(SLICE, 'transcripts/' + sc.name + (sc.declared ? '.node.json' : '.json'));
-    assert.deepEqual(fold(runScenario(sc, ROOT, 'node'), sc.name), fold(want, sc.name), sc.name);
+    // #590: the paste wrapper's snippet and start-up block, taken out of both sides (test/helpers/s590.js).
+    assert.deepEqual(fold(stripWrapper(runScenario(sc, ROOT, 'node')), sc.name), fold(stripWrapper(want), sc.name), sc.name);
   }
 });
 
@@ -190,7 +192,7 @@ test('live: install.sh at the base revision, and mhw install-user here, on the s
       continue;
     }
     assert.deepEqual(shell, readGolden(SLICE, 'transcripts/' + sc.name + '.json'), sc.name + ': the base no longer matches its golden');
-    if (!sc.declared) assert.deepEqual(fold(runScenario(sc, ROOT, 'node'), sc.name), fold(shell, sc.name), sc.name);
+    if (!sc.declared) assert.deepEqual(fold(stripWrapper(runScenario(sc, ROOT, 'node')), sc.name), fold(stripWrapper(shell), sc.name), sc.name);
   }
 });
 

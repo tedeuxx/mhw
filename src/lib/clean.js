@@ -1,7 +1,8 @@
 // The cleaning core (#486, S15 of #470): the detection and redaction engine of
 // global/clipboard/clipboard_guard.py (ADR-0011, ADR-0033) ported to Node. Terms, credentials and
 // personal data, the same eleven categories in the same order, the same spans in the same order.
-// clipboard_guard.py was deleted by #488 (S17): the prompt hook, the paste wrapper and mhw scan all run this core.
+// clipboard_guard.py was deleted by #488 (S17): the prompt hook, the paste wrapper and mhw scan all ran this core;
+// since #600 and #590 (the wrapper removed) the fixed-pattern check and the CI scan do.
 //
 // Fail-open is the risk this file is built against: Python's re and JavaScript's RegExp disagree on
 // \w, \d, \s, \b, case-insensitive matching and $, and a pattern that silently matches less reports
@@ -49,8 +50,9 @@ export const DEFAULTS = Object.freeze({
   block_categories: CATEGORY_ORDER.filter((c) => !REPORT_ONLY_DEFAULT.includes(c)).join(','),
   report_categories: REPORT_ONLY_DEFAULT.join(','),
   show_cleaned_chars: '8000',
-  // The paste wrapper (src/commands/paste-wrapper.js). The first two REPLACE a paste inside the CLI's
-  // input, so they stay one line.
+  // The paste wrapper's notices (src/commands/paste-wrapper.js until #590 removed it). Nothing reads them
+  // since; they stay so an owner setting naming one still parses. The first two replaced a paste inside the
+  // CLI's input, so they stay one line.
   notice_paste_too_large: '[paste filter (ADR-0033): a paste over {max} bytes was NOT forwarded, it could not '
     + 'be checked]',
   notice_paste_error: '[paste filter (ADR-0033): internal error ({error}), the paste was NOT forwarded]',

@@ -245,5 +245,11 @@
     "stream": "stdout",
     "pattern": null,
     "why": "#589 (the CLI native baseline PRD, slice 3; ADR-0047): install merges one more UserPromptSubmit entry into ~/.claude/settings.json, the third-party term check, a prompt-type hook found by its JUDGE_ID text; it is taken out of every scenario's settings document before it is compared (test/helpers/s588.js, beside the #588 entries), and test/hooks/pattern-check-install.test.js and test/render/settings-merge.test.js hold the entry itself. A dry run's semantic diff carries it and cannot be taken apart, and install now moves an earlier install's term list aside (STALE under --check, WOULD REMOVE under --dry-run, REMOVED with a 0600 backup) where it named a Keychain-salted list before; so this scenario's Node transcript, <scenario>.node.json, was recorded again at this slice's head. Nothing else in it changed."
+  },
+  {
+    "name": "#590: the paste wrapper's snippet and shell start-up block are no longer written",
+    "stream": "tree",
+    "pattern": null,
+    "why": "#590 (the CLI native baseline PRD, slice 4): the paste wrapper is removed, so install writes no shell snippet (paste-filter.sh), no start-up block in ~/.zshrc, ~/.bashrc or the bash login file, and no list of the start-up files it created; one an earlier install left is removed with a backup that never overwrites an existing one. The transcripts were recorded while install wrote them, so both sides have the wrapper's material taken out before they are compared (test/helpers/s590.js: those paths, the WOULD WRITE block of the snippet, and every line naming the snippet, the block or the hand-added line), and the rest is still held to them. test/render/shell-rc.test.js and test/install/install-user.test.js hold the removal itself."
   }
 ]

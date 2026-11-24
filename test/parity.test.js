@@ -134,9 +134,9 @@ test('live: the head matches the base revision run on its own throwaway HOMEs', 
 });
 
 // The status case is retired since S27 (#497): it ran install.ps1 -Check, which is gone, so what follows the
-// two lines is now mhw install-windows --check (test/install/windows.test.js). The two lines are still the
-// first two.
-test('the expected difference is real: status prints a NODE line and, since S16 (#487), a PASTE line first', () => {
+// NODE line is now mhw install-windows --check (test/install/windows.test.js). The PASTE line S16 (#487) added
+// after it left with the paste wrapper (#590).
+test('the expected difference is real: status prints a NODE line first, and no PASTE line since #590', () => {
   const c = spec.cases.find((/** @type {{ name: string }} */ x) => x.name === 'windows-status-relative-powershell');
   assert.ok(c);
   const head = transcript(HEAD, c);
@@ -144,5 +144,5 @@ test('the expected difference is real: status prints a NODE line and, since S16 
   assert.equal(golden.stdout, '');
   const lines = head.stdout.split('\n');
   assert.match(lines[0], /^NODE    /);
-  assert.match(lines[1], /^PASTE   /);
+  assert.ok(!lines.some((l) => l.startsWith('PASTE')), head.stdout);
 });

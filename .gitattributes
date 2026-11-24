@@ -30,8 +30,6 @@ test/golden/S14/** -text
 # Golden transcripts and the recorded corpus answers of the S15 parity tests (#486): byte for byte on every
 # OS (the answers carry \r\n, a byte-order mark and non-ASCII text on purpose).
 test/golden/S15/** -text
-# Golden answers and declared differences of the S16 parity test (#487): byte for byte on every OS.
-test/golden/S16/** -text
 # Golden transcripts and frozen inputs of the S19 parity test (#490): byte for byte on every OS.
 test/golden/S19/** -text
 # Golden transcripts, the recorded CPython and the declared differences of the S22 parity test (#493): byte for byte on every OS.
@@ -48,8 +46,6 @@ test/golden/S23/** -text
 test/golden/S24/** -text
 # Golden transcripts, the recorded CPython and the declared differences of the S29 parity test (#499): byte for byte on every OS.
 test/golden/S29/** -text
-# Golden transcripts and the declared differences of the S21 parity test (#492): byte for byte on every OS.
-test/golden/S21/** -text
 # Golden transcripts, the recorded CPython and the declared differences of the S30 parity test (#500): byte for byte on every OS.
 test/golden/S30/** -text
 # Golden transcripts, frozen inputs and the declared differences of the S25 parity test (#503): byte for byte on every OS.

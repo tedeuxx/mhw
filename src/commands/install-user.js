@@ -58,9 +58,10 @@ The owner runs it through mhw install, update and uninstall; this is their inter
                                     instead of writing them (default --hooks=user)
   --managed-root=DIR                read the admin layer under DIR instead of / (tests only); this step never
                                     writes the admin layer, it only reports which layer carries the deny floor
-  --shell-rc=FILE                   the shell start-up file that gets the paste wrapper's managed block (an
-                                    absolute path). Default: from $SHELL, zsh \${ZDOTDIR:-~}/.zshrc, bash
-                                    ~/.bashrc, plus on macOS the login file. --shell-rc=none writes none.
+  --shell-rc=FILE                   one more shell start-up file to clean of the retired paste wrapper's block
+                                    (#590; an absolute path). Every mode only removes that block, from this file
+                                    and from \${ZDOTDIR:-~}/.zshrc, ~/.bashrc, ~/.bash_profile and ~/.bash_login,
+                                    keeping a backup; nothing is ever added. --shell-rc=none names no extra file.
   --method                          opt-in (Issue #61): render the working method (method/) too
 
 Exit codes: 0 ok · 1 drift, stamp or missing (--check) · 2 usage, invalid floor entry or missing dependency ·
@@ -266,7 +267,7 @@ export const jsonBody = (s) => s.replaceAll('\\', '\\\\').replaceAll('"', '\\"')
  *   floor: string, floorFrom: string, floorClaude: string, floorCodex: string, floorCodexWords: string[],
  *   clipConf: Buffer, allowNode: string | null, allowWhy: string, settingsWhy: string, mergeRefused: boolean,
  *   codexFloorRefused: boolean, kiroFloorRefused: boolean, pasteOk: boolean, wrapNode: string, wrapRefused: boolean,
- *   wrapMhw: string, startupBody: string, processRefused: boolean, cmd: string, uname?: string, patternOff?: boolean, legacyPasteCmd?: string
+ *   processRefused: boolean, cmd: string, uname?: string, patternOff?: boolean, legacyPasteCmd?: string
  * }} Ctx
  */
 
@@ -305,11 +306,11 @@ export function pathsOf(home, env) {
     clipDest: dataDir + '/clipboard_guard.py', // the Python hook core, removed (#488); retired below
     clipConfDest: dataDir + '/clipboard.conf',
     wrapDest: dataDir + '/paste_wrapper.py', // the Python wrapper, removed (#487); retired below
-    snippetDest: dataDir + '/paste-filter.sh',
+    snippetDest: dataDir + '/paste-filter.sh', // the paste wrapper's shell snippet, removed (#590); retired below
     clipPlist: home + '/Library/LaunchAgents/' + CLIP_LABEL + '.plist',
     codexRules: codex + '/rules/workstation-deny-floor.rules',
     codexHooks: codex + '/hooks.json',
-    // Kiro CLI V3's user-level hook file (Issue #455); the name is KIRO_HOOK_FILE in paste-wrapper.js.
+    // Kiro CLI V3's user-level hook file (Issue #455), retired with `mhw hook prompt` (#600).
     kiroHook: home + '/.kiro/hooks/' + NAME + '-paste-filter.json',
     // The fixed-pattern check (#588): its script and core under the data directory, and its own Kiro hook file.
     patternDir: dataDir + '/pattern-check',
@@ -492,7 +493,7 @@ function prepareTargets(ctx, src, floorSrc, clipConfSrc) {
   // The clipboard guard's settings: generic defaults, then the overlay's (last value of a key wins).
   ctx.clipConf = Buffer.concat([fs.readFileSync(clipConfSrc), ...(hasOverlayFile('clipboard.conf') ? [fs.readFileSync(overlay + '/clipboard.conf')] : [])]);
 
-  // The paste wrapper's and the prompt hook's node (#487, #488): MHW_NODE (an absolute path), else the first
+  // The prompt hook's node (#487, #488): MHW_NODE (an absolute path), else the first
   // node on PATH. MHW_NODE is process.execPath, the resolved, versioned path, so node on PATH is rendered when
   // it is the same file (ADR-0017, PR #516 lens A1). An absolute MHW_NODE that is not an executable file is
   // refused, never replaced by another node.
@@ -513,11 +514,10 @@ function prepareTargets(ctx, src, floorSrc, clipConfSrc) {
       }
     }
   } else ctx.wrapNode = pathNode;
-  ctx.wrapMhw = ctx.repoRoot + '/bin/mhw.js';
   const p = ctx.paths;
   ctx.pasteOk = true;
   // A single quote too: the hook command is a /bin/sh -c '...' (#488).
-  if (/["\\$`']/.test(p.clipDest + p.clipConfDest + p.wrapDest + ctx.wrapNode + ctx.wrapMhw)) {
+  if (/["\\$`']/.test(p.clipDest + p.clipConfDest + p.patternDir + ctx.wrapNode)) {
     ctx.pasteOk = false;
     warn(ctx, 'REFUSE  paste filter: the data directory, node or package path holds a quote (single or double), backslash, dollar sign or backtick');
   } else if (!ctx.wrapNode.startsWith('/')) {
@@ -529,7 +529,6 @@ function prepareTargets(ctx, src, floorSrc, clipConfSrc) {
     ctx.pasteOk = false;
     warn(ctx, 'REFUSE  paste filter: /usr/bin/env not found; the hook is not registered');
   }
-  ctx.startupBody = '[ -r "' + p.snippetDest + '" ] && . "' + p.snippetDest + '"';
   return null;
 }
 
@@ -542,7 +541,7 @@ function cleanup(ctx) {
 
 /**
  * One managed file's bytes.
- * @param {Ctx} ctx @param {string} kind plain|kiro|codexrules|clipconf|snippet|codexhooks|patpkg|patfile:F|kiropattern
+ * @param {Ctx} ctx @param {string} kind plain|kiro|codexrules|clipconf|codexhooks|patpkg|patfile:F|kiropattern
  * @returns {Buffer}
  */
 export function render(ctx, kind) {
@@ -564,21 +563,6 @@ export function render(ctx, kind) {
     return Buffer.concat([Buffer.from('# ' + MARKER_ID + '; source: global/clipboard.conf + overlay; ' + stamp + '; do not edit, re-run the installer\n', 'utf8'), ctx.clipConf]);
   }
   const conf = ctx.paths.clipConfDest;
-  if (kind === 'snippet') {
-    // Shell functions for zsh and bash. Sourcing this file is the owner's act; nothing here runs it.
-    let s = '# ' + MARKER_ID + '; source: global/install.sh (paste wrapper, ADR-0011); ' + stamp + '; do not edit, re-run the installer\n'
-      + '# The paste filter at the harness-CLI paste boundary (ADR-0011). install.sh sources it from a\n'
-      + '# managed block in your shell start-up file (~/.zshrc, or ~/.bashrc and on macOS ~/.bash_profile;\n'
-      + '# Issue #145), which reads:\n'
-      + '#   ' + ctx.startupBody + '\n'
-      + '# Then claude, codex and kiro-cli run through the wrapper, which cleans bracketed pastes before the\n'
-      + '# CLI sees them and marks the session (PMHWC_PASTE_WRAPPER=1), so the prompt hook lets its prompts\n'
-      + '# through. "command claude" (or codex, kiro-cli) runs a CLI without it, and the hook then checks.\n';
-    for (const cli of ['claude', 'codex', 'kiro-cli']) {
-      s += cli + '() { "' + ctx.wrapNode + '" "' + ctx.wrapMhw + '" paste-wrapper run --config "' + conf + '" -- ' + cli + ' "$@"; }\n';
-    }
-    return Buffer.from(s, 'utf8');
-  }
   if (kind === 'codexhooks') {
     // The marker and the provenance stamp sit in the file's "description" (documented as metadata that does
     // not change which hooks run). Measured on Codex 0.160.0 (Issue #66): changing "description" leaves the
@@ -753,9 +737,10 @@ export function shellOf(env) {
 }
 
 /**
- * The shell start-up block that activates the paste wrapper (Issue #145): src/render/shell-rc.js (#492),
- * run by the node the settings merge runs. Its exit code: 1 is drift under --check only (elsewhere node's own
- * exit for an uncaught exception, so a refusal), 3 a refused file, 4 a write that failed, which stops the run.
+ * The retired paste wrapper's shell start-up block (#590; written by install from Issue #145 to #590):
+ * src/render/shell-rc.js removes it in every mode, with a backup, and never adds it. Run by the node the
+ * settings merge runs. Its exit code: 1 is a block still there under --check only (elsewhere node's own exit
+ * for an uncaught exception, so a refusal), 3 a refused file, 4 a write that failed, which stops the run.
  * @param {Ctx} ctx
  */
 export function startupStep(ctx) {
@@ -765,8 +750,7 @@ export function startupStep(ctx) {
     return;
   }
   const rc = runNode(ctx, /** @type {string} */ (ctx.allowNode), [ctx.scriptDir + '/../src/render/shell-rc.js', '--mode=' + ctx.mode,
-    '--shell-rc=' + ctx.shellRc, '--shell=' + shellOf(ctx.env), '--snippet=' + ctx.paths.snippetDest,
-    '--data-dir=' + ctx.dataDir, '--uname=' + (ctx.uname || os.type())]);
+    '--shell-rc=' + ctx.shellRc, '--shell=' + shellOf(ctx.env), '--data-dir=' + ctx.dataDir, '--uname=' + (ctx.uname || os.type())]);
   if (rc === 0) return;
   if (ctx.mode === 'check' && rc === 1) raise(ctx, 1);
   else if (rc === 4) throw new Exit(1);
@@ -1156,16 +1140,19 @@ function patternFiles(ctx) {
 }
 
 /**
- * The paste filter's files: the Codex hooks (user mode only), the Kiro hook, the snippet and the start-up block.
+ * The paste filter's files: the Codex hooks (user mode only) and the fixed-pattern check's, then the retired
+ * paste wrapper's: its Python copy (#487) and its shell snippet (#590), which goes whatever the node. The
+ * start-up block that sourced the snippet is startupStep's, run from run().
  * @param {Ctx} ctx
  */
 function pasteFiles(ctx) {
   const p = ctx.paths;
+  const snippet = "the paste wrapper's shell snippet, removed (#590: a pasted credential is caught by the hook on submit)";
   if (!ctx.pasteOk) {
     raise(ctx, 2);
     say(ctx, 'SKIP    ' + p.codexHooks + ': the paste filter cannot run here (see the REFUSE line above)');
     say(ctx, 'SKIP    ' + p.patternDir + ' and ' + p.kiroPattern + ': the fixed-pattern check cannot run here either (#588)');
-    say(ctx, 'SKIP    ' + p.wrapDest + ' and ' + p.snippetDest + ': the paste wrapper cannot run here either');
+    retire(ctx, p.snippetDest, snippet);
     return;
   }
   if (ctx.hooksMode === 'user') processTarget(ctx, 'codexhooks', p.codexHooks);
@@ -1175,9 +1162,7 @@ function pasteFiles(ctx) {
   retire(ctx, p.kiroHook, 'the Kiro prompt hook that ran mhw hook prompt, removed (#600)');
   patternFiles(ctx);
   retire(ctx, p.wrapDest, 'the Python paste wrapper, replaced by mhw paste-wrapper (Node, #487)');
-  // pasteOk holds only with an absolute wrap node, so the snippet and its start-up block always follow.
-  processTarget(ctx, 'snippet', p.snippetDest);
-  startupStep(ctx);
+  retire(ctx, p.snippetDest, snippet);
 }
 
 /**
@@ -1239,6 +1224,7 @@ export function run(ctx) {
   processTarget(ctx, 'clipconf', p.clipConfDest);
   termListsStep(ctx);
   pasteFiles(ctx);
+  startupStep(ctx); // the retired paste wrapper's start-up block leaves every start-up file (#590)
   plist(ctx);
   mergeSettings(ctx);
   kiroStep(ctx);

@@ -147,6 +147,30 @@
     "stream": [
       "*"
     ],
+    "base": "[^\\n]*NOTE {4}automatic paste cleaning[^\\n]*\\n[^\\n]*\\n|[^\\n]*(?:personal-multi-harness-workstation-configuration/paste-filter\\.sh|paste-wrapper start-up block|activates the paste wrapper)[^\\n]*\\n",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#590 (the CLI native baseline PRD, slice 4): the paste wrapper is removed, so install no longer writes or checks its shell snippet (paste-filter.sh) or its start-up block, and prints no NOTE asking the owner to add the start-up line by hand. `mhw check` therefore prints no OK, MISSING or DRIFT line for either; one an earlier install left is named STALE and removed by install (test/install/install-user.test.js, test/render/shell-rc.test.js). Every such line is taken out of the original's side."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "paste wrapper, ",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#590: with the snippet and the start-up block no longer install targets, a HOME without them has no drift in the 'paste wrapper' category, so a drift list no longer names it."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
     "base": "\\b185(?= deny-floor)|\\b185(?=/185 )|(?<=/)185\\b",
     "head": "\\b177(?= deny-floor)|\\b177(?=/177 )|(?<=/)177\\b",
     "replace": "<N>",

@@ -1,6 +1,6 @@
 # ADR-0042: node-pty 1.1.0, vendored with its macOS prebuilds, is the paste wrapper's pty
 
-- **Status:** ~~proposed~~ accepted (2026-11-20; https://github.com/tedeuxx/mhw/issues/487#issuecomment-7053800611). ~~(2026-11-20). The owner ratifies; until then the slice
+- **Status:** ~~proposed~~ accepted (2026-11-20; https://github.com/tedeuxx/mhw/issues/487#issuecomment-7053800611); **superseded** 2026-11-24 by [ADR-0047](0047-third-party-terms-judged-by-the-model.md)'s amendment of that date ([#590](https://github.com/tedeuxx/mhw/issues/590)): the paste wrapper is removed, and node-pty with it. ~~(2026-11-20). The owner ratifies; until then the slice
   that carries it (#487) states the choice and its gaps.~~
 - **Date:** 2026-11-20
 - **Deciders:** the owner (D2 of the Node runtime requirements: *"bibliotecas podem ser utilizadas sem
@@ -130,4 +130,16 @@ installed on any Linux machine of the owner's.
 ## Links
 
 - Node runtime requirements: `docs/mhw-product-requirements-document-node-runtime.md`, D2 and D7.
-- `test/golden/S16/expected-differences.json` lists every declared difference from the Python wrapper.
+- ~~`test/golden/S16/expected-differences.json` lists every declared difference from the Python wrapper.~~
+  *(Deleted by #590 with the wrapper; it is in this repository's git history.)*
+
+## Amendment 2026-11-24: superseded; node-pty is removed with the paste wrapper ([#590](https://github.com/tedeuxx/mhw/issues/590))
+
+The paste wrapper was node-pty's only runtime user, and the owner removed it (*«Só hook no envio»*;
+[ADR-0047](0047-third-party-terms-judged-by-the-model.md), 2026-11-24 amendment). So `src/lib/pty.js`, the
+vendored `src/vendor/node-pty` with its macOS prebuilds and its CI-built Linux binaries
+(`linux-prebuilds.json`), the `node-pty` devDependency and its shrinkwrap entries (`node-addon-api` with
+them), and the `node-pty-linux.yml` workflow are deleted. The one vendored package left is `smol-toml`
+(test/vendor.test.js). The lifecycle suite's real-terminal arm, which also ran on node-pty, now drives its
+pseudo-terminal through `test/helpers/pty-run.py` (CPython's standard `pty` module), a test helper that is
+not shipped. Every sentence above is history.

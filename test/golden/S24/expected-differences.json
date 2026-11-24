@@ -411,6 +411,54 @@
     "stream": [
       "*"
     ],
+    "base": "[0-9]+\\. mhw wrote no [^\\n]*start-up file[^\\n]*\\n {7}\\[ -r [^\\n]*\\n",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#590 (the CLI native baseline PRD, slice 4): the paste wrapper is removed, so install writes no shell snippet (paste-filter.sh) and no start-up block, and asks the owner to add no start-up line. The next step that repeated the installer's 'automatic paste cleaning' NOTE (a shell with no start-up file chosen, and the line to add by hand) is gone; it is taken out of the original's side."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "[^\\n]*NOTE {4}automatic paste cleaning[^\\n]*\\n[^\\n]*\\n|[^\\n]*personal-multi-harness-workstation-configuration/paste-filter\\.sh[^\\n]*\\n",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#590 (the CLI native baseline PRD, slice 4): the paste wrapper is removed, so install writes no shell snippet (paste-filter.sh) and no start-up block, and asks the owner to add no start-up line. So the verbose install lines no longer carry the snippet's OK, WROTE or CHANGED line, nor the NOTE with its line to add; every such line is taken out of the original's side."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "\\n[0-9]+\\. ",
+    "head": "\\n[0-9]+\\. ",
+    "replace": "\n<n>. ",
+    "why": "#590 (the CLI native baseline PRD, slice 4): the paste wrapper is removed, so install writes no shell snippet (paste-filter.sh) and no start-up block, and asks the owner to add no start-up line. With the start-up step gone the next steps after it are numbered one lower, so the step numbers are compared as <n> on both sides; their text and order are still compared."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh"
+    ],
+    "base": "^[\\s\\S]*$",
+    "head": "(?!)",
+    "replace": "<absent>",
+    "why": "#590 (the CLI native baseline PRD, slice 4): the paste wrapper is removed, so install writes no shell snippet (paste-filter.sh) and no start-up block, and asks the owner to add no start-up line. The snippet the original wrote into the data directory is absent on the head side (an earlier install's copy is retired by install, test/install/install-user.test.js)."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
     "base": "\\b185(?= deny-floor)|\\b185(?=/185 )|(?<=/)185\\b",
     "head": "\\b177(?= deny-floor)|\\b177(?=/177 )|(?<=/)177\\b",
     "replace": "<N>",
