@@ -46,12 +46,12 @@ test('the NODE line is printed by status alone', () => {
   }
 });
 
-test('status on Windows runs mhw install-windows --check after the NODE and PASTE lines, and its exit code is the check\'s (#497)', () => {
+test('status on Windows runs mhw install-windows --check after the NODE line (no PASTE line since #590), and its exit code is the check\'s (#497)', () => {
   const r = mhw(['status', '--overlay=none'], 'v20.11.1', {});
   assert.equal(r.code, 1);
   assert.match(r.out[0], /^NODE    FAIL  /);
-  assert.match(r.out[1], /^PASTE   n\/a   the paste wrapper is not installed on Windows; whether it works there is not measured \(D7\)$/);
-  assert.match(r.out[2], /^MISSING .*CLAUDE\.md$/);
+  assert.ok(!r.out.some((l) => l.startsWith('PASTE')), r.out.join('\n'));
+  assert.match(r.out[1], /^MISSING .*CLAUDE\.md$/);
   assert.ok(r.out.some((l) => /^MISSING .*settings\.json$/.test(l)), r.out.join('\n'));
   assert.ok(!r.out.some((l) => l.includes('install.ps1') || l.includes('PowerShell')), r.out.join('\n'));
 });

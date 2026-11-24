@@ -181,6 +181,14 @@ reading of the tree. The check itself is unchanged: the Action's `docs-baseline`
 (ADR-0046) on every pull request. Where this record says *Onboarding is `mhw onboard`* or quotes its
 `NOTE` line, read the skill; the measurements above were taken with the command and stay as taken.
 
+## Amendment 2026-11-24: the paste wrapper's code leaves paste-cleaning ([#590](https://github.com/tedeuxx/mhw/issues/590))
+
+The paste wrapper is removed (ADR-0047, 2026-11-24 amendment), so the 2026-11-20 amendment's additions to
+`paste-cleaning` that still named it are taken out of the manifest: ~~`src/commands/paste-wrapper.js`,
+`src/lib/pty.js`, `src/vendor/node-pty/**` and `.github/workflows/node-pty-linux.yml`~~ (deleted; `src/lib/salt.js`
+already left with #589). `src/render/shell-rc.js`, which now only removes the wrapper's old start-up block, and
+its test `test/render/shell-rc.test.js` join the capability in their place. No document list changed.
+
 ## Links
 
 - Issue [#523](https://github.com/tedeuxx/mhw/issues/523); the owner's decision on the override.

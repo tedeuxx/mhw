@@ -234,9 +234,11 @@ those strings and passes, and the sanitising rule in *Build the prompt* is what 
 and *Check it* carry what it did.)* ~~The block runs in the terminal's current
 directory; open the terminal in a different checkout from the old session's.~~ *(Struck 2026-11-01,
 #198: that was a second step handed to the owner. The block now starts with `cd` into the checkout, so
-it runs the same from any directory.)* Where the workstation's paste wrapper is installed, a prompt
-passed as an argument is not cleaned by it, so the sanitising above is the clean-up. On Windows the
-block does not apply: step 2 prints the prompt instead.
+it runs the same from any directory.)* ~~Where the workstation's paste wrapper is installed, a prompt
+passed as an argument is not cleaned by it, so the sanitising above is the clean-up.~~ *(Struck
+2026-11-24, mhw#590: the workstation has no paste wrapper any more.)* Nothing cleans a prompt passed as
+an argument, so the sanitising above is the clean-up. On Windows the block does not apply: step 2 prints
+the prompt instead.
 
 **What holds this, at its real level: an instruction.** Nothing runs the checks or the quoting for
 you, and nothing verifies that the block you print parses. The method's test suite applies the

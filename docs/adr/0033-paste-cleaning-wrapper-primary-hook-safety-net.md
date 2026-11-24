@@ -1,6 +1,6 @@
 # ADR-0033: Paste cleaning: the wrapper cleans first, the prompt hook is the safety net
 
-- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below). The requirement is the owner's (accepted, carried from ADR-0011); the choice
+- **Status:** ~~proposed~~ accepted, **superseded** (the term part by [ADR-0047](0047-third-party-terms-judged-by-the-model.md), #589; the wrapper part by its 2026-11-24 amendment, #590; see the last two amendments below) (accepted 2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below). The requirement is the owner's (accepted, carried from ADR-0011); the choice
   of the wrapper as primary and the hook as safety net is his decision on #58 (2026-10-05). ~~The
   mechanism details below await ratification.~~
 - **Date:** 2026-10-05
@@ -54,12 +54,13 @@ only the decision in force, so a fresh context does not infer the retired archit
 
 Chosen: option 1.
 
-- **The wrapper** (`global/clipboard/paste_wrapper.py`) starts `claude`, `codex` or `kiro-cli` on a
+- ~~**The wrapper** (`global/clipboard/paste_wrapper.py`) starts `claude`, `codex` or `kiro-cli` on a
   pseudo-terminal and replaces each finding inside a bracketed paste with `[REDACTED:<category>]`
   before the command-line tool sees it. Typed input passes byte for byte. It exports
   `PMHWC_PASTE_WRAPPER=1` only into the tool it relays for, and leaves it unset when a prompt argument
   carries a finding or cannot be checked. The installer writes a snippet of shell functions; activating
-  it is the owner's act (a printed guarded line, or `install.sh --shell-rc=FILE`).
+  it is the owner's act (a printed guarded line, or `install.sh --shell-rc=FILE`).~~ *Struck 2026-11-24
+  (#590): the wrapper is removed; see the last amendment.*
 - **The prompt hook** (`clipboard_guard.py prompt-hook`, `UserPromptSubmit` in Claude Code, Codex
   `hooks.json`) passes silently when the marker is exactly `1`. Otherwise it blocks a prompt with a
   finding and shows a redacted copy. It lives in the admin layer when that layer is installed
@@ -78,9 +79,10 @@ Chosen: option 1.
 
 ## Consequences
 
-- Good: in a wrapped session a pasted secret never reaches the agent harness, so its transcript and
+- ~~Good: in a wrapped session a pasted secret never reaches the agent harness, so its transcript and
   history hold only the redacted text (measured in throwaway homes, Claude Code 2.1.289 and Codex
-  0.160.0).
+  0.160.0).~~ *Struck 2026-11-24 (#590): there is no wrapped session; a pasted secret reaches the input
+  box and is blocked on submit.*
 - Good: a session not opened through the wrapper keeps the hook, which is the gap the owner kept it for.
 - Bad: in a wrapped session typed text, a paste while bracketed paste is off, and anything a descendant
   process submits are not checked.
@@ -465,6 +467,20 @@ Read every sentence above that has the wrapper, the scan or a hook match a term 
 Keychain-salted list, as history. The wrapper now replaces the pattern categories only, and an earlier
 install's lists and salt are moved aside by install. The 2026-11-01 amendment's five pattern categories
 are unchanged.
+
+## Amendment 2026-11-24: the paste wrapper is removed; the wrapper part is superseded by ADR-0047 ([#590](https://github.com/tedeuxx/mhw/issues/590), proposed)
+
+**The wrapper part of this record is superseded** by [ADR-0047](0047-third-party-terms-judged-by-the-model.md)'s
+2026-11-24 amendment, so after #589 (the terms) nothing of this record's decision is in force but its
+history. The owner reversed the requirement it rested on, *"tem que ser limpo sozinho"*, with
+*«Só hook no envio»* (only the hook on submit; CLI native baseline PRD, section 6). `mhw paste-wrapper`,
+its pty library ([ADR-0042](0042-node-pty-vendored-for-the-paste-wrapper.md), superseded) and the shell
+snippet and start-up block install wrote are removed; install takes out the block an earlier install left,
+keeping a backup that never overwrites an existing one. **Nothing cleans a paste.** A pasted fixed-format
+finding is caught only on submit, by the fixed-pattern check's prompt hook on Claude Code and Codex, which
+blocks and shows a redacted copy. **Kiro CLI has no paste protection:** Kiro CLI V3 does not block on
+prompt submit (measured once, #588). Read every sentence above that has the wrapper clean, mark or relay
+anything, or install write its snippet or block, as history.
 
 ## Links
 

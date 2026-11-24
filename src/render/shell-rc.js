@@ -1,33 +1,31 @@
-// The paste wrapper's managed block in the shell start-up files (#492, S21 of #470): the Node form of
-// install.sh's rc_* and shell_rc_* functions (Issue #145; ADR-0011, ADR-0035), which were shell and awk.
+// The retired paste wrapper's managed block in the shell start-up files (#590). Until #590 this step wrote
+// the block (#492, S21 of #470; the Node form of install.sh's rc_* and shell_rc_* functions, Issue #145),
+// which sourced the snippet that ran `mhw paste-wrapper`. The wrapper is removed: a pasted credential is
+// caught by the fixed-pattern check on submit (#588), which blocks and shows a redacted copy. So every mode
+// now only finds and removes the block an earlier install wrote; nothing is ever added.
 //
 //   node src/render/shell-rc.js --mode=install|check|dry-run|uninstall --shell-rc=|none|/ABSOLUTE
-//        --shell=SHELL --snippet=FILE --data-dir=DIR --uname=NAME
+//        --shell=SHELL --data-dir=DIR --uname=NAME
 //
-// HOME and ZDOTDIR are read from the environment, as install.sh read them; --shell is install.sh's $SHELL
-// (passed, since a shell that sets SHELL itself, bash as sh among them, does not export it). --snippet is the managed
-// shell snippet the block sources ($snippet_dest), --data-dir the data directory that keeps the list of
-// start-up files install created, --uname what `uname -s` printed (install.sh passes it, so the login-file
-// rule reads the same system name as before).
+// HOME and ZDOTDIR are read from the environment. --shell is install.sh's $SHELL, --data-dir the data
+// directory that keeps the list of start-up files an earlier install created, --uname what `uname -s`
+// printed (the macOS login-file rule).
 //
-// Which file: --shell-rc=FILE only that file; --shell-rc=none none; otherwise from --shell: zsh gets
-// ${ZDOTDIR:-$HOME}/.zshrc when that is inside HOME, bash gets ~/.bashrc and, when uname is Darwin, the bash
-// login file (the first of ~/.bash_profile and ~/.bash_login that exists, a new ~/.bash_profile when none of
-// ~/.bash_profile, ~/.bash_login and ~/.profile does; nothing when only ~/.profile does). ~/.profile is never
-// written. Another shell gets none. Uninstall reads the chosen file and every default one. Two checks
-// the shell functions lacked (PR #543 lens; narrower only): a snippet path holding a quote, $, a backtick,
-// a backslash or a line break is refused (it would run as code from the block), and ZDOTDIR is resolved
-// (links and '..') before the inside-HOME check.
+// Which files: every start-up file the block may be in, the one --shell-rc names (none for
+// --shell-rc=none), the one an earlier install chose from --shell (zsh ${ZDOTDIR:-$HOME}/.zshrc when that
+// is inside HOME; bash ~/.bashrc and on macOS the login file), and every default one: ~/.zshrc as ZDOTDIR
+// gives it, ~/.bashrc, ~/.bash_profile and ~/.bash_login. ~/.profile was never written and is never read.
 //
-// The block is replaced whole when it differs and never duplicated; an earlier one-line form and the
-// unmarked two-line form are replaced by it. Damaged markers (repeated, unpaired or out of order) are
-// refused and nothing is written. Every write keeps the previous file as <file>.pmhwc-backup (0600) and
-// writes through a symbolic link, mode kept. Files are read and written as bytes (latin1), as awk did, so
-// uninstall gives a file back byte for byte (but for a final newline install added).
+// install and uninstall remove the block, an earlier one-line form and the unmarked two-line form; damaged
+// markers (repeated, unpaired or out of order) are refused and nothing is changed. Each change keeps the
+// previous file as <file>.pmhwc-backup (0600), or as <file>.pmhwc-backup.N with the first free N when a
+// backup is already there: an existing backup is never overwritten. A file an earlier install created, and
+// that holds nothing but the block, is removed. Writes go through a symbolic link, mode kept. check names
+// a block still there as STALE (exit 1); dry-run says what install would change. Files are read and written
+// as bytes (latin1), as awk did.
 //
-// Exit codes: 0 ok · 1 drift (check) · 2 usage · 3 refused, that file left as it was · 4 an I/O failure
-// while writing (a backup, a directory or the file): install.sh then stops at once with exit 1, as its
-// set -e did. node: modules only.
+// Exit codes: 0 ok, 1 a block still there (check), 2 usage, 3 refused (that file left as it was), 4 an
+// I/O failure while writing (a backup or the file): install then stops at once with exit 1. node: modules only.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,17 +55,15 @@ class IoFailure extends Error {}
 
 /**
  * @typedef {{ out: (s: string) => void, err: (s: string) => void, status: number, mode: string, shellRc: string,
- *   shell: string, snippet: string, dataDir: string, uname: string, env: Record<string, string | undefined> }} Ctx
+ *   shell: string, dataDir: string, uname: string, env: Record<string, string | undefined> }} Ctx
  */
 
 /** A JS string as the latin1 string of its UTF-8 bytes, so it compares with a file read as latin1. @param {string} s */
 const bytes = (s) => Buffer.from(s, 'utf8').toString('latin1');
 
-/** The block's source line. @param {string} snippet */
+/** The source line an earlier install wrote inside the block. @param {string} snippet */
 export const body = (snippet) => '[ -r "' + snippet + '" ] && . "' + snippet + '"';
-/** The line an owner adds by hand where no file is written. @param {string} snippet */
-export const handLine = (snippet) => body(snippet) + '  ' + TAG;
-/** The block, as it is written. @param {string} snippet */
+/** The block, as an earlier install wrote it (tests build their fixtures from it). @param {string} snippet */
 export const block = (snippet) => BEGIN + '\n' + body(snippet) + '\n' + END + '\n';
 
 /** True when the line, its trailing blanks dropped, ends in a word that opens a compound command's body. @param {string} line */
@@ -219,11 +215,6 @@ export function realOf(p) {
   }
 }
 
-/** The characters a double-quoted sourced path would run as code, or that would break the block's line. */
-const UNSAFE = ['"', "'", '$', '`', '\\', '\n', '\r'];
-/** True when the snippet path holds one of them. @param {string} snippet */
-export const unsafeSnippet = (snippet) => UNSAFE.some((c) => snippet.includes(c));
-
 /**
  * The start-up file this run writes ('' with why), and on macOS bash the login file ('' with loginWhy).
  * @param {Ctx} ctx
@@ -271,38 +262,28 @@ function wasCreated(ctx, file) {
 }
 
 /**
- * The file gets data (latin1); the previous file is kept beside it as <file>.pmhwc-backup, owner-only.
- * Written through, so a start-up file that is a symbolic link (a dotfiles checkout) stays one, mode kept.
- * Returns what was kept, for the CHANGED line.
+ * The backup name for a file about to change: <file>.pmhwc-backup, or <file>.pmhwc-backup.N with the first
+ * free N, so an existing backup is never overwritten (#590). @param {string} file
+ */
+export function freeBackup(file) {
+  let bak = file + '.pmhwc-backup';
+  for (let n = 1; lstatOf(bak); n++) bak = file + '.pmhwc-backup.' + n;
+  return bak;
+}
+
+/**
+ * The file gets data (latin1); the previous file is kept beside it, owner-only, at a backup name that was
+ * free (freeBackup). Written through, so a start-up file that is a symbolic link stays one, mode kept.
+ * Returns the backup's name.
  * @param {Ctx} ctx @param {string} file @param {string} data
  */
 function write(ctx, file, data) {
+  const bak = freeBackup(file);
   try {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-  } catch (e) {
-    ctx.err('REFUSE  ' + file + ': could not be written (' + message(e) + ')\n');
+    privateCopy(file, bak);
+  } catch {
+    ctx.err('REFUSE  ' + bak + ': the backup could not be created exclusively; no backup written\n');
     throw new IoFailure();
-  }
-  let kept;
-  if (statOf(file)) {
-    try {
-      privateCopy(file, file + '.pmhwc-backup');
-    } catch {
-      ctx.err('REFUSE  ' + file + '.pmhwc-backup: the backup could not be created exclusively; no backup written\n');
-      throw new IoFailure();
-    }
-    kept = 'previous file kept as ' + file + '.pmhwc-backup';
-  } else {
-    kept = 'new file';
-    if (!wasCreated(ctx, file)) {
-      try {
-        fs.mkdirSync(ctx.dataDir, { recursive: true });
-        fs.appendFileSync(createdList(ctx), file + '\n');
-      } catch (e) {
-        ctx.err('REFUSE  ' + createdList(ctx) + ': could not be written (' + message(e) + ')\n');
-        throw new IoFailure();
-      }
-    }
   }
   try {
     fs.writeFileSync(file, Buffer.from(data, 'latin1'));
@@ -310,7 +291,7 @@ function write(ctx, file, data) {
     ctx.err('REFUSE  ' + file + ': could not be written (' + message(e) + ')\n');
     throw new IoFailure();
   }
-  return kept;
+  return bak;
 }
 
 /** @param {unknown} e */
@@ -331,98 +312,24 @@ function read(ctx, file, what) {
   }
 }
 
-/**
- * The managed block in one start-up file, in install, check or dry-run mode.
- * @param {Ctx} ctx @param {string} rc
- */
-function one(ctx, rc) {
-  const line = handLine(ctx.snippet);
-  const lst = lstatOf(rc);
-  const st = statOf(rc);
-  if (lst?.isSymbolicLink() && !st) {
-    // A link to nothing: writing through it would create its target somewhere else. Refused visibly; the
-    // other steps still run.
-    ctx.out('REFUSE  ' + rc + ' is a symbolic link to a missing file; nothing written. Fix or remove the link, or add this line yourself:\n');
-    ctx.out('        ' + line + '\n');
-    raise(ctx, 3);
-    return;
-  }
-  if (st && !st.isFile()) {
-    ctx.out('REFUSE  ' + rc + ' is not a regular file; nothing written. Add this line yourself:\n');
-    ctx.out('        ' + line + '\n');
-    raise(ctx, 3);
-    return;
-  }
-  const want = block(ctx.snippet);
-  const text = read(ctx, rc, 'nothing written');
-  if (text === null) return;
-  const s = scan(text);
-  if (damaged(s)) {
-    ctx.out('REFUSE  ' + rc + ": the paste-wrapper block's markers are damaged (missing, repeated or out of order); nothing written. Fix or remove them, then run install again\n");
-    raise(ctx, 3);
-    return;
-  }
-  if (s.leg2k > 0) {
-    ctx.out('NOTE    ' + rc + ": an unmarked two-line paste-filter source opens a compound command's body (after then, else, do, {, && or ||); left in place, since removing it could leave an empty body bash refuses. It sources the snippet a second time: remove it by hand\n");
-  }
-  if (s.nb === 1 && s.leg === 0 && s.block === bytes(want)) {
-    ctx.out('OK      ' + rc + ' activates the paste wrapper (managed block)\n');
-    return;
-  }
-  let old;
-  if (s.leg2 > 0 && s.nb === 1) old = 'sourced twice (an unmarked two-line form beside the block)';
-  else if (s.leg2 > 0) old = 'an unmarked two-line form';
-  else if (s.leg > 0) old = 'the earlier one-line form';
-  else if (s.nb === 1) old = 'a different block';
-  else old = 'absent';
-  if (ctx.mode === 'check') {
-    if (old === 'absent') ctx.out('MISSING ' + rc + ': no paste-wrapper start-up block; install adds it\n');
-    else ctx.out('DRIFT   ' + rc + ': paste-wrapper start-up block is ' + old + '; install replaces it\n');
-    raise(ctx, 1);
-  } else if (ctx.mode === 'dry-run') {
-    ctx.out('WOULD CHANGE ' + rc + ': paste-wrapper start-up block ' + old + ' -> present (backup ' + rc + '.pmhwc-backup):\n');
-    ctx.out(want);
-  } else {
-    const kept = write(ctx, rc, s.stripped + bytes(want));
-    ctx.out('CHANGED ' + rc + ': paste-wrapper start-up block ' + old + ' -> present (' + kept + '); new shells clean pastes\n');
-  }
-}
-
-/** install, check and dry-run: the block in the chosen start-up file, and on macOS bash in the login file. @param {Ctx} ctx */
-function lineStep(ctx) {
-  // The block sources the snippet inside double quotes, so a quote, $, a backtick or a backslash in its
-  // path (from HOME or XDG_DATA_HOME) would run as code on every shell start (#492, PR #543 lens).
-  // Refused, nothing written and no line offered to paste. Uninstall is not refused: it only removes.
-  if (unsafeSnippet(ctx.snippet)) {
-    ctx.out('REFUSE  the shell start-up block: the snippet path ' + JSON.stringify(ctx.snippet)
-      + ' holds a quote, $, a backtick, a backslash or a line break, which a start-up file would run as code; no start-up file written\n');
-    raise(ctx, 3);
-    return;
-  }
-  const p = pick(ctx);
-  const line = handLine(ctx.snippet);
-  if (!p.rc) {
-    if (ctx.mode === 'install') {
-      ctx.out('NOTE    automatic paste cleaning: no shell start-up file is written (' + p.why + '); add this line to yours:\n');
-      ctx.out('        ' + line + '\n');
-    }
-    return;
-  }
-  one(ctx, p.rc);
-  if (p.login) one(ctx, p.login);
-  else if (p.loginWhy && ctx.mode === 'install') {
-    ctx.out('NOTE    automatic paste cleaning: no bash login start-up file is written (' + p.loginWhy + '); add this line to yours:\n');
-    ctx.out('        ' + line + '\n');
-  }
-}
-
-/** Uninstall: the block (and an earlier form) leaves every start-up file it may be in. @param {Ctx} ctx */
-function uninstallStep(ctx) {
+/** Every start-up file the block may be in, each once. @param {Ctx} ctx */
+export function candidates(ctx) {
   const h = home(ctx);
-  const seen = new Set();
-  for (const rc of [pick(ctx).rc, zshrc(ctx), h + '/.bashrc', h + '/.bash_profile', h + '/.bash_login']) {
-    if (!rc || seen.has(rc)) continue;
-    seen.add(rc);
+  const p = pick(ctx);
+  /** @type {string[]} */
+  const out = [];
+  for (const rc of [p.rc, p.login, zshrc(ctx), h + '/.bashrc', h + '/.bash_profile', h + '/.bash_login']) {
+    if (rc && !out.includes(rc)) out.push(rc);
+  }
+  return out;
+}
+
+/** What the block is, in every line that names it. */
+export const WHAT = "the retired paste wrapper's start-up block (#590: a pasted credential is caught by the hook on submit)";
+
+/** Every mode: the retired block leaves every start-up file it may be in (#590). @param {Ctx} ctx */
+function removeStep(ctx) {
+  for (const rc of candidates(ctx)) {
     // A file that is not there, or not a regular file, reads as '' and holds no block.
     const text = read(ctx, rc, 'nothing removed');
     if (text === null) continue;
@@ -432,28 +339,35 @@ function uninstallStep(ctx) {
     }
     if (s.nb === 0 && s.ne === 0 && s.leg === 0) continue;
     if (damaged(s)) {
-      ctx.out('REFUSE  ' + rc + ": the paste-wrapper block's markers are damaged; nothing removed\n");
+      ctx.out('REFUSE  ' + rc + ": the paste-wrapper block's markers are damaged (missing, repeated or out of order); nothing removed. Fix or remove them, then run install again\n");
       raise(ctx, 3);
       continue;
     }
-    if (s.stripped === '' && !lstatOf(rc)?.isSymbolicLink() && wasCreated(ctx, rc)) {
+    const created = s.stripped === '' && !lstatOf(rc)?.isSymbolicLink() && wasCreated(ctx, rc);
+    if (ctx.mode === 'check') {
+      ctx.out('STALE   ' + rc + ': ' + WHAT + ' is still there; install removes it\n');
+      raise(ctx, 1);
+    } else if (ctx.mode === 'dry-run') {
+      if (created) ctx.out('WOULD REMOVE ' + rc + ' (an earlier install created it and only the paste-wrapper block is in it)\n');
+      else ctx.out('WOULD CHANGE ' + rc + ': paste-wrapper start-up block present -> absent (backup ' + freeBackup(rc) + ')\n');
+    } else if (created) {
       fs.rmSync(rc, { force: true });
-      ctx.out('REMOVED ' + rc + ' (install created it and only the paste-wrapper block was in it)\n');
-      continue;
+      ctx.out('REMOVED ' + rc + ' (an earlier install created it and only the paste-wrapper block was in it)\n');
+    } else {
+      const bak = write(ctx, rc, s.stripped);
+      ctx.out('CHANGED ' + rc + ': paste-wrapper start-up block present -> absent (' + WHAT + '; previous file kept as ' + bak + ')\n');
     }
-    const kept = write(ctx, rc, s.stripped);
-    ctx.out('CHANGED ' + rc + ': paste-wrapper start-up block present -> absent (' + kept + ')\n');
   }
-  // A refused file (damaged markers, unreadable) still holds its block: the list stays, so the uninstall
-  // that finally removes it can still delete a file install created (PR #543 QA advisory).
-  if (ctx.status < 3) fs.rmSync(createdList(ctx), { force: true });
+  // A refused file (damaged markers, unreadable) still holds its block: the list stays, so the run that
+  // finally removes it can still delete a file an earlier install created (PR #543 QA advisory).
+  if ((ctx.mode === 'install' || ctx.mode === 'uninstall') && ctx.status < 3) fs.rmSync(createdList(ctx), { force: true });
 }
 
 // ---- The command line ----------------------------------------------------------------------------------
 
-const OPTIONS = new Set(['--mode', '--shell-rc', '--shell', '--snippet', '--data-dir', '--uname']);
+const OPTIONS = new Set(['--mode', '--shell-rc', '--shell', '--data-dir', '--uname']);
 const MODES = new Set(['install', 'check', 'dry-run', 'uninstall']);
-const USAGE = 'usage: ' + PROG + ' --mode=install|check|dry-run|uninstall --shell-rc=|none|/ABSOLUTE --shell=SHELL --snippet=FILE --data-dir=DIR --uname=NAME\n';
+const USAGE = 'usage: ' + PROG + ' --mode=install|check|dry-run|uninstall --shell-rc=|none|/ABSOLUTE --shell=SHELL --data-dir=DIR --uname=NAME\n';
 
 /**
  * The command line. Returns the exit code.
@@ -464,7 +378,7 @@ export function main(argv, io = {}) {
   const o = keyOptions(argv, OPTIONS);
   const err = io.err || ((/** @type {string} */ s) => process.stderr.write(s));
   const rc = o?.['--shell-rc'];
-  if (!o || Object.keys(o).length !== OPTIONS.size || !MODES.has(o['--mode']) || !o['--snippet'] || !o['--data-dir']
+  if (!o || Object.keys(o).length !== OPTIONS.size || !MODES.has(o['--mode']) || !o['--data-dir']
       || !(rc === '' || rc === 'none' || rc?.startsWith('/'))) {
     err(USAGE);
     return 2;
@@ -477,7 +391,6 @@ export function main(argv, io = {}) {
     mode: o['--mode'],
     shellRc: o['--shell-rc'],
     shell: o['--shell'],
-    snippet: o['--snippet'],
     dataDir: o['--data-dir'],
     uname: o['--uname'],
     env: io.env || process.env,
@@ -487,8 +400,7 @@ export function main(argv, io = {}) {
     return 2;
   }
   try {
-    if (ctx.mode === 'uninstall') uninstallStep(ctx);
-    else lineStep(ctx);
+    removeStep(ctx);
   } catch (e) {
     if (e instanceof IoFailure) return 4;
     // Anything unforeseen is a refusal, never node's exit 1 (which install.sh would read as --check's drift).

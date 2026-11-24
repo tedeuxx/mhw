@@ -70,14 +70,20 @@ behaviour is ratified in [ADR-0004](docs/adr/0004-stoic-ethical-foundation.md). 
 response is **human-in-the-loop only, with no auditable record kept on the workstation**
 ([ADR-0005](docs/adr/0005-detection-response-hitl-without-log.md)). The reference workstation is
 personal by policy and never persists employer or client confidential data
-([ADR-0008](docs/adr/0008-personal-workstation-no-confidential-persistence.md)). Pasted
+([ADR-0008](docs/adr/0008-personal-workstation-no-confidential-persistence.md)). ~~Pasted
 content is cleaned where it enters an agent harness command line, as he decided (*"tem que ser limpo
 sozinho"*): a pty wrapper launcher, activated by shell functions the owner sources, replaces an
 employer or client reference, a credential or personal data in a bracketed paste before the agent
-harness sees it. A prompt hook on Claude Code and Codex is the safety net: ~~in a session the wrapper
-did not start,~~ it blocks such a prompt and shows a redacted copy *(since #600 the fixed-pattern check,
-an installed script, in every session; no hook command names `mhw`, and `mhw hook prompt` left the CLI)*
-([ADR-0033](docs/adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md), ~~proposed~~ accepted 2026-11-17; it supersedes
+harness sees it.~~ *Struck 2026-11-24 ([#590](https://github.com/tedeuxx/mhw/issues/590)): the owner
+reversed "tem que ser limpo sozinho" with* **«Só hook no envio»** *(only the hook on submit). There is no
+paste wrapper: nothing cleans a paste when it is pasted.* A pasted credential or other fixed-format
+finding is caught only when the prompt is **submitted**, by a prompt hook on Claude Code and Codex:
+~~in a session the wrapper did not start,~~ it blocks such a prompt and shows a redacted copy, which the
+owner resends *(since #600 the fixed-pattern check, an installed script, in every session; no hook command
+names `mhw`, and `mhw hook prompt` left the CLI)*. **Kiro CLI has no paste protection:** Kiro CLI V3 does not
+block on a prompt-submit hook (measured once on #588), so a pasted secret reaches the model there
+([ADR-0047](docs/adr/0047-third-party-terms-judged-by-the-model.md), 2026-11-24 amendment;
+[ADR-0033](docs/adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md), ~~proposed~~ accepted 2026-11-17; it supersedes
 [ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), whose clipboard watcher was withdrawn on
 the owner's correction). Operational
 judgement is delegated to the agent harness to minimise human error; legal responsibility stays with
@@ -291,10 +297,11 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   ADR-0035 amendment of 2026-10-11). Besides the model pins above, `mhw install` ~~removes the `aws-api`
   MCP server from the Codex user configuration (`global/mcp/mcp_retire.py`),~~ removes the wildcard allows of
   `find` and `awk` (`Bash(x *)`, `Bash(x:*)`, `Bash(x*)`) from the Claude Code user allow list
-  (`global/allow-retired.conf`), and adds the paste
+  (`global/allow-retired.conf`), and ~~adds the paste
   wrapper's block to `~/.zshrc` or `~/.bashrc` (on macOS also the bash login file, `~/.bash_profile` or
-  `~/.bash_login`; never `~/.profile`). Each keeps a backup and prints old -> new; uninstall
-  removes the block and restores the model values, and the ~~MCP and~~ allow removals are restorable from
+  `~/.bash_login`; never `~/.profile`)~~ *(since #590, with the paste wrapper removed, takes out the block
+  an earlier install wrote there, never adding one; a backup is never overwritten)*. Each keeps a backup
+  and prints old -> new; uninstall restores the model values, and the ~~MCP and~~ allow removals are restorable from
   their backups. *Written and tested* in throwaway homes; **not installed** on the reference machine.
   ~~Windows (`install.ps1`) does none of the four.~~ *Amended 2026-10-11 (#145 follow-up):* `install.ps1`
   does ~~the MCP removal,~~ the model pins and the allow removal, through the same scripts; the paste wrapper
@@ -322,8 +329,8 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   `~/.kiro/settings/permissions.yaml`, which Kiro IDE and Kiro CLI V3 read (*documented*). The owner's
   rules are kept, and the previous file is backed up 0600. *Written and tested* in throwaway homes;
   **not installed** on the reference machine; not *enforced-measured* in any Kiro build. Kiro CLI 2.x
-  is the default engine, and sessions started through the paste wrapper run on it; it does not read
-  the file. The IDE has no paste wrapper, no prompt hook, no model default and no allow list (it
+  is the default engine~~, and sessions started through the paste wrapper run on it~~ (no paste wrapper
+  since #590); it does not read the file. The IDE has ~~no paste wrapper,~~ no prompt hook, no model default and no allow list (it
   ignores the CLI agent `workstation.json`). The IDE bundle reads a root-owned admin file,
   `managed-settings.json`, as its `administration` scope. That is *read from the bundle*: ~~nothing is
   rendered there and nothing is measured, and Kiro CLI V3 was not checked. Rendering the floor there is
@@ -333,9 +340,10 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   The Kiro agent now carries the V3 form beside the 2.0 fields~~, and on the V3 engine the paste wrapper
   cleans nothing, because that engine does not enable bracketed paste (*observed* 2026-10-11)~~.
   *Amended 2026-11-08 ([#455](https://github.com/tedeuxx/mhw/issues/455),
-  [#463](https://github.com/tedeuxx/mhw/pull/463)):* on Kiro CLI 3.1.0 (V3) the wrapper cleaned a
-  synthetic paste (*measured* once); it does not check typed text. ~~Windows does not render the Kiro floor.~~ *Amended 2026-10-11:*
+  [#463](https://github.com/tedeuxx/mhw/pull/463)):* ~~on Kiro CLI 3.1.0 (V3) the wrapper cleaned a
+  synthetic paste (*measured* once); it does not check typed text.~~ *(Struck 2026-11-24, #590: the wrapper
+  is removed, and Kiro CLI has no paste protection.)* ~~Windows does not render the Kiro floor.~~ *Amended 2026-10-11:*
   `install.ps1` renders it too (*written and CI-tested*; Kiro on Windows not measured). *Amended 2026-11-21
   ([#497](https://github.com/tedeuxx/mhw/issues/497)):* `install.ps1` is deleted; on Windows `mhw install`,
-  `check` and `status` run `mhw install-windows`, the same steps in Node (*written and CI-tested*), and the
-  paste wrapper there stays *not measured* (D7).
+  `check` and `status` run `mhw install-windows`, the same steps in Node (*written and CI-tested*)~~, and the
+  paste wrapper there stays *not measured* (D7)~~ (no paste wrapper since #590).

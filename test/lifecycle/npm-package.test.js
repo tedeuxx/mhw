@@ -195,8 +195,9 @@ test('the Windows mapping onto mhw install-windows (#497; install.ps1 until then
   const st = run('status', '--overlay=none');
   assert.equal(st.code, 0, st.out.join('\n'));
   assert.match(st.out[0], /^NODE {4}(ok|FAIL) {2}/);
-  assert.match(st.out[1], /^PASTE {3}n\/a {3}the paste wrapper is not installed on Windows/);
-  assert.match(st.out[2], /^OK {6}.*CLAUDE\.md \(release: /);
+  // No PASTE line since #590: the paste wrapper is removed.
+  assert.ok(!st.out.some((l) => l.startsWith('PASTE')), st.out.join('\n'));
+  assert.match(st.out[1], /^OK {6}.*CLAUDE\.md \(release: /);
   for (const args of [['install', '--admin'], ['uninstall'], ['check', '--method'], ['install', '--overlay=']]) {
     const r = run(...args);
     assert.deepEqual([r.code, r.out], [2, []], args.join(' '));

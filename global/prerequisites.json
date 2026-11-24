@@ -100,7 +100,7 @@
     {"id": "bracketed-paste", "name": "Terminal with bracketed paste", "category": "os-feature",
      "required": "required", "lanes": {"workstation": "required"},
      "presence": {"kind": "manual"},
-     "manual": "Any current terminal enables it; the paste wrapper relies on it (ADR-0011)"},
+     "manual": "Any current terminal enables it; the paste wrapper that relied on it (ADR-0011) was removed by #590, so no mhw control reads it now"},
     {"id": "node", "name": "Node.js with npm", "category": "local-tool",
      "required": "required", "lanes": {"workstation": "required", "delivery": "required", "site": "required"},
      "presence": {"commands": ["node"]}, "version": {"args": ["--version"], "minimum": "26"},
