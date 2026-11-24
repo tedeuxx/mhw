@@ -145,6 +145,11 @@ were kept and then moved, not removed: they are `mhw worklog` and `mhw launch-li
 (`src/commands/worklog.js`, `src/commands/launch-line.js`), with the same output, and the Python files
 are deleted, `confine.py` with them (its last importers). The rows stay as this evaluation read them.*
 
+*Amended 2026-11-24 ([#594](https://github.com/tedeuxx/mhw/issues/594)): `mhw worklog` left the CLI
+(CLI native baseline PRD, section 5) and `src/commands/worklog.js` is deleted. The method's `worklog`
+skill reads each agent harness's own session log and posts the event; the contract stays
+`method/scripts/worklog-contract/event.schema.json`. The rows stay as this evaluation read them.*
+
 *Amended 2026-11-19 ([#477](https://github.com/tedeuxx/mhw/issues/477)): `rite-cadence.py`, kept as the
 exception below, was moved, not removed: it is `mhw rite-cadence` in Node
 (`src/commands/rite-cadence.js`), with the same output, and the Python file and its suite are deleted.

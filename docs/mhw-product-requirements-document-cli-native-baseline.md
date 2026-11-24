@@ -175,7 +175,36 @@ release that ships this document is the major (v11) that sets the new interface.
 ## 10. Open questions
 
 1. Which usage data each harness exposes for the worklog (Claude Code, Codex, Kiro), to be verified per
-   harness before the worklog slice.
+   harness before the worklog slice. ~~To be verified.~~ *(Settled, below.)*
+   **Settled 2026-11-24 (#594).** Each agent harness writes its own session log, and the `worklog` skill
+   reads the numbers out of it with `find` and `jq`. None of the three offers a supported interface a
+   skill can query: Claude Code's `/cost` and `/usage`, Codex's `/status` and Kiro's `/usage` are typed by
+   the user and show a screen, and OpenTelemetry (Claude Code, Codex; Kiro has `KIRO_TELEMETRY_OTEL` in its
+   binary) exports to a collector the session cannot read. Every harness covers what the event contract
+   needs (`usage_provenance` and at least one number for `native`), so the slice was built. No model was
+   called for this research: every *measured* cell read an existing log or the session's own shell.
+
+   | | Claude Code | Codex | Kiro CLI |
+   | --- | --- | --- | --- |
+   | Log a skill can read | `~/.claude/projects/<project>/<session id>.jsonl`, and `<session id>/subagents/agent-*.jsonl` | `${CODEX_HOME:-~/.codex}/sessions/<date>/rollout-*-<thread id>.jsonl` | `~/.kiro/sessions/<hash>/sess_<id>/messages.jsonl` and `session.json` |
+   | How the skill finds its session | `CLAUDE_CODE_SESSION_ID` (*measured*, 2.1.331, set in a dispatched agent's shell; a subagent sees its parent's id) | `CODEX_THREAD_ID` (*read from the 0.163.0 binary strings*; not measured in a Codex shell) | `KIRO_SESSION_ID` (*read from the 3.5.0 binary strings*; not measured in a Kiro shell) |
+   | Tokens | input (uncached, cache write, cache read) and output per message, deduplicated by message id (*measured*: 21 log lines held 12 messages, the usage identical on each duplicate) | the last `token_count` `total_token_usage`: input (including cached) and output (*measured* on 0.160.0, 0.163.0 and 0.167.0 logs; 43 of 58 rollouts, none with a `turn_context`, held a total that is not input plus output, and the skill records those `unavailable`) | none (*measured*: no token field in the 3.5.0 logs; matrix: credits only, documented) |
+   | Model | `message.model` per message (*measured*); null when more than one model ran | the last `turn_context.model` (*measured*) | `session.json` `modelId` (*measured*: `claude-sonnet-4.5`, `auto`) |
+   | Effort | `CLAUDE_EFFORT` (*measured*: `medium`, 2.1.331) | the last `turn_context.effort` (*measured*: `medium`, `low`) | none (no field in the logs; the workstation sets no Kiro effort) |
+   | Cost or credits | no cost in the log; headless `--output-format json` returns a cost (matrix, shape measured on 2.1.289), not readable from inside a session | none in the log | `usage_summary` turns, unit `credit` (*measured*: 0.17 credits on the #588 run's log) |
+   | Evidence of the skill's blocks | run on this session's own logs: native, tokens and effort, model null (two models ran) | run on one real rollout: native, tokens, model and effort | run on one real session: native, 0.33 credits, model `auto`; the same result for `sess_<id>` and the bare id |
+
+   The Codex count, re-runnable on any machine with Codex logs: for each rollout, take its last
+   `token_count` total and classify it, `find ~/.codex/sessions -name 'rollout-*.jsonl'` then, per file,
+   `jq -c 'select(.payload.type=="token_count" and .payload.info!=null) | .payload.info.total_token_usage
+   | if .total_tokens==0 then "zero" elif (.input_tokens+.output_tokens==.total_tokens) then "split" else
+   "total-only" end'` and keep the last line (2026-11-24 on the reference machine: 11 split, 43 total-only,
+   3 zero, 1 with none). The Claude Code line count was read on this slice's own dispatch log when it held
+   21 lines; it grows as the session runs.
+
+   **What this cannot see.** The log layouts are each vendor's undocumented files, so a release can change
+   them with nothing to notice; the two session variables read from binaries were not seen set in a
+   session; Kiro IDE, the desktop apps and the cloud sessions were not measured.
 2. Whether Kiro CLI's prompt-submit hook can block (the vendor pages conflict). ~~To be measured.~~ *(Measured, below.)*
    **Measured once, 2026-11-23 (#588, the owner's decision on the Issue):** on `kiro-cli` 3.5.0 (as
    `kiro-cli --version` reported right after the run), V3 engine, a `UserPromptSubmit` hook that exits 2

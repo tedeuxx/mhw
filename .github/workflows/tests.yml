@@ -691,7 +691,8 @@ jobs:
       # #170: the scripts the moved rites run, with their own suites (moved from the plugin with them).
       # #128: the rite-cadence dater of session check 3, in throwaway git repositories.
       # #475: the milestone routes are Node now; their suite runs in the node job (npm test).
-      # #476: so are mhw worklog and mhw launch-line (test/method/worklog.test.js and the S05 goldens).
+      # #476: so is mhw launch-line (the S05 goldens); mhw worklog was too until it left the CLI at #594
+      # (test/method/worklog-skill.test.js holds the worklog skill that replaced it).
       # #477: so is rite-cadence (mhw rite-cadence, test/method/rite-cadence.test.js).
       # #478: and mhw funnel-review (test/method/funnel-review.test.js and the S07 goldens). With both moved,
       # the method scripts step had nothing left to run and was removed.
