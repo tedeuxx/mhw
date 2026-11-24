@@ -12,12 +12,14 @@
 #                the environment the PROD deployment job must name. Run it after STG, before PROD.
 # The caller's deployment jobs `needs:` this one; see global/project-policy/reference/caller-workflow.yml.
 #
-# Every gate is `mhw delivery-gate` (src/commands/delivery-gate.js, Node since #499) from mhw at
-# `mhw-revision`, run as node mhw/bin/mhw.js, and every gate re-validates the contract with `mhw policy
-# check` (Node since #498) in the same process. No step runs Python: every job sets up Node 26 and nothing
-# else; the containerised job does so inside the project's image, which must be glibc-based and carry
-# tar and gzip. Every gate fails closed: exit 1 blocks, exit 2 (cannot decide) blocks too. Inputs reach
-# scripts through env, never by expression interpolation into a run block.
+# Every gate is the delivery gates Action (actions/delivery-gates/, #592, ADR-0046) from mhw at
+# `mhw-revision`, checked out at mhw/ and run as `uses: ./mhw/actions/delivery-gates` (a `uses:` cannot
+# carry an expression, so the pinned checkout is how this workflow runs the Action at the caller's
+# revision). Every gate re-validates the contract with the validator (it was `mhw policy check`) in the
+# same process. No step runs Python: the Action sets up Node 26 and nothing else; in the containerised job
+# it does so inside the project's image, which must be glibc-based and carry tar and gzip. Every gate
+# fails closed: exit 1 blocks, exit 2 (cannot decide) blocks too. Inputs reach scripts through env, never
+# by expression interpolation into a run block.
 name: reference delivery gate
 
 on:
@@ -109,19 +111,12 @@ jobs:
           ref: ${{ inputs.mhw-revision }}
           path: mhw
           persist-credentials: false
-      # Node for the gates (#499): mhw delivery-gate and the validator it runs are Node.
-      # actions/setup-node v7.1.0, the pin tests.yml uses; 26, the engines.node floor.
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+      - name: the validator, then the contract gate (bound to this repository; the MADR exists and is accepted)
+        uses: ./mhw/actions/delivery-gates
         with:
-          node-version: 26.13.1
-      - name: the validator, a required step (mhw policy check)
-        env:
-          PROJECT_DIR: ${{ inputs.project-dir }}
-        run: node mhw/bin/mhw.js policy check --project="project/$PROJECT_DIR"
-      - name: the contract gate (bound to this repository; the MADR exists and is accepted)
-        env:
-          PROJECT_DIR: ${{ inputs.project-dir }}
-        run: node mhw/bin/mhw.js delivery-gate contract --project="project/$PROJECT_DIR" --repository="$GITHUB_REPOSITORY"
+          gate: contract
+          project-dir: project/${{ inputs.project-dir }}
+          repository: ${{ github.repository }}
 
   containerised:
     needs: contract
@@ -142,11 +137,6 @@ jobs:
           ref: ${{ inputs.mhw-revision }}
           path: mhw
           persist-credentials: false
-      # Node for the gates (#499): mhw delivery-gate and the validator it runs are Node.
-      # actions/setup-node v7.1.0, the pin tests.yml uses; 26, the engines.node floor.
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: 26.13.1
       - name: the project's tests, in the container, on the exact revision
         working-directory: project/${{ inputs.project-dir }}
         env:
@@ -156,19 +146,21 @@ jobs:
           DELIVERY_CONTAINER_IMAGE: ${{ inputs.container-image }}
         shell: bash
         run: bash -c "$TEST_COMMAND"
-      - name: the containerised evidence gate
-        env:
-          PROJECT_DIR: ${{ inputs.project-dir }}
-          EVIDENCE: ${{ runner.temp }}/evidence-container.json
-          REVISION: ${{ inputs.revision }}
-          IMAGE: ${{ inputs.container-image }}
+      - name: the commit the project checkout is at
+        id: head
         shell: bash
         run: |
           git config --global --add safe.directory "$PWD/project"
-          head=$(git -C project rev-parse HEAD)
-          node mhw/bin/mhw.js delivery-gate container --project="project/$PROJECT_DIR" \
-            --evidence="$EVIDENCE" --revision="$REVISION" --checkout-head="$head" \
-            --container-image="$IMAGE"
+          echo "sha=$(git -C project rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: the containerised evidence gate
+        uses: ./mhw/actions/delivery-gates
+        with:
+          gate: container
+          project-dir: project/${{ inputs.project-dir }}
+          evidence: ${{ runner.temp }}/evidence-container.json
+          revision: ${{ inputs.revision }}
+          checkout-head: ${{ steps.head.outputs.sha }}
+          container-image: ${{ inputs.container-image }}
       # actions/upload-artifact v4.6.2 (verified with git ls-remote 2026-11-07)
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
@@ -196,11 +188,6 @@ jobs:
           ref: ${{ inputs.mhw-revision }}
           path: mhw
           persist-credentials: false
-      # Node for the gates (#499): mhw delivery-gate and the validator it runs are Node.
-      # actions/setup-node v7.1.0, the pin tests.yml uses; 26, the engines.node floor.
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: 26.13.1
       - name: the project's tests against the installed STG
         working-directory: project/${{ inputs.project-dir }}
         env:
@@ -210,15 +197,17 @@ jobs:
         run: |
           [ -n "$STG_TEST_COMMAND" ] || { echo "BLOCK  stage prod needs stg-test-command (installed-STG evidence)"; exit 1; }
           bash -c "$STG_TEST_COMMAND"
+      - name: the commit the project checkout is at
+        id: head
+        run: echo "sha=$(git -C project rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: the installed-STG evidence gate
-        env:
-          PROJECT_DIR: ${{ inputs.project-dir }}
-          EVIDENCE: ${{ runner.temp }}/evidence-installed-stg.json
-          REVISION: ${{ inputs.revision }}
-        run: |
-          head=$(git -C project rev-parse HEAD)
-          node mhw/bin/mhw.js delivery-gate installed-stg --project="project/$PROJECT_DIR" \
-            --evidence="$EVIDENCE" --revision="$REVISION" --checkout-head="$head"
+        uses: ./mhw/actions/delivery-gates
+        with:
+          gate: installed-stg
+          project-dir: project/${{ inputs.project-dir }}
+          evidence: ${{ runner.temp }}/evidence-installed-stg.json
+          revision: ${{ inputs.revision }}
+          checkout-head: ${{ steps.head.outputs.sha }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -250,36 +239,43 @@ jobs:
           ref: ${{ inputs.mhw-revision }}
           path: mhw
           persist-credentials: false
-      # Node for the gates (#499): mhw delivery-gate and the validator it runs are Node.
-      # actions/setup-node v7.1.0, the pin tests.yml uses; 26, the engines.node floor.
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: 26.13.1
       - name: classify the change (a high rule wins; no rule blocks)
         id: classify
+        uses: ./mhw/actions/delivery-gates
+        with:
+          gate: classify
+          project-dir: project/${{ inputs.project-dir }}
+          rules: ${{ inputs.risk-rules }}
+      - name: read the owner-approval environment's protection (a high-risk change only)
+        if: steps.classify.outputs.approval != 'automatic-after-all-gates'
         env:
-          PROJECT_DIR: ${{ inputs.project-dir }}
-          RISK_RULES: ${{ inputs.risk-rules }}
+          APPROVAL: ${{ steps.classify.outputs.approval }}
+          OWNER_ENV: ${{ inputs.owner-approval-environment }}
+          GH_TOKEN: ${{ github.token }}
+          PROTECTION: ${{ runner.temp }}/environment.json
         run: |
-          out=$(node mhw/bin/mhw.js delivery-gate classify --project="project/$PROJECT_DIR" --rules="$RISK_RULES")
-          echo "$out"
-          echo "$out" >> "$GITHUB_OUTPUT"
-      - name: the environment the PROD job must name (a required reviewer is checked)
+          [ "$APPROVAL" = "owner-exact-revision" ] || { echo "BLOCK  unknown approval '$APPROVAL'"; exit 1; }
+          # A job that names a missing environment creates it unprotected, so its protection is read first.
+          gh api "repos/$GITHUB_REPOSITORY/environments/$OWNER_ENV" > "$PROTECTION" || echo '{}' > "$PROTECTION"
+      - name: the owner-approval environment carries a required reviewer
+        if: steps.classify.outputs.approval == 'owner-exact-revision'
+        uses: ./mhw/actions/delivery-gates
+        with:
+          gate: environment
+          name: ${{ inputs.owner-approval-environment }}
+          protection: ${{ runner.temp }}/environment.json
+      - name: the environment the PROD job must name
         id: environment
         env:
           APPROVAL: ${{ steps.classify.outputs.approval }}
           LOW_ENV: ${{ inputs.prod-environment }}
           OWNER_ENV: ${{ inputs.owner-approval-environment }}
-          GH_TOKEN: ${{ github.token }}
-          PROTECTION: ${{ runner.temp }}/environment.json
         run: |
           if [ "$APPROVAL" = "automatic-after-all-gates" ]; then
             echo "name=$LOW_ENV" >> "$GITHUB_OUTPUT"
             echo "automatic approval after every gate: $LOW_ENV"
-            exit 0
+          elif [ "$APPROVAL" = "owner-exact-revision" ]; then
+            echo "name=$OWNER_ENV" >> "$GITHUB_OUTPUT"
+          else
+            echo "BLOCK  unknown approval '$APPROVAL'"; exit 1
           fi
-          [ "$APPROVAL" = "owner-exact-revision" ] || { echo "BLOCK  unknown approval '$APPROVAL'"; exit 1; }
-          # A job that names a missing environment creates it unprotected, so its protection is read first.
-          gh api "repos/$GITHUB_REPOSITORY/environments/$OWNER_ENV" > "$PROTECTION" || echo '{}' > "$PROTECTION"
-          node mhw/bin/mhw.js delivery-gate environment --name="$OWNER_ENV" --protection="$PROTECTION"
-          echo "name=$OWNER_ENV" >> "$GITHUB_OUTPUT"

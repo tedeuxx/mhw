@@ -11,8 +11,7 @@
 // `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux), `mhw check`
 // (#494; macOS and Linux; on Windows both run `mhw install-windows --check`, #497), and `mhw add-term`
 // (#488); new in Node:
-// `mhw docs-baseline check` and `mhw onboard` (#523), `mhw policy check` (#498, S28; on Windows too), and
-// `mhw delivery-gate` (#499, S29; on Windows too), the reference CI/CD's evidence and recovery gates, and
+// `mhw onboard` (#523), and
 // `mhw install-user` (#503, S25; macOS and Linux), the user-layer installer install, update, uninstall,
 // check and status run (it was global/install.sh), `mhw install-admin` (#496, S26; macOS and Linux), the
 // admin-layer installer mhw install, update, uninstall, check and status run (it was global/install-managed.sh),
@@ -42,14 +41,12 @@ import { main as installWindowsMain } from './commands/install-windows.js';
 import { main as mcpLaunchMain } from './commands/mcp-launch.js';
 import { main as mcpCheckMain } from './commands/mcp-check.js';
 import { main as pasteWrapperMain, statusLine as pasteStatusLine } from './commands/paste-wrapper.js';
-import { checkMain as docsBaselineMain, onboardMain } from './commands/docs-baseline.js';
+import { onboardMain } from './commands/docs-baseline.js';
 import { main as addTermMain } from './commands/add-term.js';
 import { main as statusMain } from './commands/status.js';
 import { main as checkMain } from './commands/check.js';
-import { main as policyMain } from './commands/project-policy.js';
 import { main as lifecycleMain } from './commands/lifecycle.js';
 import { updateLines } from './commands/update.js';
-import { main as deliveryGateMain } from './commands/delivery-gate.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const USAGE = [
@@ -165,11 +162,10 @@ const MOVED = {
     });
     return 0;
   },
-  // #523: the documentation baseline's pull-request check, and the onboarding entry point.
-  'docs-baseline': docsBaselineMain,
+  // #523: the onboarding entry point. `mhw docs-baseline check`, `mhw policy check` and `mhw delivery-gate`
+  // left the CLI at #592 (ADR-0046): they are the delivery gates Action (actions/delivery-gates/), so each
+  // word is an unknown subcommand like any other.
   onboard: onboardMain,
-  policy: policyMain, // #498, S28: mhw policy check, the project-policy validator (ADR-0015 lock 3)
-  'delivery-gate': deliveryGateMain, // #499, S29: the reference CI/CD's gates (ADR-0015 locks 4 and 5)
 };
 
 // `mcp check` tests connections (it starts processes); `mcp render --check` checks drift (it starts none).

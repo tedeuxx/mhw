@@ -31,13 +31,6 @@ export const USAGE = [
   '    ./mhw uninstall [--yes]             remove the admin layer (password asked once) and the user layer;',
   '                                          in an npm install, run it before npm uninstall -g mhw (npm runs',
   '                                          no uninstall script, measured with npm 11.13.0)',
-  '    ./mhw policy check [--project=DIR | --file=PATH]',
-  '                                        validate a project\'s ADR-0015 project-policy contract (Issue',
-  '                                          #245): DIR/project-policy.json (default: the current',
-  '                                          directory) or PATH; exit 0 only when it is valid, 1 when it is',
-  '                                          missing, malformed, of an unknown schema_version or breaks the',
-  '                                          contract, 2 when it cannot validate (fail closed); reads no',
-  '                                          evidence, which is the reference CI/CD\'s (#246)',
   '    ./mhw postinstall                   what npm\'s postinstall runs (bin/postinstall.js): one line naming',
   '                                          `mhw install`; it installs nothing (Issue #113)',
 ].join('\n');

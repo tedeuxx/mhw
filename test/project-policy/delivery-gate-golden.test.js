@@ -48,9 +48,9 @@ function transcript(c, runner) {
   return { name: c.name, args: c.args, run: normalised(r, base) };
 }
 
-/** The Node command, as a CI step runs it. @type {Runner} */
+/** The Node command, as the delivery gates Action runs it (#592: `mhw delivery-gate` left the CLI). @type {Runner} */
 const nodeRunner = (args, env, cwd) => {
-  const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'delivery-gate', ...args], { env, cwd, encoding: 'utf8', timeout: 60000 });
+  const p = spawnSync(process.execPath, [path.join(ROOT, 'src', 'action', 'gates.js'), 'delivery-gate', ...args], { env, cwd, encoding: 'utf8', timeout: 60000 });
   return { code: p.status, stdout: p.stdout, stderr: p.stderr };
 };
 

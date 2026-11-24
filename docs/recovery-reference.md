@@ -8,12 +8,12 @@ recovery is prepared before exposure:
 > allowed only when the project's MADR defines its recovery-time objective, the runbook has been
 > tested, and an identified operator is available for the deployment and observation period.
 
-This reference is how a project's CI/CD can carry that clause. It adds two gates to `mhw delivery-gate`,
+This reference is how a project's CI/CD can carry that clause. It adds two gates to the delivery gates Action (`mhw delivery-gate` until #592),
 three jobs to the caller template and a runbook template.
 
 | File | What it is |
 | --- | --- |
-| `src/commands/delivery-gate.js` | `mhw delivery-gate recovery-plan` and `prod-validation`, beside the gates of [docs/reference-cicd.md](reference-cicd.md) (Node since [#499](https://github.com/tedeuxx/mhw/issues/499); they replaced `global/project-policy/delivery_gate.py`) |
+| `src/commands/delivery-gate.js` | The Action's `recovery-plan` and `prod-validation` gates (`mhw delivery-gate` until [#592](https://github.com/tedeuxx/mhw/issues/592)), beside the gates of [docs/reference-cicd.md](reference-cicd.md) (Node since [#499](https://github.com/tedeuxx/mhw/issues/499); they replaced `global/project-policy/delivery_gate.py`) |
 | `test/project-policy/delivery-gate.test.js` | Its suite: both recovery paths, each blocking class, the runbook template read by the gate, the template's recovery jobs |
 | `global/project-policy/reference/caller-workflow.yml` | The template's `recovery-plan`, `validate-prod` and `recover` jobs. Not live in mhw |
 | `global/project-policy/reference/runbook-template.md` | The manual-recovery runbook a project copies |
@@ -45,7 +45,7 @@ deployment when they fail; the rest are the project's to keep and nothing reads 
 1. **Automatic rollback is not reliable for this project**, and the project MADR says why. *Not
    checked*: no gate can tell whether a rollback would have worked.
 2. **The project MADR defines the recovery-time objective**, and the contract carries the same number
-   in `recovery_time_objective_minutes`. *Checked* that the contract carries one (`mhw policy check`)
+   in `recovery_time_objective_minutes`. *Checked* that the contract carries one (the validator, the Action's `contract` gate)
    and that the MADR is accepted (the `contract` gate). *Not checked* that the MADR states the same
    number.
 3. **The runbook exists in the project.** *Checked* by the `contract` gate and again by
@@ -53,11 +53,11 @@ deployment when they fail; the rest are the project's to keep and nothing reads 
    refused.
 4. **The runbook has been tested.** *Checked* by `recovery-plan`: the runbook carries a test record
    dated the contract's `last_tested`, and every record of that date recovered within the
-   recovery-time objective. `mhw policy check` already refuses a `last_tested` in the future. *Not
+   recovery-time objective. The validator already refuses a `last_tested` in the future. *Not
    checked*: whether the test really happened, and how old it may be (the contract has no maximum age;
    a project's MADR can set one, and nothing reads it).
 5. **An identified operator is available for the deployment and the observation period.** *Checked*
-   only that the contract names one account handle (`mhw policy check`). *Not checked*: availability,
+   only that the contract names one account handle (the validator). *Not checked*: availability,
    and whether the `by @handle` of the runbook's test record is that operator (`recovery-plan` reads
    the date and minutes of a record, never its handle, so a test run by someone else counts).
    No gate can read whether a person is present. The template prints the operator, the runbook and
@@ -78,7 +78,7 @@ placeholder record is not a test, so a runbook copied without filling it blocks.
 
 ## The gates
 
-Each is one `mhw delivery-gate` command and re-validates the contract first, like every gate of the
+Each is one step of the delivery gates Action (`gate: recovery-plan` or `gate: prod-validation`) and re-validates the contract first, like every gate of the
 reference CI/CD.
 
 | Gate | When | It blocks when | What it does not cover |

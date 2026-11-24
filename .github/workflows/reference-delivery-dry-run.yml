@@ -6,7 +6,7 @@
 # The prod call reads installed-STG evidence from a local stand-in on the runner, not from an STG.
 # The fixture's seven security results are constants; docs/reference-cicd.md says what that leaves
 # unmeasured. Not a required check: it runs only when the reference or the policy files change.
-# The gates are Node (`mhw delivery-gate`, #499). The fixture is a small Python project on purpose, a
+# The gates are Node, the delivery gates Action (actions/delivery-gates/, #592). The fixture is a small Python project on purpose, a
 # declared fixture (test/declared-fixtures.json): its test commands below are the project's, run in its
 # python image and on the runner, never mhw's.
 name: reference delivery dry run
@@ -20,6 +20,8 @@ on:
       - "global/project-policy/**"
       - "src/commands/delivery-gate.js"
       - "src/commands/project-policy.js"
+      - "actions/delivery-gates/**"
+      - "src/action/**"
       - "src/lib/**"
       - "bin/mhw.js"
       - "src/cli.js"

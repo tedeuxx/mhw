@@ -1,6 +1,9 @@
 // mhw delivery-gate <gate> ... (#499, S29 of #470): the evidence gates of the reference CI/CD (ADR-0015
 // lock 4 of 5, Issue #246) and the recovery reference (lock 5 of 5, Issue #247), the Node form of
 // global/project-policy/delivery_gate.py, which this slice deletes.
+// Since #592 (ADR-0046) this is not a CLI command: the delivery gates Action (actions/delivery-gates)
+// runs it through src/action/gates.js, with the arguments below. Its messages keep the old names, which
+// the S29 golden transcripts pin.
 //
 //     mhw delivery-gate contract    --project=DIR [--repository=OWNER/NAME]
 //     mhw delivery-gate container   --project=DIR --evidence=FILE --revision=SHA --checkout-head=SHA

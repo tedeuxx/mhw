@@ -237,15 +237,21 @@ test('check: usage, an invalid manifest and a git failure are exit 2, never a pa
   assert.equal(runCheck(['check', '--base=main'], io), 2, 'an invalid manifest');
 });
 
-test('check: cli, through bin/mhw.js', { skip: !GIT }, () => {
+test('check: through the delivery gates Action\'s engine; onboard through bin/mhw.js (#592)', { skip: !GIT }, () => {
   const r = baseRepo();
   r.write('src/core.js', 'export const c = 4;\n');
   r.commit('code only');
-  const run = (/** @type {string[]} */ args) => spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), ...args],
+  /** @param {string} entry @param {string[]} args */
+  const run = (entry, args) => spawnSync(process.execPath, [path.join(ROOT, ...entry.split('/')), ...args],
     { cwd: r.dir, env: r.env, encoding: 'utf8' });
-  assert.equal(run(['docs-baseline', 'check', '--base=main']).status, 1);
-  assert.equal(run(['docs-baseline']).status, 2);
-  assert.equal(run(['onboard', '--nope']).status, 2);
+  assert.equal(run('src/action/gates.js', ['docs-baseline', 'check', '--base=main']).status, 1);
+  assert.equal(run('src/action/gates.js', ['docs-baseline']).status, 2);
+  assert.equal(run('bin/mhw.js', ['onboard', '--nope']).status, 2);
+  // `mhw docs-baseline check` left the CLI: an unknown subcommand, and nothing ran.
+  const gone = run('bin/mhw.js', ['docs-baseline', 'check', '--base=main']);
+  assert.equal(gone.status, 2);
+  assert.equal(gone.stdout, '');
+  assert.match(gone.stderr, /^mhw: (?:unknown (?:subcommand|argument for) docs-baseline|docs-baseline is not available on Windows)/);
 });
 
 // -- onboard ---------------------------------------------------------------------------------------
@@ -441,9 +447,12 @@ test('docs-baseline.yml runs the check on every body edit, with the body never i
   const yml = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'docs-baseline.yml'), 'utf8').replaceAll('\r\n', '\n');
   assert.match(yml, /types: \[opened, synchronize, reopened, edited\]/);
   assert.match(yml, /PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}/);
-  assert.match(yml, /node bin\/mhw\.js docs-baseline check "--base=origin\/\$BASE_REF" "--body-file=\$RUNNER_TEMP\/pr-body\.md"/);
-  const script = yml.slice(yml.indexOf('run: |'));
-  assert.doesNotMatch(script, /\$\{\{/, 'no expression inside the script: the body reaches it only through the environment');
+  assert.match(yml, /^ {8}run: printf '%s\\n' "\$PR_BODY" > "\$RUNNER_TEMP\/pr-body\.md"$/m);
+  // #592: the check is the delivery gates Action at this pull request's ref, fed the body file.
+  assert.match(yml, /^ {8}uses: \.\/actions\/delivery-gates\n {8}with:\n {10}gate: docs-baseline\n {10}base: origin\/\$\{\{ github\.base_ref \}\}\n {10}body-file: \$\{\{ runner\.temp \}\}\/pr-body\.md$/m);
+  for (const line of yml.split('\n').filter((l) => /^\s*(?:- )?run:/.test(l))) {
+    assert.doesNotMatch(line, /\$\{\{/, 'no expression inside a script: the body reaches it only through the environment');
+  }
   assert.match(yml, /^permissions: \{\}$/m);
 });
 
