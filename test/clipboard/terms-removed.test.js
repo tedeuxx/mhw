@@ -63,6 +63,9 @@ test('no shipped code reads a term list or a salt (bin/, src/, .github/scripts/)
 test('`mhw add-term` is an unknown subcommand', () => {
   const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'add-term'], { encoding: 'utf8', env: { ...process.env, MHW_NODE: process.execPath } });
   assert.equal(p.status, 2, p.stdout + p.stderr);
-  assert.match(p.stderr, /^mhw: unknown subcommand add-term /);
+  // On Windows the CLI's own router refuses every command it does not route, before the subcommand table
+  // (src/cli.js); both refusals exit 2 and run nothing.
+  if (process.platform === 'win32') assert.match(p.stderr, /^mhw: add-term is not available on Windows /);
+  else assert.match(p.stderr, /^mhw: unknown subcommand add-term /);
   assert.equal(p.stdout, '');
 });
