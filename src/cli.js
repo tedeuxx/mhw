@@ -6,7 +6,7 @@
 //   Windows:         install, install --method, check and status (= check) run `mhw install-windows`
 //                    (src/commands/install-windows.js, #497, S27; it was global\install.ps1); update is
 //                    answered here; install --admin and uninstall do not exist there.
-// Moved commands (the strangler's later steps) are answered here on every OS: `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477),
+// Moved commands (the strangler's later steps) are answered here on every OS: `mhw milestone` (#475), `mhw launch-line` (#476), `mhw rite-cadence` (#477),
 // `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
 // `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux), `mhw check`
 // (#494; macOS and Linux; on Windows both run `mhw install-windows --check`, #497), and `mhw add-term`
@@ -23,14 +23,15 @@
 // only (convention 5 of #470; test/deps-graph.test.js holds that).
 // `mhw scan` and `mhw hook` left the CLI at #600 (CLI native baseline PRD, section 5): the outbound check is
 // the fixed-pattern check's hook (src/hooks/pattern-check.js, #588), and CI runs the scan's engine from
-// .github/scripts/outbound-scan.js. Both words are unknown subcommands like any other.
+// .github/scripts/outbound-scan.js. Both words are unknown subcommands like any other. `mhw worklog` (#476)
+// left at #594 (section 5 too): the worklog method skill records the event from each agent harness's own
+// usage data, and the contract stays method/scripts/worklog-contract/event.schema.json.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { enginesNode, nodeLine } from './lib/version.js';
 import { runAbsolute } from './lib/run.js';
 import { main as milestoneMain } from './commands/milestone.js';
-import { main as worklogMain } from './commands/worklog.js';
 import { main as launchLineMain } from './commands/launch-line.js';
 import { main as riteCadenceMain } from './commands/rite-cadence.js';
 import { main as funnelReviewMain } from './commands/funnel-review.js';
@@ -131,7 +132,6 @@ function printNodeLine(nodeVersion) {
  */
 const MOVED = {
   milestone: milestoneMain, // #475, S04
-  worklog: worklogMain, // #476, S05
   'launch-line': launchLineMain, // #476, S05
   'rite-cadence': riteCadenceMain, // #477, S06
   'funnel-review': funnelReviewMain, // #478, S07
@@ -208,7 +208,7 @@ function mcpMain(argv, env) {
 export function main(argv, platform, env, opts = {}) {
   // `mhw delivery` (#474) left the CLI at #591 (ADR-0045): GitHub rulesets and the merge-pull-request skill
   // carry the delivery route, so the word is an unknown subcommand like any other; so did `mhw scan` and
-  // `mhw hook` at #600.
+  // `mhw hook` at #600, and `mhw worklog` at #594.
   // own keys only, so `mhw constructor` is forwarded like any unknown word
   if (argv.length && Object.hasOwn(MOVED, argv[0])) return MOVED[argv[0]](argv.slice(1), env);
   if (argv[0] === 'status') {

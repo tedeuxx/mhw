@@ -74,8 +74,9 @@ symptom of skipping a step.
 
 ~~— this repo's own loop is exactly that case —~~ **Struck at #515. This stopped being true when #499
 selected prospective team velocity.** The loop named there now plans in iterations. It freezes each
-item's median estimate when implementation starts, and a worklog report sums the frozen estimates per
-iteration. It is a counterexample now: it has a velocity number and still does not run the ceremony. Its
+item's median estimate when implementation starts, and ~~a worklog report sums the frozen estimates per
+iteration~~ the worklog events record them on each Issue (the report that summed them left the CLI with
+`mhw worklog`, mhw#594). It is a counterexample now: it has a velocity number and still does not run the ceremony. Its
 estimators are dispatched in isolation, its median is recorded, and no group converges. **Its rate is
 still unmeasured.** Its iterations carry no recorded start or end date, so a points-per-week figure has no
 denominator. That leaves the series empty rather than meaningless.

@@ -1,38 +1,9 @@
 [
   {
-    "case": "validate-usage-provenance-list",
+    "case": "*",
     "stream": "stderr",
-    "base": ".*",
-    "head": "^worklog: internal error: TypeError: unhashable type: 'list'$",
-    "why": "CPython raised an uncaught TypeError (a list as usage_provenance meets a set): a traceback naming the script's own lines. The Node names the same exception in one line, without a traceback, and keeps the exit code 1. A clean refusal (exit 2) would be better and is a behaviour change, so it is not made here."
-  },
-  {
-    "case": "report-naive-and-aware-boundary",
-    "stream": "stderr",
-    "base": ".*",
-    "head": "^worklog: internal error: TypeError: can't subtract offset-naive and offset-aware datetimes$",
-    "why": "A date-only snapshot boundary ('2026-09-01Z' reads as a naive datetime) against an aware one: CPython raised an uncaught TypeError with a traceback. The Node names the same exception in one line and keeps the exit code 1."
-  },
-  {
-    "case": "report-naive-cutoff",
-    "stream": "stderr",
-    "base": ".*",
-    "head": "^worklog: internal error: TypeError: can't compare offset-naive and offset-aware datetimes$",
-    "why": "A date-only cutoff ('2026-10-01Z', naive) compared with an aware comment time: CPython raised an uncaught TypeError with a traceback. The Node names the same exception in one line and keeps the exit code 1."
-  },
-  {
-    "case": "validate-not-utf8",
-    "stream": "stderr",
-    "base": ".*",
-    "head": "^worklog: internal error: UnicodeDecodeError: 'utf-8' codec can't decode the file '<D>/event.json'$",
-    "why": "An input that is not UTF-8: CPython's read_text raised UnicodeDecodeError, which the script did not catch (a traceback). The Node names it in one line and keeps the exit code 1."
-  },
-  { "case": "usage-no-command", "stream": "stderr", "base": ".*", "head": ".*", "why": "Usage errors: argparse printed its own usage and error lines under the program name worklog.py; the command is mhw worklog now and prints its own usage. The exit code (2) is compared." },
-  { "case": "usage-unknown-command", "stream": "stderr", "base": ".*", "head": ".*", "why": "Usage errors: argparse printed its own usage and error lines under the program name worklog.py; the command is mhw worklog now and prints its own usage. The exit code (2) is compared." },
-  { "case": "usage-report-missing-options", "stream": "stderr", "base": ".*", "head": ".*", "why": "Usage errors: argparse printed its own usage and error lines under the program name worklog.py; the command is mhw worklog now and prints its own usage. The exit code (2) is compared." },
-  { "case": "usage-report-bad-format", "stream": "stderr", "base": ".*", "head": ".*", "why": "Usage errors: argparse printed its own usage and error lines under the program name worklog.py; the command is mhw worklog now and prints its own usage. The exit code (2) is compared." },
-  { "case": "usage-validate-extra-argument", "stream": "stderr", "base": ".*", "head": ".*", "why": "Usage errors: argparse printed its own usage and error lines under the program name worklog.py; the command is mhw worklog now and prints its own usage. The exit code (2) is compared." },
-  { "case": "usage-export-flag-with-value", "stream": "stderr", "base": ".*", "head": ".*", "why": "Usage errors: argparse printed its own usage and error lines under the program name worklog.py; the command is mhw worklog now and prints its own usage. The exit code (2) is compared." },
-  { "case": "usage-help", "stream": "stdout", "base": ".*", "head": ".*", "why": "--help: argparse's help text under the program name worklog.py; mhw worklog prints its own four usage lines. The exit code (0) is compared." },
-  { "case": "*", "stream": "stderr", "base": "^usage: launch-line\\.py ", "head": "^usage: mhw launch-line ", "why": "The launch-line usage line names the program: launch-line.py was run as a script, mhw launch-line is a CLI verb. The line is dropped from both sides and the exit code (2) is compared; test/method/launch-line.test.js asserts the Node line's text." }
+    "base": "^usage: launch-line\\.py ",
+    "head": "^usage: mhw launch-line ",
+    "why": "The launch-line usage line names the program: launch-line.py was run as a script, mhw launch-line is a CLI verb. The line is dropped from both sides and the exit code (2) is compared; test/method/launch-line.test.js asserts the Node line's text."
+  }
 ]
