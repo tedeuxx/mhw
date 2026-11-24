@@ -615,7 +615,7 @@ describe('/handoff', { skip: !POSIX && 'the launch line is POSIX shell; Windows 
     for (const line of prompt.split('\n')) {
       if ([...line].length > 280) out.push('long');
       if (/\/users\/|\/tmp\/|~\/|\/home\/|\/private\/|\/var\/folders\/|file:\/\/|\b[a-z]:\\|\.brand/i.test(line)) out.push('local path');
-      if (/[\u0000-\u001f\u007f-\u009f‪-‮⁦-⁩]/u.test(line)) out.push('control');
+      if (/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/u.test(line)) out.push('control');
     }
     return out;
   }
@@ -684,7 +684,9 @@ describe('/handoff', { skip: !POSIX && 'the launch line is POSIX shell; Windows 
     // The stated checks refuse what the command refused, and pass the templates.
     const local = '/Use' + 'rs/someone/notes.txt';
     for (const [label, prompt] of Object.entries({ 'goal first': '/goal continue owner/repo#12.', long: 'Objective: ' + 'x'.repeat(300),
-      'local path': 'Objective: fix it\nEvidence: ' + local, empty: '\n', control: 'Objective: x\nNext act: \x1b[201~ touch' })) {
+      'local path': 'Objective: fix it\nEvidence: ' + local, empty: '\n', control: 'Objective: x\nNext act: \x1b[201~ touch',
+      // Built from code points at run time, so the source carries no bidirectional character (Sonar on #617).
+      bidi: 'Objective: x ' + String.fromCodePoint(0x202e) + 'y', isolate: 'Objective: x ' + String.fromCodePoint(0x2066) + 'y' })) {
       assert.notDeepEqual(refused(prompt), [], label);
     }
     assert.deepEqual(refused(PROMPT), []);
