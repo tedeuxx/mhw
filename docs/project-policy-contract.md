@@ -241,9 +241,9 @@ reason, in its documentation manifest, `docs/documentation-baseline.json`, not i
 - `documentation`: optional. An object with:
   - `additional_docs`: at least one document every change must keep current besides the manifest's,
     each an object with a `path` (a repository-relative `.md` path, the MADR path's rules) and a
-    `description`. `mhw onboard` reports one that does not exist.
+    `description`. The `onboard` skill (`mhw onboard` until #599) reports one that does not exist.
 
-What reads the section: the validator (the Action's `contract` gate) validates it, and `mhw onboard` reports an `additional_docs`
+What reads the section: the validator (the Action's `contract` gate) validates it, and the `onboard` skill (`mhw onboard` until #599) reports an `additional_docs`
 path that is missing. Whether each additional criterion holds on a change is the gate's judgement,
 under its criteria; no check reads it.
 

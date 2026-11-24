@@ -11,7 +11,6 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { plan, inputs, outputLines, runOne, writeOutputs, GATES, OUTPUT_GATES } from '../../src/action/gates.js';
-import { runOnboard } from '../../src/commands/docs-baseline.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ENGINE = path.join(ROOT, 'src', 'action', 'gates.js');
@@ -117,8 +116,10 @@ test('the step: classify writes its outputs, an unknown gate and a missing input
   assert.notEqual(missing.code, 0, 'a container gate with no evidence never passes');
 });
 
-test('the three commands are unknown to the CLI; onboard stays', () => {
-  for (const argv of [['policy', 'check'], ['delivery-gate', 'contract'], ['docs-baseline', 'check'], ['policy']]) {
+// #599: onboard left too, with launch-line and funnel-review (CLI native baseline PRD, section 5).
+test('the three commands are unknown to the CLI, and so are onboard, launch-line and funnel-review', () => {
+  for (const argv of [['policy', 'check'], ['delivery-gate', 'contract'], ['docs-baseline', 'check'], ['policy'],
+    ['onboard'], ['onboard', '--project=' + path.join(tmp, 'absent')], ['launch-line', '--resolve', 'codex'], ['funnel-review', 'sprint-01']]) {
     const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), ...argv], { cwd: tmp, env: ENV, encoding: 'utf8' });
     assert.equal(p.status, 2, argv.join(' '));
     assert.equal(p.stdout, '', argv.join(' '));
@@ -126,10 +127,7 @@ test('the three commands are unknown to the CLI; onboard stays', () => {
     assert.match(p.stderr, new RegExp('^mhw: (?:unknown (?:subcommand|argument for) ' + argv[0] + '\\b|' + argv[0] + ' is not available on Windows)'), argv.join(' '));
   }
   const usage = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), '--help'], { cwd: tmp, env: ENV, encoding: 'utf8' });
-  assert.doesNotMatch(usage.stdout, /policy check|delivery-gate|docs-baseline/);
-  const onboard = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'onboard', '--project=' + path.join(tmp, 'absent')], { cwd: tmp, env: ENV, encoding: 'utf8' });
-  assert.equal(onboard.status, 2);
-  assert.match(onboard.stderr, /^mhw onboard: not a directory/);
+  assert.doesNotMatch(usage.stdout, /policy check|delivery-gate|docs-baseline|onboard|launch-line|funnel-review/);
 });
 
 test('the Action: pinned, no secret, no token, inputs only through env', () => {
@@ -200,12 +198,13 @@ test('a passing gate appends only its key=value lines to $GITHUB_OUTPUT (QA A2 o
 // QA B1 on #611: live text that presents a removed command (`mhw policy check`, `mhw delivery-gate`,
 // `mhw docs-baseline check`) as current. One row per member file the verdict named; every line there
 // that names one must also mark it as history. The S28/S29-pinned messages of src/commands/ are the
-// exit contract and are not members; onboard's output, which stays in the CLI, is checked below.
+// exit contract and are not members; the onboard skill's output lines (mhw onboard's until #599) are
+// checked below.
 const REMOVED = /(?:mhw|bin\/mhw\.js) (?:policy|delivery-gate|docs-baseline)/;
 const HISTORY = /#592|until|left the CLI|~~|it was|was `|were three|removed|no longer|replaces/;
 for (const file of ['docs/project-policy-contract.md', 'docs/recovery-reference.md', 'README.md',
   'docs/native-enforcement-matrix.md', 'global/project-policy/project-policy.schema.json',
-  'docs/deployment-lock-coverage.md', 'method/skills/documentation-standard/SKILL.md']) {
+  'docs/deployment-lock-coverage.md', 'method/skills/documentation-standard/SKILL.md', 'method/skills/onboard/SKILL.md']) {
   test('no live instruction names a removed command: ' + file, () => {
     const lines = fs.readFileSync(path.join(ROOT, ...file.split('/')), 'utf8').split(/\r?\n/);
     const live = lines.map((l, i) => [i + 1, l]).filter(([, l]) => REMOVED.test(String(l)) && !HISTORY.test(String(l)));
@@ -213,16 +212,12 @@ for (const file of ['docs/project-policy-contract.md', 'docs/recovery-reference.
   });
 }
 
-test('mhw onboard names no removed command when project-policy.json is present or not JSON', () => {
-  const dir = path.join(tmp, 'onboard-policy');
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'project-policy.json'), 'not json');
-  /** @type {string[]} */
-  const out = [];
-  const push = (/** @type {string} */ s) => { out.push(s); };
-  runOnboard(['--project=' + dir], { cwd: tmp, env: ENV, out: push, err: push });
-  const text = out.join('');
-  assert.match(text, /^GAP .*project-policy\.json is not JSON; validate it with the delivery gates Action's contract gate$/m);
-  assert.match(text, /^NOTE  project-policy\.json is present; the delivery gates Action's contract gate validates it, this command does not$/m);
+test('the onboard skill names the Action\'s contract gate for project-policy.json, and no removed command', () => {
+  // mhw onboard printed these two lines until #599; the skill now carries them as the lines it reports.
+  const text = fs.readFileSync(path.join(ROOT, 'method', 'skills', 'onboard', 'SKILL.md'), 'utf8').replaceAll('\r\n', '\n');
+  const flat = text.replace(/\n\s*/g, ' ');
+  assert.ok(flat.includes("`GAP   project-policy.json is not JSON; validate it with the delivery gates Action's contract gate`"));
+  assert.ok(flat.includes("`NOTE  project-policy.json is present; the delivery gates Action's contract gate validates it, this skill does not`"));
+  assert.ok(flat.includes("the delivery gates Action's docs-baseline gate will refuse it"));
   assert.doesNotMatch(text, REMOVED);
 });
