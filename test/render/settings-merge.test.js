@@ -524,7 +524,7 @@ test('the command line: --term-judge=on places the term check, and its absence r
   const io = { out: (/** @type {string} */ x) => out.push(x), err: (/** @type {string} */ x) => out.push(x) };
   const base = ['--phase=merge', '--settings=' + settings, '--floor-claude=' + floor, '--stamp=' + STAMP];
   assert.equal(main([...base, '--mode=install', '--term-judge=on'], io), 0, out.join(''));
-  assert.deepEqual(JSON.parse(fs.readFileSync(settings, 'utf8')).hooks.UserPromptSubmit, [{ hooks: [{ type: 'prompt', prompt: JUDGE_PROMPT, timeout: 30 }] }]);
+  assert.deepEqual(JSON.parse(fs.readFileSync(settings, 'utf8')).hooks.UserPromptSubmit, [{ hooks: [{ type: 'prompt', prompt: JUDGE_PROMPT, model: 'claude-haiku-5-5', timeout: 30 }] }]);
   assert.equal(main([...base, '--mode=check', '--term-judge=on'], io), 0, out.join(''));
   assert.equal(main([...base, '--mode=check'], io), 1, 'check without the flag sees the entry as drift');
   assert.equal(main([...base, '--mode=install'], io), 0);

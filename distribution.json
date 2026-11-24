@@ -42,7 +42,7 @@
       "id": "term-check",
       "layer": "user",
       "paths": ["src/render/term-judge.js", "src/lib/term-leftovers.js"],
-      "gap": "Claude Code only: a prompt-type UserPromptSubmit hook in the user settings, best effort and fail open; Codex parses a prompt hook and skips it, Kiro has no blocking judge, so both have the global brief only; not rendered into the admin layer (ADR-0047, proposed)."
+      "gap": "Claude Code on macOS and Linux only: a prompt-type UserPromptSubmit hook in the user settings, best effort and fail open; Codex parses a prompt hook and skips it, Kiro has no blocking judge, so both have the global brief only; not rendered into the admin layer (ADR-0047, proposed)."
     },
     {
       "id": "paste-wrapper",

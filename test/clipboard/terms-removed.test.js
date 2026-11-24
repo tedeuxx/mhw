@@ -69,3 +69,30 @@ test('`mhw add-term` is an unknown subcommand', () => {
   else assert.match(p.stderr, /^mhw: unknown subcommand add-term /);
   assert.equal(p.stdout, '');
 });
+
+// QA B1 on PR #614: every sentence that says where the term check or the pattern hook applies carries its OS
+// scope, because on Windows `mhw install-windows` renders the brief and installs no hook. Table-driven: one
+// row per file, the sentences found by what they claim, each held to "macOS and Linux".
+const SCOPED = /\b(?:a prompt hook also judges|checked by a pattern hook|The hook, Claude Code only|a `prompt`-type hook\s+install renders)/;
+/** [file, how to read its text] */
+const COVERAGE_SITES = /** @type {Array<[string, (t: string) => string]>} */ ([
+  ['global/AGENTS.md', (t) => t],
+  ['overlay/desktop-instructions.md', (t) => t],
+  ['docs/adr/0047-third-party-terms-judged-by-the-model.md', (t) => t],
+  ['README.md', (t) => t],
+  ['distribution.json', (t) => JSON.parse(t).artifacts.find((/** @type {any} */ c) => c.id === 'term-check').gap],
+]);
+/** The sentences of a text, its line breaks and list markers folded. @param {string} text */
+export const sentences = (text) => text.replace(/\s*\n\s*(?:[-*]\s+)?/g, ' ').split(/(?<=[.!?])\s+(?=[A-Z*`(])/);
+
+test('every sentence placing the term check or the pattern hook carries its OS scope (QA B1)', () => {
+  for (const [file, read] of COVERAGE_SITES) {
+    const text = read(fs.readFileSync(path.join(ROOT, file), 'utf8'));
+    const claims = file === 'distribution.json' ? [text] : sentences(text).filter((s) => SCOPED.test(s));
+    assert.ok(claims.length >= 1, file + ': no coverage sentence found (a dead selector passes nothing)');
+    for (const s of claims) assert.match(s, /macOS and Linux/, file + ': ' + s.slice(0, 160));
+  }
+  const brief = fs.readFileSync(path.join(ROOT, 'global', 'AGENTS.md'), 'utf8').replace(/\s+/g, ' ');
+  assert.match(brief, /lets a prompt through when its evaluator fails/, 'the brief states fail open');
+  assert.match(brief, /Codex, Kiro, the desktop apps and Windows have no such hook/);
+});

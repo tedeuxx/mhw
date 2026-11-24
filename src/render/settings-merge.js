@@ -34,7 +34,7 @@ import { keyOptions } from '../lib/key-options.js';
 import { privateCopy } from '../lib/private-copy.js';
 import { classify, stringify, compact, equal, typeOf, JqNumber } from '../lib/jq-json.js';
 import { unifiedHunks } from '../lib/unified-diff.js';
-import { JUDGE_ID, JUDGE_PROMPT, JUDGE_TIMEOUT } from './term-judge.js';
+import { JUDGE_ID, JUDGE_MODEL, JUDGE_PROMPT, JUDGE_TIMEOUT } from './term-judge.js';
 
 /** @typedef {import('../lib/jq-json.js').JqValue} JqValue */
 /** @typedef {Map<string, JqValue>} JqObject */
@@ -205,10 +205,10 @@ export function pasteGroup(cmd) {
 }
 
 /**
- * The third-party term check's group (#589): {hooks: [{type: "prompt", prompt: JUDGE_PROMPT, timeout: 30}]}.
+ * The third-party term check's group (#589): {hooks: [{type: "prompt", prompt: JUDGE_PROMPT, model: JUDGE_MODEL, timeout: 30}]}.
  */
 export function judgeGroup() {
-  const hook = new Map(/** @type {Array<[string, JqValue]>} */ ([['type', 'prompt'], ['prompt', JUDGE_PROMPT],
+  const hook = new Map(/** @type {Array<[string, JqValue]>} */ ([['type', 'prompt'], ['prompt', JUDGE_PROMPT], ['model', JUDGE_MODEL],
     ['timeout', new JqNumber(String(JUDGE_TIMEOUT))]]));
   return new Map(/** @type {Array<[string, JqValue]>} */ ([['hooks', [hook]]]));
 }

@@ -38,7 +38,7 @@ e-mail addresses, identity numbers) stay with the pattern hook of
 ## Considered options
 
 1. **The model judges (chosen).** The global brief tells every agent to judge third-party terms, and on
-   Claude Code install renders one `prompt`-type `UserPromptSubmit` hook whose text asks a small model
+   Claude Code install renders one `prompt`-type `UserPromptSubmit` hook whose text asks a pinned small model
    whether the prompt carries third-party material. The list, the salt and `mhw add-term` are removed.
    Trade-off: a judgement is best effort. A term can pass, and a common word can be flagged. Codex and Kiro
    get no hook: the brief is all they have.
@@ -55,8 +55,10 @@ Chosen: option 1.
 
 - **The instruction, every harness.** `global/AGENTS.md`, rule 4: third-party terms are the agent's to
   judge, no list exists, and the Claude Code hook does not replace that judgement.
-- **The hook, Claude Code only.** `mhw install` merges into `~/.claude/settings.json` one entry
-  `{"type": "prompt", "prompt": <src/render/term-judge.js JUDGE_PROMPT>, "timeout": 30}` under
+- **The hook, Claude Code only, on macOS and Linux; `mhw install-windows` installs no hook, so Claude
+  Code on Windows has the brief only.** `mhw install` merges into `~/.claude/settings.json` one entry
+  `{"type": "prompt", "prompt": <src/render/term-judge.js JUDGE_PROMPT>, "model": "claude-haiku-5-5",
+  "timeout": 30}` under
   `UserPromptSubmit`, in a group of its own. It is found again by the text `JUDGE_ID` at the start of its
   prompt: install keeps exactly one, replaces a stale wording, and `--check` reports a missing one as
   drift. Uninstall removes it. A foreign prompt hook is left alone. It needs no node and no script, so it
@@ -92,10 +94,16 @@ Chosen: option 1.
 - Bad: **it fails open.** When the evaluator's answer is not the expected JSON, or its call fails, Claude
   Code lets the prompt through (measured for a bad answer, see below; an API error is read from the
   bundle).
-- Bad: **a model call on every prompt.** Each prompt costs one small-model call on Claude Code, on the
-  owner's account. The cost is not measured.
-- Bad: **Codex and Kiro have no mechanical term check.** Between #600 and this record only the paste
-  wrapper still read a list. From this record on, nothing on those two harnesses checks a term at all.
+- Bad: **a model call on every prompt.** Each prompt costs one judge call on Claude Code, on the
+  owner's account. The entry pins `model: claude-haiku-5-5`, because without the field Claude Code
+  2.1.331 sent the judge request to the session's main model (measured by the gate against the local
+  stand-in: `claude-opus-5-5`, and `claude-sonnet-5-5` under `--model sonnet`). With the field the judge
+  request names `claude-haiku-5-5` while the main request keeps the session's model (measured the same
+  way, 2026-11-24). Whether the owner's account serves that model, and what a call costs, are not
+  measured.
+- Bad: **Codex, Kiro and Windows have no mechanical term check.** Between #600 and this record only the
+  paste wrapper still read a list. From this record on, nothing on Codex, on Kiro, or on Claude Code on
+  Windows (where `mhw install-windows` installs no hook) checks a term at all.
 - Bad: **not in the admin layer.** Under `--hooks=managed` the term check stays a user-level entry, which
   a process running as the owner can remove. Rendering it into the managed drop-in is not built here.
 - Bad: the block message Claude Code shows begins with the hook's own prompt text in brackets, so it is
@@ -121,8 +129,10 @@ Chosen: option 1.
   - **Fail open:** an answer that was not JSON let the prompt with the probe word through to the main
     model.
 - **Read from the bundle** (2.1.331), not measured: the evaluator's system prompt and answer schema, the
-  default small model, the 30-second default timeout, and an API error becoming a non-blocking error.
-- **Not measured:** what a real small model answers for a real prompt, and its cost. Not installed on
+  `model` field, the 30-second default timeout, and an API error becoming a non-blocking error. The model
+  the request names is measured (above).
+- **Not measured:** what a real model answers for a real prompt, whether the account serves the pinned
+  model, and its cost. Not installed on
   the reference machine.
 
 ## What this replaced

@@ -108,7 +108,8 @@ test('install writes each harness\'s hook entries at the installed script; the i
   for (const gone of ['hook prompt', 'hook-entry', 'hook-prompt', 'defer-to-paste-filter', 'bin/mhw.js']) assert.ok(!everything.includes(gone), 'a rendered hook names ' + gone);
   // #589: the third-party term check is one `prompt`-type UserPromptSubmit entry, on Claude Code only, in a
   // group of its own; Codex parses a prompt hook and skips it, and Kiro has none, so neither gets one.
-  assert.deepEqual(promptHooksOf(settings, 'UserPromptSubmit'), [{ type: 'prompt', prompt: JUDGE_PROMPT, timeout: 30 }]);
+  // QA A1: the judge names a small model; without the field Claude Code asked the session's main model.
+  assert.deepEqual(promptHooksOf(settings, 'UserPromptSubmit'), [{ type: 'prompt', prompt: JUDGE_PROMPT, model: 'claude-haiku-5-5', timeout: 30 }]);
   assert.ok(settings.hooks.UserPromptSubmit.some((/** @type {any} */ g) => g.hooks.length === 1 && g.hooks[0].type === 'prompt' && !('matcher' in g)));
   assert.deepEqual(promptHooksOf(settings, 'PreToolUse'), []);
   assert.deepEqual([...promptHooksOf(codex, 'UserPromptSubmit'), ...promptHooksOf(codex, 'PreToolUse')], [], 'codex: no prompt hook');

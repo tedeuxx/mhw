@@ -1,8 +1,10 @@
 // The third-party term check (#589, CLI native baseline PRD section 6): on Claude Code, a `prompt`-type
-// UserPromptSubmit hook. Claude Code sends each prompt to a small model with this text and blocks the prompt
+// UserPromptSubmit hook. Claude Code sends each prompt to JUDGE_MODEL (a small model, pinned) with this text and blocks the prompt
 // when the model answers {"ok": false, ...}. It replaces the hashed term lists and `mhw add-term`: terms
 // (employer, client, colleague, health) are judged, never matched against a list. The global brief carries
 // the same instruction for every harness (global/AGENTS.md).
+//
+// Rendered on Claude Code on macOS and Linux only: `mhw install-windows` installs no hook.
 //
 // Evidence, at its real level (ADR-0047):
 // - The entry's shape ({"type": "prompt", "prompt": ..., "timeout": 30}) and the answer's ({"ok": true|false,
@@ -10,7 +12,7 @@
 //   2.1.331 bundle. The wiring is MEASURED on 2.1.331 against a local stand-in for the Messages API (no real
 //   model call): with this entry, an {"ok": false} answer stopped the prompt before any main-model request,
 //   {"ok": true} let it through, and an answer that is not that JSON let it through too (fail open). What a
-//   real small model answers for a real prompt is NOT measured: that is a model call on the owner's account.
+//   real model answers for a real prompt is NOT measured: that is a model call on the owner's account.
 // - Best effort. A term can pass, and a common word can be flagged.
 // - Codex parses a prompt hook and skips it; Kiro's "Agent Prompt" only adds context. Neither gets one.
 //
@@ -33,6 +35,14 @@ export const JUDGE_PROMPT = JUDGE_ID + '. Decide whether the user prompt below m
   + 'identity numbers) are checked elsewhere; ignore them here. In reason, give only the category '
   + '(employer or client, colleague, health) and ask the user to rephrase in abstract terms and resend; '
   + 'never quote, repeat or hint at the matched words. Hook input: $ARGUMENTS';
+
+/**
+ * The model the hook asks, pinned (#589, QA advisory A1): without a `model` field Claude Code 2.1.331 sent
+ * the judge request to the session's main model (measured against a local stand-in), so every prompt cost a
+ * main-model call. With this field the request names this model (measured the same way). Whether the
+ * owner's account serves it is not measured.
+ */
+export const JUDGE_MODEL = 'claude-haiku-5-5';
 
 /** The hook's timeout in seconds, as the command hooks of this project carry. */
 export const JUDGE_TIMEOUT = 30;

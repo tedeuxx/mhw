@@ -295,8 +295,9 @@ the installer prints the line for you to add:
 
 Client and employer terms, colleague names and health data are not registered anywhere: since
 [#589](https://github.com/tedeuxx/mhw/issues/589) ([ADR-0047](docs/adr/0047-third-party-terms-judged-by-the-model.md))
-the model judges them, through the global brief and, on Claude Code, a `prompt`-type hook install renders.
-It is best effort: a term can pass, and a common word can be flagged. `mhw add-term`, the term lists and
+the model judges them, through the global brief and, on Claude Code on macOS and Linux, a `prompt`-type hook
+install renders (Windows gets none). It is best effort: a term can pass, a common word can be flagged, and
+the hook lets a prompt through when its evaluator fails. `mhw add-term`, the term lists and
 their salt are gone. Install moves a list or salt an earlier install left aside, as `<file>.pmhwc-backup`
 (0600), and says so; delete the backup when you no longer need it.
 
