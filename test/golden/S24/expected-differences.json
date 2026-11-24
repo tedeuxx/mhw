@@ -379,5 +379,29 @@
     "head": "^<absent>$",
     "replace": "<retired by #600>",
     "why": "#600: the admin layer no longer stages `mhw hook prompt`'s entry and module (bin/hook/src/commands/hook-entry.js and hook-prompt.js); --apply deletes them as legacy files and removes the emptied directory. Only these three paths are declared; every other file of the admin tree is still compared."
+  },
+  {
+    "case": [
+      "usage-and-refusals"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "    \\./mhw policy check \\[--project=DIR \\| --file=PATH\\]\\n {40}validate a project's ADR-0015 project-policy contract \\(Issue\\n(?: {42}[^\\n]*\\n){5}",
+    "head": "(?!)",
+    "replace": "",
+    "why": "A break of the public interface (#592, v11, section 5 of the CLI native baseline PRD, ADR-0046): `mhw policy check`, `mhw delivery-gate` and `mhw docs-baseline check` left the CLI for the delivery gates Action (actions/delivery-gates), so the usage text drops the seven lines of `./mhw policy check` (its command line and six description lines) and every other line is compared unchanged. Steps 0 to 3 (--help, -h, help and no argument) all print it."
+  },
+  {
+    "case": [
+      "usage-and-refusals"
+    ],
+    "stream": [
+      "stderr"
+    ],
+    "base": "check, policy check, update",
+    "head": "(?!)",
+    "replace": "check, update",
+    "why": "A break of the public interface (#592, v11, section 5 of the CLI native baseline PRD, ADR-0046): `mhw policy check`, `mhw delivery-gate` and `mhw docs-baseline check` left the CLI for the delivery gates Action (actions/delivery-gates), so the usage text drops the seven lines of `./mhw policy check` (its command line and six description lines) and the unknown-subcommand refusal (step 4) no longer lists `policy check` among the commands; the rest of the line and the exit code are unchanged. Applied after the #600 entry, which already took scan out of the same list."
   }
 ]

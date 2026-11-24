@@ -1,0 +1,133 @@
+# The delivery gates, as one reusable GitHub Action (#592, ADR-0046). A project calls it as
+#
+#     - uses: tedeuxx/mhw/actions/delivery-gates@<release tag or full commit SHA>
+#       with:
+#         gate: contract
+#         project-dir: .
+#
+# with no mhw installed on the runner: GitHub fetches this repository at the ref named, and the step runs
+# src/action/gates.js from that copy on the Node this Action sets up. It replaces `mhw policy check`,
+# `mhw delivery-gate` and `mhw docs-baseline check`, which left the CLI in v11; every gate keeps their
+# exit contract (0 pass, 1 block, 2 usage or cannot decide, and both 1 and 2 fail the step).
+#
+# One gate per step:
+#   contract         the validator (was `mhw policy check`), then the contract gate: the project-policy.json
+#                    in project-dir is valid, bound to `repository`, and its MADR exists and is accepted
+#   container        containerised evidence for the exact revision (run it inside the project's image)
+#   installed-stg    installed-STG evidence for the exact revision
+#   classify         the risk class; outputs `class` and `approval`
+#   environment      the owner-approval environment carries a required reviewer (`protection` is a file
+#                    the caller wrote from the environments API; reading it needs a token, so the caller does)
+#   recovery-plan    the recovery mode before PROD; outputs `mode`, `rollback_target`, and for manual
+#                    recovery `runbook`, `recovery_time_objective_minutes` and `operator`
+#   prod-validation  PROD validation evidence; any failure is the caller's signal to recover
+#   docs-baseline    every capability a change touches changed one of its documents (the PR body's escape
+#                    lines in `body-file`), against `base`
+#
+# Security: it holds no secret and reads no token; it asks the caller's job for `contents: read` only.
+# Its one third-party step is actions/setup-node, pinned to a full commit SHA. Inputs reach the script
+# through env, never by expression interpolation into a run block. Setting up Node changes the node on
+# the caller's job PATH for the steps after this one.
+name: mhw delivery gates
+description: The ADR-0015 delivery gates, the project-policy validator and the documentation baseline check
+inputs:
+  gate:
+    description: "contract, container, installed-stg, classify, environment, recovery-plan, prod-validation or docs-baseline"
+    required: true
+  project-dir:
+    description: "The directory holding project-policy.json (or the documentation baseline), relative to the working directory"
+    default: "."
+  repository:
+    description: "contract: the OWNER/NAME the contract must be bound to"
+    default: ${{ github.repository }}
+  evidence:
+    description: "container, installed-stg, prod-validation: the evidence file"
+    default: ""
+  revision:
+    description: "container, installed-stg, recovery-plan, prod-validation: the exact commit, the full 40-character SHA"
+    default: ""
+  checkout-head:
+    description: "container, installed-stg, prod-validation: the commit the project checkout is at"
+    default: ""
+  container-image:
+    description: "container: the image the evidence ran in, pinned by digest"
+    default: ""
+  no-container-check:
+    description: "container: 'true' skips the check that the step runs inside a container (tests only)"
+    default: "false"
+  rules:
+    description: "classify: the contract's risk rules this change matches, as indices (0,2); empty blocks"
+    default: ""
+  name:
+    description: "environment: the environment's name"
+    default: ""
+  protection:
+    description: "environment: the file holding the environment's protection, as the environments API returns it"
+    default: ""
+  prod-revision:
+    description: "recovery-plan: the revision PROD runs now, or none"
+    default: ""
+  base:
+    description: "docs-baseline: the base ref of the diff, for example origin/main"
+    default: ""
+  head:
+    description: "docs-baseline: the head ref (default HEAD)"
+    default: ""
+  body-file:
+    description: "docs-baseline: a file holding the pull request body"
+    default: ""
+  manifest:
+    description: "docs-baseline: the manifest path (default docs/documentation-baseline.json)"
+    default: ""
+  node-version:
+    description: "The Node release the gates run on (26 or later)"
+    default: "26.13.1"
+outputs:
+  class:
+    description: "classify: low or high"
+    value: ${{ steps.gate.outputs.class }}
+  approval:
+    description: "classify: automatic-after-all-gates or owner-exact-revision"
+    value: ${{ steps.gate.outputs.approval }}
+  mode:
+    description: "recovery-plan: the recovery mode"
+    value: ${{ steps.gate.outputs.mode }}
+  rollback_target:
+    description: "recovery-plan: the revision a rollback returns to"
+    value: ${{ steps.gate.outputs.rollback_target }}
+  runbook:
+    description: "recovery-plan, manual recovery: the runbook path"
+    value: ${{ steps.gate.outputs.runbook }}
+  recovery_time_objective_minutes:
+    description: "recovery-plan, manual recovery: the recovery time objective"
+    value: ${{ steps.gate.outputs.recovery_time_objective_minutes }}
+  operator:
+    description: "recovery-plan, manual recovery: the operator"
+    value: ${{ steps.gate.outputs.operator }}
+runs:
+  using: composite
+  steps:
+    # actions/setup-node v7.1.0, the pin tests.yml uses
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+      with:
+        node-version: ${{ inputs.node-version }}
+    - id: gate
+      shell: bash
+      env:
+        MHW_INPUT_GATE: ${{ inputs.gate }}
+        MHW_INPUT_PROJECT_DIR: ${{ inputs.project-dir }}
+        MHW_INPUT_REPOSITORY: ${{ inputs.repository }}
+        MHW_INPUT_EVIDENCE: ${{ inputs.evidence }}
+        MHW_INPUT_REVISION: ${{ inputs.revision }}
+        MHW_INPUT_CHECKOUT_HEAD: ${{ inputs.checkout-head }}
+        MHW_INPUT_CONTAINER_IMAGE: ${{ inputs.container-image }}
+        MHW_INPUT_NO_CONTAINER_CHECK: ${{ inputs.no-container-check }}
+        MHW_INPUT_RULES: ${{ inputs.rules }}
+        MHW_INPUT_NAME: ${{ inputs.name }}
+        MHW_INPUT_PROTECTION: ${{ inputs.protection }}
+        MHW_INPUT_PROD_REVISION: ${{ inputs.prod-revision }}
+        MHW_INPUT_BASE: ${{ inputs.base }}
+        MHW_INPUT_HEAD: ${{ inputs.head }}
+        MHW_INPUT_BODY_FILE: ${{ inputs.body-file }}
+        MHW_INPUT_MANIFEST: ${{ inputs.manifest }}
+      run: node "$GITHUB_ACTION_PATH/../../src/action/gates.js" --action

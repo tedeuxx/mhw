@@ -8,7 +8,9 @@ each gate, a caller template with the deployment jobs, and a dry run against a s
 | File | What it is |
 | --- | --- |
 | `.github/workflows/reference-delivery-gate.yml` | The gates, as a reusable workflow (`workflow_call` only). It deploys nothing and names no environment |
-| `src/commands/delivery-gate.js` | `mhw delivery-gate`, the command each gate runs (Node since [#499](https://github.com/tedeuxx/mhw/issues/499); it replaced `global/project-policy/delivery_gate.py`): it applies a valid contract to one revision's evidence |
+| `actions/delivery-gates/action.yml` | The delivery gates Action ([#592](https://github.com/tedeuxx/mhw/issues/592), [ADR-0046](adr/0046-delivery-gates-as-a-reusable-github-action.md)): one composite action, one `gate` input, that every gate step runs; a project references it as `uses: tedeuxx/mhw/actions/delivery-gates@<ref>` with no mhw installed |
+| `src/action/gates.js` | The Action's engine: it builds each gate's arguments from the inputs and runs the gate code below |
+| `src/commands/delivery-gate.js` | The gates themselves (~~`mhw delivery-gate`~~, a CLI command until #592; Node since [#499](https://github.com/tedeuxx/mhw/issues/499); it replaced `global/project-policy/delivery_gate.py`): it applies a valid contract to one revision's evidence |
 | `test/project-policy/delivery-gate.test.js` | Its suite: a benign pass per gate and one test per blocking class, plus the workflows' pins: every action by SHA, each job's permissions in both workflows and the caller template, so a scope added to any job fails, and no step that runs Python |
 | `test/project-policy/delivery-gate-golden.test.js` | Parity with the deleted Python gates, on the cases recorded in `test/golden/S29/` |
 | `global/project-policy/reference/caller-workflow.yml` | A template a project copies, with the STG and PROD deployment jobs. Not live in mhw |
@@ -18,8 +20,8 @@ each gate, a caller template with the deployment jobs, and a dry run against a s
 The gate workflow runs the template and the fixture from a checkout of mhw at `mhw-revision`, never from
 the npm package. Since #495 (S24 of #470) the npm package leaves out `global/project-policy/reference/`
 (the template and the fixture, whose Python test files are the only `.py` left under `global/`), so the
-packed tarball carries no Python file. The contract's schema and examples, which `mhw policy check`
-reads, stay in the package, and so does `mhw delivery-gate` (`src/commands/delivery-gate.js`).
+packed tarball carries no Python file. Since #592 nothing reads the gates from the npm package: the Action
+runs from GitHub's copy of mhw at the ref a workflow names.
 
 ## Evidence level, said first
 
@@ -37,13 +39,16 @@ as an owner action on #246.
 
 ## The gates
 
-Each gate is one `mhw delivery-gate` command, run as `node mhw/bin/mhw.js delivery-gate <gate>`. Every one
-re-validates the contract first with `mhw policy check`'s own check, in the same process: the gate starts
+Each gate is one step of the delivery gates Action, `gate: <gate>` (since [#592](https://github.com/tedeuxx/mhw/issues/592);
+it was `node mhw/bin/mhw.js delivery-gate <gate>`, with one flag per input and the same exit codes). The
+reusable workflow runs it from its checkout of mhw at `mhw-revision` (`uses: ./mhw/actions/delivery-gates`),
+the caller template by its pin (`uses: tedeuxx/mhw/actions/delivery-gates@<mhw-commit-sha>`). Every gate
+re-validates the contract first with the validator's own check, in the same process: the gate starts
 no other program, so nothing on PATH and no environment variable can stand in for the validator. A
 validator that throws, or answers anything but its own exit 0, 1 or 2 with its lines (an exit 0 with its
 `OK` line), is exit 2. Since [#499](https://github.com/tedeuxx/mhw/issues/499) the gates are Node, so
-every job that runs one needs Node 26 or later and no Python: the reusable workflow and the caller
-template set it up with `actions/setup-node`, the containerised job inside the project's image, which
+every job that runs one needs Node 26 or later and no Python: the Action sets it up with
+`actions/setup-node` (pinned) before each gate, in the containerised job inside the project's image, which
 must therefore be one `actions/setup-node` can run in: a glibc-based Linux image with `tar` and gzip,
 which it uses to unpack Node (read from the dry run's log in `python:3.12-bookworm`; an image without
 them is not measured). Exit 0 passes, 1 blocks with one `BLOCK` line per reason, 2 means it cannot
@@ -51,7 +56,7 @@ decide, and the workflow treats 2 as a block too.
 
 | Gate | When | Evidence it reads | It blocks when | What it does not cover |
 | --- | --- | --- | --- | --- |
-| `mhw policy check` (lock 3) | first, before STG and before PROD | the contract, `project-policy.json` | the contract is missing, malformed, of an unknown version, or breaks the floor | anything but the contract |
+| the validator (lock 3; `mhw policy check` until #592), the first half of the `contract` gate | first, before STG and before PROD | the contract, `project-policy.json` | the contract is missing, malformed, of an unknown version, or breaks the floor | anything but the contract |
 | `contract` | right after it | the contract, the MADR file at `madr.path`, the runbook file for manual recovery | the contract governs another repository; the MADR is missing, resolves outside the project (a symbolic link included) or its first status line does not read exactly `accepted`; a manual-recovery runbook file is missing or outside the project | whether the owner really ratified the MADR, or the runbook was really tested on `last_tested` |
 | `container` | before STG and before PROD | the evidence the project's test command writes in the digest-pinned container | the image is not pinned by digest or differs from the evidence's; the step is not in a container (`/.dockerenv`; checked by default, and the workflow never turns it off); the checkout, the evidence and the requested revision are not the same full SHA; any test layer, journey, risk scenario or one of the contract's security controls lacks a `pass`; coverage is missing, of another metric, not a finite percentage from 0 to 100, or below the threshold; a finding breaks the severity rules | whether the project's command told the truth (below) |
 | `installed-stg` | after the STG deployment, before PROD | the evidence the project's STG test command writes on the runner | STG does not report the revision under test, or it cannot be read; any reported test layer, every journey and every risk scenario lacks a `pass`; no security validation is reported, or one is not in the contract; a finding breaks the severity rules | which security controls apply to an installed environment: only the reported ones are read |
@@ -144,9 +149,11 @@ was deployed.
   [docs/recovery-reference.md](recovery-reference.md)** (#247): two more gates in the same command,
   `recovery-plan` before the PROD deployment and `prod-validation` after it, and three jobs in the
   caller template. The gate workflow above runs neither.
-- **Local runs authorise nothing.** `mhw delivery-gate` runs anywhere, but only the containerised run in
+- **Local runs authorise nothing.** The gates (`node src/action/gates.js delivery-gate <gate>` in a
+  checkout of mhw) run anywhere, but only the containerised run in
   the pipeline is evidence; outside a container the `container` gate blocks. Its
-  `--no-container-check` flag exists for the suite only, and the reference workflow never passes it.
+  `--no-container-check` flag (the Action's `no-container-check` input) exists for the suite only, and
+  the reference workflow never passes it.
 
 ## Adopting it
 
@@ -157,6 +164,20 @@ past #499 changes every job of the caller that runs a gate itself (the template'
 sets up Node 26 with `actions/setup-node` before the gate step. The current template carries both; the
 reusable workflow sets Node up in each of its own jobs. A step left on the Python line fails closed
 (exit 2, the file is gone), so the deployment does not start. Python is no longer needed by any gate.
+
+**Moving the pin past [#592](https://github.com/tedeuxx/mhw/issues/592)** changes the same two jobs once
+more, because #592 removes `mhw delivery-gate` from the CLI: each `node mhw/bin/mhw.js delivery-gate
+<gate> --flag=value ...` step becomes `uses: tedeuxx/mhw/actions/delivery-gates@<mhw-commit-sha>` with
+`gate: <gate>` and one input per flag (`--prod-revision` is `prod-revision:`, and so on), the job drops
+its mhw checkout and its `actions/setup-node` step (the Action sets Node up), and `recovery-plan` reads
+the Action's outputs instead of appending stdout to `$GITHUB_OUTPUT`. A step left on the old line fails
+closed (exit 2, an unknown subcommand), so the deployment does not start. The reusable workflow's own
+inputs and outputs are unchanged.
+
+**The fixture project** (`.github/workflows/delivery-gates-action.yml`) calls the Action the way a
+project's workflow does, at the pull request's own ref, on every pull request: the reference fixture's
+contract passes, a copy with `schema_version` 2 blocks, and the `classify` outputs read back. The
+released `@v11` reference is checked after that release, not there.
 
 Adoption in any repository is out of scope here and needs that repository's own Issue. It means:
 copying the caller template, writing the test commands that produce the evidence file, creating the

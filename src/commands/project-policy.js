@@ -1,6 +1,9 @@
 // mhw policy check [--project=DIR | --file=PATH] (#498, S28 of #470): the fail-closed validator of the
 // project-policy contract (ADR-0015 lock 3 of 5, Issue #245), the Node form of
 // global/project-policy/project_policy.py, which this slice deletes.
+// Since #592 (ADR-0046) this is not a CLI command: it is the first half of the delivery gates Action's
+// `contract` gate (src/action/gates.js), with the arguments below. Its messages keep the old name, which
+// the S28 golden transcripts pin.
 //
 // It reads one project's contract file, project-policy.json at the root of DIR (default: the current
 // directory), or the file PATH names, and checks it against global/project-policy/project-policy.schema.json

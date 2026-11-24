@@ -243,8 +243,9 @@ owns and the `docs` that describe it:
 - **A changed path belongs to the first capability, in manifest order, whose `code` matches it.**
   Order from specific to general, and end with a catch-all if the repository has one.
 
-**The check: `mhw docs-baseline check --base=<ref> [--body-file=<pull-request body>]`**, run by CI on
-every pull request. Every capability a change touches must change one of its `docs` by **more than
+**The check: the `docs-baseline` gate of the delivery gates Action**, `uses:
+tedeuxx/mhw/actions/delivery-gates@<ref>` with `gate: docs-baseline`, `base: <ref>` and `body-file: <the
+pull-request body>` (it was `mhw docs-baseline check` until mhw#592), run by CI on every pull request. Every capability a change touches must change one of its `docs` by **more than
 whitespace** (`git diff -w --ignore-blank-lines`). Otherwise the pull-request body carries, at column
 0 and outside a code fence, one of:
 
@@ -279,7 +280,7 @@ ADR library, compared case-folded on the resolved path, other than its index and
 Run it on an existing repository to
 see its gaps; run it with `--scaffold` on a new one. A project adds documents or Definition-of-Done
 criteria on top of this baseline through the optional `baseline_override` section of its
-`project-policy.json`, which may only add (`mhw policy check` refuses anything else).
+`project-policy.json`, which may only add (the contract validator refuses anything else).
 
 ### Licensing — the `LICENSE` file and the manifest field
 

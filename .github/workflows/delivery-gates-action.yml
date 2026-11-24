@@ -1,0 +1,61 @@
+# The delivery gates Action (#592, ADR-0046) as a project calls it, at this pull request's own ref.
+#
+# A fixture project, the reference CI/CD's synthetic project in global/project-policy/reference/fixture/,
+# calls actions/delivery-gates the way a project's workflow does, with no mhw installed on the runner:
+# its valid contract passes, and a broken copy (schema_version 2, an unknown version) blocks. The classify
+# gate's outputs are read back. A project references the Action as
+# `uses: tedeuxx/mhw/actions/delivery-gates@<ref>`; here it is `uses: ./actions/delivery-gates`, the same
+# files at this branch's head, because a `uses:` cannot carry the pull request's ref as an expression.
+# The released `@v11` reference is checked after that release exists, not here. Not a required check.
+name: delivery gates action
+
+on:
+  pull_request:
+    branches: [main, rc/next]
+
+permissions: {}
+
+jobs:
+  fixture-project:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # actions/checkout v6.1.0 (the pin tests.yml uses)
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: a broken copy of the fixture contract (schema_version 2)
+        run: |
+          cp -R global/project-policy/reference/fixture "$RUNNER_TEMP/broken"
+          sed -i 's/"schema_version": 1,/"schema_version": 2,/' "$RUNNER_TEMP/broken/project-policy.json"
+          grep -q '"schema_version": 2,' "$RUNNER_TEMP/broken/project-policy.json"
+      - name: the valid contract passes
+        uses: ./actions/delivery-gates
+        with:
+          gate: contract
+          project-dir: global/project-policy/reference/fixture
+      - name: the broken contract blocks
+        id: broken
+        continue-on-error: true
+        uses: ./actions/delivery-gates
+        with:
+          gate: contract
+          project-dir: ${{ runner.temp }}/broken
+      - name: the classify gate's outputs
+        id: classify
+        uses: ./actions/delivery-gates
+        with:
+          gate: classify
+          project-dir: global/project-policy/reference/fixture
+          rules: "1"
+      - name: what the fixture project decided
+        env:
+          BROKEN: ${{ steps.broken.outcome }}
+          RISK_CLASS: ${{ steps.classify.outputs.class }}
+          APPROVAL: ${{ steps.classify.outputs.approval }}
+        run: |
+          echo "broken contract: $BROKEN; risk class: $RISK_CLASS; approval: $APPROVAL"
+          [ "$BROKEN" = failure ] || { echo "the broken contract was not blocked"; exit 1; }
+          [ "$RISK_CLASS" = low ] && [ "$APPROVAL" = automatic-after-all-gates ]

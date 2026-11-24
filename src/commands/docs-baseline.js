@@ -1,5 +1,7 @@
 // mhw docs-baseline check and mhw onboard (Issue #523): the documentation baseline a repository
 // declares, the pull-request check that keeps it current, and the onboarding entry point.
+// Since #592 (ADR-0046) the check is not a CLI command: it is the delivery gates Action's `docs-baseline`
+// gate (src/action/gates.js), with the arguments below; `mhw onboard` stays in the CLI until #599.
 //
 //   mhw docs-baseline check --base=REF [--head=REF] [--body-file=PATH] [--project=DIR] [--manifest=PATH]
 //   mhw onboard [--project=DIR] [--scaffold]
@@ -717,12 +719,12 @@ export function validate(root, env, platform) {
       const doc = JSON.parse(fs.readFileSync(policy, 'utf8'));
       extra = doc?.baseline_override?.documentation?.additional_docs ?? [];
     } catch {
-      gap('project-policy.json is not JSON; run mhw policy check');
+      gap('project-policy.json is not JSON; validate it with the delivery gates Action\'s contract gate');
     }
     for (const d of Array.isArray(extra) ? extra : []) {
       if (d && typeof d.path === 'string' && !badPath(d.path, false)) need('additional document (project-policy.json)', d.path);
     }
-    lines.push('NOTE  project-policy.json is present; mhw policy check validates it, this command does not');
+    lines.push('NOTE  project-policy.json is present; the delivery gates Action\'s contract gate validates it, this command does not');
   }
   lines.push(gaps ? 'GAP   ' + gaps + ' gap(s) in the documentation baseline' : 'OK    the documentation baseline is complete');
   return { gaps, lines };

@@ -3,14 +3,15 @@
 # are the project's. It has never run anywhere: the dry run exercises the gate workflow it calls, not
 # these deployment jobs. Read docs/reference-cicd.md in mhw before adopting it.
 #
-# Since mhw #499 every gate is Node (`node mhw/bin/mhw.js delivery-gate`), and so is the reusable gate
-# workflow: a caller needs Node 26 (actions/setup-node) in each job that runs a gate, and no Python.
-# A caller pinned to an mhw commit before #499 keeps working unchanged. Moving <mhw-commit-sha> past it
-# needs two changes in recovery-plan and validate-prod, because #499 deletes delivery_gate.py: each gate
-# step changes from `python3 -B mhw/global/project-policy/delivery_gate.py <gate>` to
-# `node mhw/bin/mhw.js delivery-gate <gate>`, with the same arguments, outputs and exit codes, and the job
-# sets up Node 26 (actions/setup-node) before it. This template carries both. A step left on the old line
-# fails closed (exit 2: the file is gone), so the deployment does not start.
+# Since mhw #592 every gate is the delivery gates Action, `uses: tedeuxx/mhw/actions/delivery-gates@<mhw-commit-sha>`
+# (ADR-0046): GitHub fetches mhw at that commit and the Action sets up Node 26 itself, so no job checks out
+# mhw for a gate or installs anything. A caller pinned to an mhw commit before #592 keeps working
+# unchanged. Moving <mhw-commit-sha> past it needs one change in recovery-plan and validate-prod, because
+# #592 removes `mhw delivery-gate` from the CLI: each gate step changes from
+# `node mhw/bin/mhw.js delivery-gate <gate> --flag=value ...` to the Action with `gate: <gate>` and one
+# input per flag (the same values, outputs and exit codes), and the mhw checkout and setup-node steps of
+# that job are dropped. This template carries the new form. A step left on the old line fails closed
+# (exit 2: an unknown subcommand), so the deployment does not start.
 #
 # The project must, in its own repository and by its owner's act: create an environment `staging`,
 # `production` and `production-owner-approval`, the last with the owner as required reviewer; label
@@ -115,27 +116,18 @@ jobs:
           ref: ${{ github.sha }}
           path: project
           persist-credentials: false
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-        with:
-          repository: tedeuxx/mhw
-          ref: <mhw-commit-sha>
-          path: mhw
-          persist-credentials: false
-      # Node 26 for mhw delivery-gate (mhw #499), the gate this job runs; no step needs Python.
-      # actions/setup-node v7.1.0, the pin mhw's own workflows use.
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: 26.13.1
       - id: prod
         # The commit PROD runs now: a full SHA, or `none` before the first PROD deployment. Anything
         # else (an error, an empty line, a release name) blocks the deployment.
         run: echo "revision=$(<the command that reads the commit PROD runs, or prints none>)" >> "$GITHUB_OUTPUT"
       - id: plan
-        env:
-          PROD_REVISION: ${{ steps.prod.outputs.revision }}
-        run: |
-          node mhw/bin/mhw.js delivery-gate recovery-plan --project=project \
-            --revision="$GITHUB_SHA" --prod-revision="$PROD_REVISION" >> "$GITHUB_OUTPUT"
+        # The same mhw commit as every other uses: of mhw in this file.
+        uses: tedeuxx/mhw/actions/delivery-gates@<mhw-commit-sha>
+        with:
+          gate: recovery-plan
+          project-dir: project
+          revision: ${{ github.sha }}
+          prod-revision: ${{ steps.prod.outputs.revision }}
 
   deploy-prod:
     needs: [gates-before-prod, recovery-plan]
@@ -165,24 +157,19 @@ jobs:
           ref: ${{ github.sha }}
           path: project
           persist-credentials: false
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-        with:
-          repository: tedeuxx/mhw
-          ref: <mhw-commit-sha>
-          path: mhw
-          persist-credentials: false
-      # Node 26 for mhw delivery-gate (mhw #499), the gate this job runs; no step needs Python.
-      # actions/setup-node v7.1.0, the pin mhw's own workflows use.
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: 26.13.1
-      - env:
+      - id: evidence
+        env:
           DELIVERY_EVIDENCE: ${{ runner.temp }}/prod-evidence.json
         run: |
           <the command that runs every critical user journey and risk scenario against PROD, reads the commit PROD runs and writes $DELIVERY_EVIDENCE>
-          node mhw/bin/mhw.js delivery-gate prod-validation --project=project \
-            --evidence="$DELIVERY_EVIDENCE" --revision="$GITHUB_SHA" \
-            --checkout-head="$(git -C project rev-parse HEAD)"
+          echo "head=$(git -C project rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: tedeuxx/mhw/actions/delivery-gates@<mhw-commit-sha>
+        with:
+          gate: prod-validation
+          project-dir: project
+          evidence: ${{ runner.temp }}/prod-evidence.json
+          revision: ${{ github.sha }}
+          checkout-head: ${{ steps.evidence.outputs.head }}
 
   recover:
     # Any outcome after exposure other than a validated PROD: the deployment failed or was cancelled,
