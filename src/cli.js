@@ -6,11 +6,10 @@
 //   Windows:         install, install --method, check and status (= check) run `mhw install-windows`
 //                    (src/commands/install-windows.js, #497, S27; it was global\install.ps1); update is
 //                    answered here; install --admin and uninstall do not exist there.
-// Moved commands (the strangler's later steps) are answered here on every OS: `mhw launch-line` (#476), `mhw rite-cadence` (#477),
-// `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
+// Moved commands (the strangler's later steps) are answered here on every OS: `mhw rite-cadence` (#477),
+// `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
 // `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux), `mhw check`
 // (#494; macOS and Linux; on Windows both run `mhw install-windows --check`, #497); new in Node:
-// `mhw onboard` (#523), and
 // `mhw install-user` (#503, S25; macOS and Linux), the user-layer installer install, update, uninstall,
 // check and status run (it was global/install.sh), `mhw install-admin` (#496, S26; macOS and Linux), the
 // admin-layer installer mhw install, update, uninstall, check and status run (it was global/install-managed.sh),
@@ -25,17 +24,19 @@
 // left at #594 (section 5 too): the worklog method skill records the event from each agent harness's own
 // usage data, and the contract stays method/scripts/worklog-contract/event.schema.json.
 // `mhw add-term` left the CLI at #589 (the same section): third-party terms are judged by the model, with no
-// term list and no salt, so `add-term` is an unknown subcommand too. `mhw milestone` (#475) left at #593 (the
-// same section, ADR-0048): the method skills call `gh api` under the baseline's gh api rule set, so
-// `milestone` is an unknown subcommand as well.
+// term list and no salt, so `add-term` is an unknown subcommand too.
+// `mhw launch-line` (#476), `mhw funnel-review` (#478) and `mhw onboard` (#523) left at #599 (the same
+// section): /handoff writes the launch command itself or uses the harness's native resume, the
+// funnel-review skill writes the report with each figure citing its source, and onboarding is the
+// method skill `onboard`. All three are unknown subcommands.
+// `mhw milestone` (#475) left at #593 (the same section, ADR-0048): the method skills call `gh api` under
+// the baseline's gh api rule set, so `milestone` is an unknown subcommand as well.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { enginesNode, nodeLine } from './lib/version.js';
 import { runAbsolute } from './lib/run.js';
-import { main as launchLineMain } from './commands/launch-line.js';
 import { main as riteCadenceMain } from './commands/rite-cadence.js';
-import { main as funnelReviewMain } from './commands/funnel-review.js';
 import { main as profileMain } from './commands/profile.js';
 import { main as chromeDebuggingMain } from './render/chrome-debugging.js';
 import { main as installUserMain } from './commands/install-user.js';
@@ -43,7 +44,6 @@ import { main as installWindowsMain } from './commands/install-windows.js';
 import { main as mcpLaunchMain } from './commands/mcp-launch.js';
 import { main as mcpCheckMain } from './commands/mcp-check.js';
 import { main as pasteWrapperMain, statusLine as pasteStatusLine } from './commands/paste-wrapper.js';
-import { onboardMain } from './commands/docs-baseline.js';
 import { main as statusMain } from './commands/status.js';
 import { main as checkMain } from './commands/check.js';
 import { main as lifecycleMain } from './commands/lifecycle.js';
@@ -129,9 +129,7 @@ function printNodeLine(nodeVersion) {
  * @type {Record<string, (argv: string[], env: Record<string, string | undefined>) => number>}
  */
 const MOVED = {
-  'launch-line': launchLineMain, // #476, S05
   'rite-cadence': riteCadenceMain, // #477, S06
-  'funnel-review': funnelReviewMain, // #478, S07
   profile: profileMain, // #479, S08
   // #480, S09: the install step install.sh spawns, and the status line mhw status reads.
   'chrome-debugging': chromeDebuggingMain,
@@ -154,10 +152,9 @@ const MOVED = {
     const r = pasteWrapperMain(argv, env);
     return typeof r === 'number' ? r : 0;
   },
-  // #523: the onboarding entry point. `mhw docs-baseline check`, `mhw policy check` and `mhw delivery-gate`
-  // left the CLI at #592 (ADR-0046): they are the delivery gates Action (actions/delivery-gates/), so each
-  // word is an unknown subcommand like any other.
-  onboard: onboardMain,
+  // `mhw docs-baseline check`, `mhw policy check` and `mhw delivery-gate` left the CLI at #592 (ADR-0046):
+  // they are the delivery gates Action (actions/delivery-gates/). `mhw onboard` (#523) left at #599: it is
+  // the method skill `onboard`. Each word is an unknown subcommand like any other.
 };
 
 // `mcp check` tests connections (it starts processes); `mcp render --check` checks drift (it starts none).

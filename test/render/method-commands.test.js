@@ -3,8 +3,8 @@
 // method/ into throwaway homes (src/render/method.js, in this process) and asserts, per command and per
 // agent harness, that the command is present in that harness's native carrier, that the Codex skill keeps
 // implicit invocation off, and that every required section of the command reaches the rendered text. For
-// /handoff (#198) it runs `mhw launch-line` (bin/mhw.js) with the harness each carrier names and checks the
-// line it prints. The text checks for secret-shaped and personal data run on the paste filter's detector,
+// /handoff (#198) it ran `mhw launch-line` until #599; since then it checks the text each carrier states and
+// applies the stated quoting rule to a synthetic prompt under sh, bash and zsh. The text checks for secret-shaped and personal data run on the paste filter's detector,
 // src/lib/clean.js, called directly: the Python suite reached it through clipboard_guard.py, and (S17, #536)
 // through a shim; here no shim is needed. Each check is calibrated against a known-present hit.
 import { test, describe, before } from 'node:test';
@@ -59,8 +59,9 @@ const PHRASES = {
   'prd-to-issues': ['--body-file', 'Blocked by #N', 'definition-of-ready', 'acceptance criteria'],
   'what-else': ['native goal command (`/goal`)', 'gh pr list --state open', 'owner decisions'],
   blueprint: ['product-requirements-document-agent-harness-setup.md', 'Mermaid', 'Nothing is changed before the alignment interview is complete'],
-  handoff: ['re-derive the state from the tracker', 'It prints only', 'mhw launch-line', 'at most 280 characters', 'Then stop working in this session',
-    '--resolve', '--env NAME=VALUE', 'and nothing after it', '--cd <the checkout>',
+  // #599: the launch line is written by the session, so the script's flags left with it.
+  handoff: ['re-derive the state from the tracker', 'It prints only', '## Native resume or a fresh launch', 'at most 280 characters', 'Then stop working in this session',
+    '## Quote it', '## Check it', 'and nothing after it', 'codex resume --last',
     // #454: the ask mode, its fallback and the owner-only routing.
     '**For an ask, do not stop:**', 'When any of these is in doubt, it is a continuation.', 'only its most recent unanswered ask', '*Hypothesis, not measured:*'],
   'need-me': ['**Escalating to the owner**', '**owner overlay**', 'Exactly **three** authored, mutually exclusive', 'one line, the act and the link',
@@ -413,7 +414,8 @@ describe('method scripts', () => {
   test('no script is installed, only the documents a rite names', () => {
     // The source holds no script since #478; one added back is not installed either (#489).
     assert.deepEqual(sourceScripts, [], 'method/scripts/ holds a script again; a rite runs an mhw command instead');
-    assert.deepEqual(filesUnder(dir).map((f) => path.relative(dir, f).split(path.sep).join('/')), ['funnel-review-contract/README.md']);
+    // #599: the funnel-review store contract, the one document a rite named, left with mhw funnel-review.
+    assert.deepEqual(filesUnder(dir).map((f) => path.relative(dir, f).split(path.sep).join('/')), []);
   });
   test('rendered paths into the scripts directory exist', () => {
     const files = ['.claude', '.agents', '.kiro', '.codex'].flatMap((d) => filesUnder(r.home.p(d)));
@@ -431,7 +433,10 @@ describe('method scripts', () => {
       }
     }
     assert.deepEqual(missing, []);
-    assert.ok(refs > 0, 'no rendered file points into the scripts directory');
+    // #599: the funnel-review store contract was the one document a rite named, and it left with
+    // mhw funnel-review, so no rendered file points into the scripts directory. The mechanism is exercised
+    // on a source copy below (uninstall) and in test/render/method.test.js and the S18 goldens.
+    assert.equal(refs, 0, 'a rendered file points into the scripts directory again: restore the calibration');
     const planning = read(r.home.p('.claude/skills/sprint-planning/SKILL.md'));
     // #475, #476: the milestone routes were mhw commands; the rite names no installed script. #594: the
     // worklog is the worklog skill, and `mhw worklog` survives only struck. #593: the milestone calls are
@@ -460,7 +465,8 @@ describe('method scripts', () => {
       for (const m of text.matchAll(SCRIPT_SELECTOR)) if (!listed.has(m[1])) problems.push(rel + ': scripts/' + m[1] + ' is neither shipped nor listed as not shipped');
     }
     assert.deepEqual(problems, []);
-    assert.ok(tokens > 0);
+    // None since #599 (see above); a token added back must name a shipped document, which the loop checks.
+    assert.equal(tokens, 0);
   });
   test('no live instruction runs an installed method script with python3 (#489)', () => {
     // The Issue's criterion: `git grep -nE 'python3 .*method/scripts' method/` returns no live instruction.
@@ -499,9 +505,15 @@ describe('method scripts', () => {
     assert.ok(out.stderr.includes('{{method-scripts}}/tool.py names no file in method/scripts/'), out.stderr);
   });
   test('uninstall removes the documents', () => {
-    const home = rendered().home;
+    // No method file names a document since #599, so a source copy names one.
+    const home = methodHome();
+    const copy = sourceCopy('document-source');
+    fs.mkdirSync(path.join(copy, 'scripts', 'probe-contract'));
+    fs.writeFileSync(path.join(copy, 'scripts', 'probe-contract', 'README.md'), '# probe\n');
+    fs.appendFileSync(path.join(copy, 'skills', 'funnel-review', 'SKILL.md'), '\nSee `{{method-scripts}}/probe-contract/README.md`.\n');
+    assert.equal(home.run(['--mode=install', '--source=' + copy]).code, 0);
     assert.ok(filesUnder(home.p(SCRIPTS_REL)).length);
-    home.run(['--mode=uninstall'], { stamp: null, optIn: false });
+    home.run(['--mode=uninstall', '--source=' + copy], { stamp: null, optIn: false });
     assert.deepEqual(filesUnder(home.p(SCRIPTS_REL)), []);
   });
 });
@@ -544,7 +556,6 @@ test('the root brief is AGENTS.md: every CLAUDE.md left in method/ is allowliste
 
 /** @type {Record<string, string>} */
 const LAUNCH_PREFIX = { 'claude-code': "claude '", codex: "codex '", kiro: "kiro-cli chat '" };
-const IDE_PHRASE = 'For the Kiro IDE, replace `kiro-cli chat` with `kiro chat`';
 const TOKEN_RE = /\{\{[a-z][a-z-]*\}\}/;
 // A prompt the template could produce, with the characters that break a hand-quoted line. Synthetic values.
 const PROMPT = "Objective: ship the owner's handoff command\n"
@@ -553,47 +564,35 @@ const PROMPT = "Objective: ship the owner's handoff command\n"
   + 'Evidence: ```fence``` and \\n and "quoted" and !! and \\\'\' stay as typed.\n'
   + 'Before acting, re-derive the state from the tracker: gh issue view 12 --repo owner/repo --comments.';
 const SHELLS = ['sh', 'bash', ...(which('zsh') ? ['zsh'] : [])];
-const PROBE_VAR = 'MHW_PROBE_LAUNCH_VAR';
-const LAUNCH_LINE = [process.execPath, path.join(ROOT, 'bin', 'mhw.js'), 'launch-line'];
 // The checkout the block changes into (#198). Its name carries a space, a single quote, `$` and backticks.
 const CHECKOUT_NAME = "it's a $HOME `id` checkout";
 
+// #599: `mhw launch-line` left the CLI, and /handoff writes the block itself. What is checked here is the
+// TEXT: that every carrier states the target table, the launch and resume forms at their evidence level,
+// the quoting rule and the checks; and that the quoting rule, applied exactly as written, gives a line
+// sh, bash and zsh parse back to the prompt. That checks the rule, never that a session applied it.
 describe('/handoff', { skip: !POSIX && 'the launch line is POSIX shell; Windows ends with the prompt instead (QA B1 on #230)' }, () => {
   /** @type {ReturnType<typeof rendered>} */
   let r;
   let checkout = '';
-  let base = '';
   before(() => {
     r = rendered();
-    base = tempDir('handoff');
     checkout = path.join(tempDir('checkouts'), CHECKOUT_NAME);
     fs.mkdirSync(path.join(checkout, '.git'), { recursive: true });
   });
 
-  /** @param {string} harness @param {string} prompt @param {string[]} extra @param {boolean} [cd] */
-  function launch(harness, prompt, extra = [], cd = true) {
-    const f = path.join(fs.mkdtempSync(path.join(base, 'prompt-')), 'prompt.txt');
-    fs.writeFileSync(f, prompt);
-    return spawnSync(LAUNCH_LINE[0], [...LAUNCH_LINE.slice(1), harness, f, ...(cd ? ['--cd', checkout] : []), ...extra], { encoding: 'utf8' });
-  }
-  /** @param {string[]} argv */
-  const resolve = (...argv) => spawnSync(LAUNCH_LINE[0], [...LAUNCH_LINE.slice(1), '--resolve', ...argv], { encoding: 'utf8' });
+  const handoffTexts = () => ({ source: read(path.join(SOURCE, 'commands', 'handoff.md')), ...Object.fromEntries(Object.entries(carriers(r.home.root, 'handoff')).map(([c, p]) => [c, read(p)])) });
+  /** @type {Record<string, string>} */
+  const own = { source: '{{agent-harness}}', claude: 'claude-code', codex: 'codex', kiro: 'kiro' };
 
-  /** (the lines before the fenced block, the block's command line); fails unless stdout ENDS with one block. @param {string} stdout */
-  function theBlock(stdout) {
-    const lines = stdout.replace(/\n+$/, '').split('\n');
-    const fences = lines.map((l, n) => (/^`{3,}$/.test(l) ? n : -1)).filter((n) => n >= 0);
-    if (fences.length !== 2 || fences[1] !== lines.length - 1 || lines[fences[0]] !== lines[fences[1]]) assert.fail('not one fenced block at the end: ' + stdout.slice(0, 200));
-    return { before: lines.slice(0, fences[0]), line: lines.slice(fences[0] + 1, fences[1]).join('\n') };
-  }
-  /** The block's line with its leading cd removed; fails unless it opens with it. @param {string} line */
-  function afterCd(line) {
-    const cd = "cd '" + checkout.replaceAll("'", "'\\''") + "' && ";
-    assert.ok(line.startsWith(cd), line.slice(0, 80));
-    return line.slice(cd.length);
-  }
+  /** The quote the skill's *Quote it* section states: one pair of single quotes, each ' as '\''. @param {string} text */
+  const quote = (text) => "'" + text.replaceAll("'", "'\\''") + "'";
+  /** The fence the same section states: one backtick longer than the longest run, three at least. @param {string} line */
+  const fence = (line) => '`'.repeat(Math.max(3, Math.max(0, ...[...line.matchAll(/`+/g)].map((m) => m[0].length)) + 1));
+  /** @param {string} target @param {string} prompt */
+  const block = (target, prompt) => 'cd ' + quote(checkout) + ' && ' + LAUNCH_PREFIX[target].slice(0, -1) + quote(prompt);
   /**
-   * Run the block's line with the agent harness's command defined as a shell function printing each argument
+   * Run the line with the agent harness's command defined as a shell function printing each argument
    * NUL-separated, after PWD=<the directory it runs in>.
    * @param {string} shell @param {string} line @param {string} command
    */
@@ -611,43 +610,54 @@ describe('/handoff', { skip: !POSIX && 'the launch line is POSIX shell; Windows 
     if (!found) assert.fail('no template under ' + heading);
     return found[1];
   }
-  const handoffTexts = () => ({ source: read(path.join(SOURCE, 'commands', 'handoff.md')), ...Object.fromEntries(Object.entries(carriers(r.home.root, 'handoff')).map(([c, p]) => [c, read(p)])) });
+  /** The checks the skill's *Check it* section states, as a reader applies them. @param {string} prompt */
+  function refused(prompt) {
+    const out = [];
+    if (!prompt.trim()) out.push('empty');
+    if (/^\/goal(\s|$)/.test(prompt)) out.push('goal');
+    for (const line of prompt.split('\n')) {
+      if ([...line].length > 280) out.push('long');
+      if (/\/users\/|\/tmp\/|~\/|\/home\/|\/private\/|\/var\/folders\/|file:\/\/|\b[a-z]:\\|\.brand/i.test(line)) out.push('local path');
+      if (/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/u.test(line)) out.push('control');
+    }
+    return out;
+  }
 
   test('render succeeds', () => assert.equal(r.code, 0, r.out));
 
-  test('each carrier defaults to its own harness', () => {
-    for (const [carrier, harness] of Object.entries({ claude: 'claude-code', codex: 'codex', kiro: 'kiro' })) {
-      const p = carriers(r.home.root, 'handoff')[/** @type {'claude'} */ (carrier)];
-      assert.deepEqual([...new Set([...read(p).matchAll(/mhw launch-line --resolve (\S+) /g)].map((m) => m[1]))], [harness], carrier);
-      for (const words of [[], ['ship'], ['Claude'], ['$x']]) assert.equal(resolve(harness, ...words).stdout, harness + '\nkept\n', carrier + ' ' + words);
-      const out = launch(harness, PROMPT);
-      assert.equal(out.status, 0, out.stderr);
-      assert.ok(afterCd(theBlock(out.stdout).line).startsWith(LAUNCH_PREFIX[harness]), carrier);
-      assert.ok(!out.stdout.includes(IDE_PHRASE), carrier);
+  test('each carrier defaults to its own harness, and the five target words are a table', () => {
+    for (const [where, text] of Object.entries(handoffTexts())) {
+      const body = unstruckFlat(text);
+      assert.ok(body.includes('the target is this agent harness, `' + own[where] + '`, and the objective is the whole of `$ARGUMENTS`'), where);
+      for (const row of ['| `claude-code` or `claude` | `claude-code` |', '| `codex` | `codex` |', '| `kiro` or `kiro-cli` | `kiro` |']) assert.ok(text.includes(row), where + ' ' + row);
+      assert.ok(body.includes('`Claude`, `ship` or `$x` name no target.'), where);
+      // Outside struck text, a line may name the removed command only as history (its strike note).
+      const live = text.replace(/~~.*?~~/gs, '').split('\n').filter((l) => l.includes('mhw launch-line') && !/mhw#599|left the CLI/.test(l));
+      assert.deepEqual(live, [], where);
     }
   });
 
-  test('an explicit target overrides the current harness', () => {
-    /** @type {Record<string, string>} */
-    const names = { 'claude-code': 'claude-code', claude: 'claude-code', codex: 'codex', kiro: 'kiro', 'kiro-cli': 'kiro' };
-    for (const current of Object.keys(LAUNCH_PREFIX)) for (const [word, target] of Object.entries(names)) assert.equal(resolve(current, word).stdout, target + '\nconsumed\n', current + ' ' + word);
-    for (const [word, target] of Object.entries(names)) {
-      const out = launch(word, PROMPT);
-      assert.equal(out.status, 0, out.stderr);
-      const line = afterCd(theBlock(out.stdout).line);
-      assert.ok(line.startsWith(LAUNCH_PREFIX[target]), word);
-      for (const [other, prefix] of Object.entries(LAUNCH_PREFIX)) if (other !== target) assert.ok(!line.startsWith(prefix), word + ' ' + other);
+  test('the launch and resume forms, per harness, at their evidence level', () => {
+    for (const [where, text] of Object.entries(handoffTexts())) {
+      const body = flatten(text);
+      assert.ok(body.includes("**read from that version's own `--help` on 2026-11-24 (documented); none was run, and no session was started to measure it.**"), where);
+      for (const form of ["`claude '<prompt>'`", "`codex '<prompt>'`", "`kiro-cli chat '<prompt>'`", '`claude --continue`', '`claude --resume <session-id>`',
+        '`codex resume --last`', '`codex resume <SESSION_ID>`', '`kiro-cli chat --resume`', '`kiro-cli chat --resume-id <SESSION_ID>`',
+        'Claude Code 2.1.331', 'Codex CLI 0.163.0', 'Kiro CLI 3.5.0']) assert.ok(body.includes(form), where + ' ' + form);
+      assert.ok(body.includes('Never use it after a configuration change'), where);
     }
-    assert.equal(resolve('cursor').status, 2);
-    assert.equal(resolve().status, 2);
   });
 
-  test('the block carries the prompt inline and exactly', () => {
+  test('the quoting rule, applied as written, carries the prompt inline and exactly', () => {
+    for (const [where, text] of Object.entries(handoffTexts())) {
+      const body = flatten(text);
+      assert.ok(body.includes('**The whole prompt goes inside one pair of single quotes**'), where);
+      assert.ok(body.includes("**Each single quote in the prompt becomes the four characters `'\\''`**"), where);
+      assert.ok(body.includes('**The checkout is quoted the same way**'), where);
+      assert.ok(body.includes('**Fence it with one more backtick than the longest run of backticks in the line**, three at least'), where);
+    }
     for (const [target, prefix] of Object.entries(LAUNCH_PREFIX)) {
-      const out = launch(target, PROMPT);
-      assert.equal(out.status, 0, out.stderr);
-      const { before: pre, line } = theBlock(out.stdout);
-      assert.deepEqual(pre, [], target);
+      const line = block(target, PROMPT);
       const command = prefix.slice(0, -2);
       for (const shell of SHELLS) {
         assert.equal(spawnSync(shell, ['-n', '-c', line]).status, 0, target + ' ' + shell);
@@ -656,71 +666,34 @@ describe('/handoff', { skip: !POSIX && 'the launch line is POSIX shell; Windows 
         assert.deepEqual(fields(p.stdout), ['PWD=' + checkout, ...command.split(' ').slice(1), PROMPT], target + ' ' + shell);
       }
     }
-  });
-
-  test('the block is exactly one command', () => {
-    for (const [target, prefix] of Object.entries(LAUNCH_PREFIX)) {
-      const out = launch(target, PROMPT);
-      assert.equal(out.status, 0, out.stderr);
-      const { before: pre, line } = theBlock(out.stdout);
-      assert.deepEqual(pre, [], target);
-      assert.ok(afterCd(line).startsWith(prefix), target);
-      for (const shell of SHELLS) assert.deepEqual(fields(argvThrough(shell, line, prefix.slice(0, -2)).stdout).filter((f) => f.startsWith('PWD=')), ['PWD=' + checkout], target + ' ' + shell);
-    }
-  });
-
-  test('the cd is required and checked', () => {
-    assert.equal(launch('codex', PROMPT, [], false).status, 2);
-    assert.equal(launch('codex', PROMPT, ['--cd', checkout]).status, 2);
-    const plain = tempDir('plain');
-    for (const [label, p, needle] of [['relative', 'some/checkout', 'not an absolute path'], ['missing', path.join(plain, 'absent'), 'not an existing directory'],
-      ['no .git', plain, 'not a git checkout'], ['newline', checkout + '\nid', 'control character or a line break']]) {
-      const out = launch('codex', PROMPT, ['--cd', p], false);
-      assert.equal(out.status, 1, label);
-      assert.equal(out.stdout, '', label);
-      assert.ok(out.stderr.includes(needle), label);
-    }
-  });
-
-  test('a prompt opening with /goal is refused', () => {
-    assert.ok(!PROMPT.startsWith('/goal'));
-    assert.equal(launch('codex', PROMPT).status, 0);
-    for (const prompt of ['/goal ship it\nNext act: run it.', '/goal', '/goal  x']) {
-      const out = launch('codex', prompt);
-      assert.equal(out.status, 1, prompt);
-      assert.equal(out.stdout, '', prompt);
-    }
-    assert.ok(launch('codex', '/goal ship it').stderr.includes('the first line opens with /goal'));
-    assert.equal(launch('codex', 'Objective: x\nmention /goal here').status, 0);
-  });
-
-  test('terminal and bidi controls are refused without echo', () => {
-    const secret = 'SENTINELTEXT';
-    for (const [label, ch] of Object.entries({ '^C': '\x03', 'ESC[201~': '\x1b[201~', '^U': '\x15', TAB: '\t', CR: '\r', DEL: '\x7f', 'U+202E': String.fromCodePoint(0x202e), 'U+2066': String.fromCodePoint(0x2066) })) {
-      const out = launch('claude-code', 'Objective: fix it\nNext act: ' + ch + ' ' + secret + '; touch pwned');
-      assert.equal(out.status, 1, label);
-      assert.equal(out.stdout, '', label);
-      assert.ok(out.stderr.includes('line 2 carries a control character'), label);
-      assert.ok(!out.stderr.includes(secret), label);
-    }
-    assert.equal(launch('codex', PROMPT).status, 0);
-  });
-
-  test('the method declares no launch variable', () => {
-    for (const name of ['HARNESS_SWEEP_ORIGIN', PROBE_VAR, 'CODEX_HOME']) {
-      const out = launch('codex', PROMPT, ['--env', name + '=https://example.org']);
-      assert.equal(out.status, 1, name);
-      assert.equal(out.stdout, '', name);
-      assert.ok(out.stderr.includes('--env 1: the name is not a declared launch variable (none is declared)'), name);
-    }
+    // Calibration: the same line quoted without the '\'' rule does not carry the prompt back.
+    const naive = 'cd ' + quote(checkout) + " && codex '" + PROMPT + "'";
+    assert.notDeepEqual(fields(argvThrough('sh', naive, 'codex').stdout), ['PWD=' + checkout, PROMPT]);
   });
 
   test('a backtick run cannot close the fence', () => {
     const prompt = 'Objective: keep ```` four and ````` five backticks';
-    const out = launch('codex', prompt);
-    assert.equal(out.status, 0, out.stderr);
-    assert.ok(out.stdout.startsWith('``````\n'));
-    assert.deepEqual(fields(argvThrough('sh', theBlock(out.stdout).line, 'codex').stdout), ['PWD=' + checkout, prompt]);
+    assert.equal(fence(block('codex', prompt)), '``````');
+    assert.equal(fence(block('codex', 'Objective: none')), '```');
+  });
+
+  test('the checks the command made are the session\'s now, in every carrier', () => {
+    for (const [where, text] of Object.entries(handoffTexts())) {
+      const body = flatten(text);
+      for (const s of ["the prompt is not empty, and its first line never opens with `/goal`", 'no line is over 280 characters',
+        'no machine-local path anywhere', 'no control character', 'the checkout is an absolute path to an existing directory holding a `.git` entry',
+        '**No launch environment.**', 'never print a block that fails one']) assert.ok(body.includes(s), where + ' ' + s);
+    }
+    // The stated checks refuse what the command refused, and pass the templates.
+    const local = '/Use' + 'rs/someone/notes.txt';
+    for (const [label, prompt] of Object.entries({ 'goal first': '/goal continue owner/repo#12.', long: 'Objective: ' + 'x'.repeat(300),
+      'local path': 'Objective: fix it\nEvidence: ' + local, empty: '\n', control: 'Objective: x\nNext act: \x1b[201~ touch',
+      // Built from code points at run time, so the source carries no bidirectional character (Sonar on #617).
+      bidi: 'Objective: x ' + String.fromCodePoint(0x202e) + 'y', isolate: 'Objective: x ' + String.fromCodePoint(0x2066) + 'y' })) {
+      assert.notDeepEqual(refused(prompt), [], label);
+    }
+    assert.deepEqual(refused(PROMPT), []);
+    assert.deepEqual(refused('Objective: x\nmention /goal here'), []);
   });
 
   test('no rendering token survives', () => {
@@ -754,34 +727,7 @@ describe('/handoff', { skip: !POSIX && 'the launch line is POSIX shell; Windows 
     }
   });
 
-  test('unsafe prompts are refused without echo', () => {
-    const local = '/Use' + 'rs/someone/notes.txt';
-    for (const [label, prompt] of Object.entries({ 'goal first': '/goal continue owner/repo#12.', long: 'Objective: ' + 'x'.repeat(300),
-      'local path': 'Objective: fix it\nEvidence: ' + local, empty: '\n' })) {
-      const out = launch('codex', prompt);
-      assert.equal(out.status, 1, label);
-      assert.equal(out.stdout, '', label);
-      assert.ok(!out.stderr.includes('someone'), label);
-    }
-    assert.equal(launch('cursor', PROMPT).status, 2);
-  });
-
-  test('a prompt file outside the allowed roots is refused', () => {
-    const inside = fs.mkdtempSync(path.join(base, 'prompt-'));
-    const big = path.join(inside, 'big.txt');
-    fs.writeFileSync(big, 'Objective: x\n' + ('y'.repeat(200) + '\n').repeat(400));
-    for (const [label, p, needle] of [['traversal', inside + '/..'.repeat(40) + '/etc/hosts', 'outside the repository work tree'],
-      ['directory', inside, 'not a regular file'], ['size', big, 'over 65536 bytes']]) {
-      const out = spawnSync(LAUNCH_LINE[0], [...LAUNCH_LINE.slice(1), 'codex', p, '--cd', checkout], { encoding: 'utf8' });
-      assert.equal(out.status, 1, label);
-      assert.equal(out.stdout, '', label);
-      assert.ok(out.stderr.includes(needle), label);
-    }
-  });
-
   test('both templates and the fallback are in every carrier', () => {
-    /** @type {Record<string, string>} */
-    const own = { source: '{{agent-harness}}', claude: 'claude-code', codex: 'codex', kiro: 'kiro' };
     for (const [where, text] of Object.entries(handoffTexts())) {
       const cont = template(text, '## The prompt');
       const ask = template(text, '## The ask prompt');
@@ -797,14 +743,14 @@ describe('/handoff', { skip: !POSIX && 'the launch line is POSIX shell; Windows 
       assert.ok(ask.startsWith('Objective: '), where);
       const body = unstruckFlat(text);
       assert.ok(body.includes('1. `$ARGUMENTS` is empty. Any argument gives a continuation, and `/handoff ' + own[where] + '` (this agent harness named as the target) forces one.'), where);
-      assert.ok(body.includes('mhw launch-line --resolve ' + own[where] + ' <its id>'), where);
+      assert.ok(body.includes('and that target is not this one, `' + own[where] + '`.'), where);
       assert.ok(body.includes('When any of these is in doubt, it is a continuation.'), where);
       assert.ok(body.includes('**For an ask, do not stop:**'), where);
       assert.ok(body.includes('Then stop working in this session, for a continuation.'), where);
     }
   });
 
-  test('the ask template, filled, passes the launch line for every target', () => {
+  test('the ask template, filled, passes the stated checks and the quoting rule for every target', () => {
     const ask = template(read(path.join(SOURCE, 'commands', 'handoff.md')), '## The ask prompt').replace(/\n+$/, '');
     const filled = ask.replaceAll('<owner/repo>', 'owner/repo').replaceAll('<n>', '12')
       .replaceAll('<the ask, one act, one line>', 'approve the Codex prompt hook')
@@ -814,15 +760,10 @@ describe('/handoff', { skip: !POSIX && 'the launch line is POSIX shell; Windows 
       .replaceAll('<a file>', 'result.md');
     assert.ok(!filled.includes('<'));
     assert.deepEqual(spans(filled), []);
+    assert.deepEqual(refused(filled), []);
     for (const [target, prefix] of Object.entries(LAUNCH_PREFIX)) {
-      const out = launch(target, filled);
-      assert.equal(out.status, 0, target + ' ' + out.stderr);
-      const { before: pre, line } = theBlock(out.stdout);
-      assert.deepEqual(pre, [], target);
-      assert.deepEqual(fields(argvThrough('sh', line, prefix.slice(0, -2)).stdout), ['PWD=' + checkout, ...prefix.slice(0, -2).split(' ').slice(1), filled], target);
-      assert.equal(resolve(target, target).stdout, target + '\nconsumed\n', target);
+      assert.deepEqual(fields(argvThrough('sh', block(target, filled), prefix.slice(0, -2)).stdout), ['PWD=' + checkout, ...prefix.slice(0, -2).split(' ').slice(1), filled], target);
     }
-    for (const word of ['kiro-ide', 'desktop', 'cursor']) assert.equal(resolve('codex', word).stdout, 'codex\nkept\n', word);
   });
 
   test('the prompt template carries no secret or personal data', () => {
@@ -831,6 +772,7 @@ describe('/handoff', { skip: !POSIX && 'the launch line is POSIX shell; Windows 
     assert.ok(!t.includes('/goal'));
     assert.deepEqual(spans(t), []);
     assert.deepEqual(spans(PROMPT), []);
+    assert.deepEqual(refused(t.replace(/\n+$/, '')), []);
   });
 });
 

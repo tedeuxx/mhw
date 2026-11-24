@@ -14,7 +14,7 @@
 //   6. src/cli.js: a `worklog` entry put back in MOVED
 //   7. SKILL.md sum block: `native` counts every record
 //   8. SKILL.md claude-code block: effort always null
-//   9. src/commands/launch-line.js: '/tmp/' dropped from the strict filter
+//   9. src/commands/launch-line.js (test/helpers/strict-private.js since #599): '/tmp/' dropped from the strict filter
 //  10. test/helpers/json-schema.js: additionalProperties no longer asserted (the negative controls go red)
 //  11. test/helpers/json-schema.js: the keys compared unsorted in `const` (the key-order control goes red)
 //  12. SKILL.md check block: '/tmp/|' dropped from the pattern (the check-block test goes red)
@@ -29,7 +29,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { validate } from '../helpers/json-schema.js';
 import { which } from '../helpers/home.js';
-import { strictPrivate } from '../../src/commands/launch-line.js';
+import { strictPrivate } from '../helpers/strict-private.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 // Read with LF line ends: the Windows runners check out with core.autocrlf=true, so the file arrives with
@@ -268,7 +268,7 @@ test('the published events (retained history) are valid against the schema', () 
 });
 
 // Ported from the deleted test/method/worklog.test.js (#476): the schema's two privacy patterns refuse
-// these spellings, and launch-line's copy of the strict filter agrees with the schema's next_act pattern.
+// these spellings, and the strict filter's reference copy (test/helpers/strict-private.js since #599) agrees with the schema's next_act pattern.
 const PRIVATE_SPELLINGS = ['resume from /tmp/x/c.md', 'resume from ~/notes/c.md', 'resume from /var/folders/ab/T/c.md',
   'resume from (/Users/someone/x)', 'resume from /home/someone/c.md', 'resume from /private/var/x', 'open file:///x/y',
   'read site/.brand/positioning.md first', 'read ../.brand/positioning.md first', 'read .BRAND/positioning.md', 'look in the .brand',
@@ -276,7 +276,7 @@ const PRIVATE_SPELLINGS = ['resume from /tmp/x/c.md', 'resume from ~/notes/c.md'
 const PUBLIC_SPELLINGS = ['open the merge request for the branch at the named commit', 're-run the suite',
   'read docs/worklog/README.md', 'the branding section of README.md, and the .branded-x fixture'];
 
-test('the schema refuses machine-local next_act spellings, and launch-line agrees with it', () => {
+test('the schema refuses machine-local next_act spellings, and the strict filter agrees with it', () => {
   const ok = JSON.parse(fill(template()));
   const strict = new RegExp(SCHEMA.properties.next_act.allOf[2].not.pattern, 'u');
   for (const text of PRIVATE_SPELLINGS) {
@@ -325,7 +325,7 @@ test('the check block refuses private spellings in every posted field and passes
       assert.equal(check(e).status, 0, field + ': ' + text + ' was refused');
     }
   }
-  // The block's pattern agrees with launch-line's strictPrivate on both lists.
+  // The block's pattern agrees with the reference strictPrivate on both lists.
   for (const text of [...PRIVATE_SPELLINGS, ...PUBLIC_SPELLINGS]) {
     const e = structuredClone(base);
     e.next_act = text;

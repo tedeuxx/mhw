@@ -1,10 +1,10 @@
-// mhw docs-baseline check and mhw onboard (Issue #523): the documentation baseline a repository
-// declares, the pull-request check that keeps it current, and the onboarding entry point.
-// Since #592 (ADR-0046) the check is not a CLI command: it is the delivery gates Action's `docs-baseline`
-// gate (src/action/gates.js), with the arguments below; `mhw onboard` stays in the CLI until #599.
+// The documentation baseline check (Issue #523): the documentation baseline a repository declares, and
+// the pull-request check that keeps it current. Since #592 (ADR-0046) the check is not a CLI command: it
+// is the delivery gates Action's `docs-baseline` gate (src/action/gates.js), with the arguments below.
+// `mhw onboard`, the onboarding entry point, left the CLI at #599: it is the method skill `onboard`
+// (method/skills/onboard/SKILL.md), which names this gate and the Action's contract gate.
 //
 //   mhw docs-baseline check --base=REF [--head=REF] [--body-file=PATH] [--project=DIR] [--manifest=PATH]
-//   mhw onboard [--project=DIR] [--scaffold]
 //
 // The manifest is docs/documentation-baseline.json (the method's documentation-standard skill, *The
 // documentation baseline*). It maps each capability to the code globs it owns and the documents that
@@ -25,13 +25,6 @@
 // document the base had fails unless the body carries `docs-baseline: manifest — <reason>`.
 // Exit 0 when every capability is satisfied or waived, 1 when not, 2 on a usage error, an invalid
 // manifest or a git failure (it cannot say the change is current, so it does not).
-//
-// onboard validates read-only and reports each gap (exit 1 when there is one, 0 when none), and how many
-// tracked files each capability owns. With --scaffold it first writes the missing baseline files, never
-// one that exists, never through a directory resolving outside the project (decided for every file
-// before anything is created), and never an ADR record (a record earns its place by explaining the
-// current code): in the ADR library, compared case-folded and by containment on the resolved path, it
-// writes only README.md and template.md.
 //
 // It is not a hook and installs nothing. git is found on PATH and run by absolute path with no shell;
 // no value given here reaches git's command line except a base or head ref that passed REF below.
@@ -453,283 +446,6 @@ function judge(manifest, names, substantive, body, parsed, coverage, tag) {
   return { failed, lines };
 }
 
-// -- onboard ----------------------------------------------------------------------------------------
-
-/** @param {string} p */
-function isFile(p) {
-  try {
-    return fs.statSync(p).isFile();
-  } catch {
-    return false;
-  }
-}
-
-/**
- * The name the requirements document carries: the directory's name, lowercase, hyphenated.
- * @param {string} dir
- */
-export function repoName(dir) {
-  const name = path.basename(dir).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  return name || 'project';
-}
-
-/**
- * The default manifest for a project directory (Issue #523's default proposal).
- * @param {string} name
- * @returns {Manifest}
- */
-export function defaultManifest(name) {
-  const prd = 'docs/' + name + '-product-requirements-document-project.md';
-  return {
-    schema_version: 1,
-    baseline: { readme: 'README.md', prd, adr_library: 'docs/adr', architecture: 'docs/architecture.md', sequences: 'docs/sequences.md' },
-    capabilities: [{ id: 'project', code: ['**'], docs: ['README.md', prd, 'docs/**'] }],
-  };
-}
-
-/**
- * The scaffold's files: path -> content, for the manifest's baseline. Never an ADR record.
- * @param {Manifest} manifest
- * @param {string} name
- * @param {boolean} withManifest
- */
-export function scaffoldFiles(manifest, name, withManifest) {
-  const b = manifest.baseline;
-  const prd = /** @type {string} */ (b.prd);
-  const adr = /** @type {string} */ (b.adr_library);
-  /** @type {Array<[string, string]>} */
-  const files = [
-    [/** @type {string} */ (b.readme), '# ' + name + '\n\nWhat this project is and what it does today, mirroring its requirements document,\n['
-      + prd + '](' + prd + '). Keep the two in step: a change that alters what the project does updates both.\n\n'
-      + '## Decisions\n\nThe decision records are in [' + adr + '](' + adr + '/README.md).\n'],
-    [prd, '# ' + name + ' Product Requirements Document: project\n\n## Problem\n\n## Users\n\n## Requirements\n\n'
-      + '## Out of scope\n\n## Decisions\n\nSignificant decisions are recorded in [the ADR library](' + path.posix.relative(path.posix.dirname(prd), adr) + '/README.md).\n'],
-    [adr + '/README.md', '# Decision records\n\nThe Architecture Decision Records of this repository, in MADR format. Copy\n'
-      + '[template.md](template.md) for a new one. A record is written only when a significant decision\n'
-      + 'explains the current code; there is no record yet.\n\n## Index\n\n| Record | Decision | Status |\n| --- | --- | --- |\n'],
-    [adr + '/template.md', '# NNNN — Title of the decision\n\n- Status: proposed\n- Deciders:\n- Date:\n\n'
-      + '## Context and problem\n\n## Decision drivers\n\n## Considered options\n\n## Decision outcome\n\n'
-      + '## Consequences\n\nGood:\n\nBad:\n\n## Links\n'],
-  ];
-  if (typeof b.architecture === 'string') {
-    files.push([b.architecture, '# Architecture\n\nRead bottom-up. Replace each layer with this project\'s own.\n\n```mermaid\nblock-beta\n  columns 1\n'
-      + '  L3["Application · project contributors"]\n  L2["Runtime · project contributors"]\n  L1["Platform · vendor"]\n'
-      + '  classDef project fill:#CDEDE2,stroke:#009E73,stroke-width:2px,color:#1d2228\n'
-      + '  classDef vendor fill:#E3E5E8,stroke:#6b7178,stroke-width:2px,color:#1d2228,stroke-dasharray:5 4\n'
-      + '  class L3,L2 project\n  class L1 vendor\n```\n\n*Read bottom-up. Grey dashed: vendor. Green: project contributors.*\n']);
-  }
-  if (typeof b.sequences === 'string') {
-    files.push([b.sequences, '# Sequences\n\nOne flow per diagram, left to right. Replace the steps with this project\'s own.\n\n'
-      + '```mermaid\nflowchart LR\n  A[Request] --> B[Validate] --> C[Store] --> D[Respond]\n```\n']);
-  }
-  if (withManifest) files.push([MANIFEST, JSON.stringify(manifest, null, 2) + '\n']);
-  for (const [file] of files) {
-    // The scaffold never writes a record. Only the index and the template enter the library. Compared
-    // case-folded (a case-insensitive file system makes docs/ADR the library) and by containment, so a
-    // subdirectory of the library is the library too (PR #528 lens). writeMissing repeats the test on
-    // the resolved path, which a link inside the project could otherwise route into the library.
-    if (inAdrLibrary(file, adr)) throw new UsageError('refusing to scaffold a decision record: ' + file);
-  }
-  return files;
-}
-
-/**
- * True when file is at or under the ADR library and is not its index or template. Case-folded on every
- * file system: refusing a case-variant directory on a case-sensitive one costs a message, while
- * accepting it on a case-insensitive one writes a record.
- * @param {string} file a '/'-separated path, relative or absolute
- * @param {string} adr the library, in the same form
- */
-export function inAdrLibrary(file, adr) {
-  const f = file.toLowerCase();
-  const a = adr.toLowerCase().replace(/\/+$/, '');
-  if (f !== a && !f.startsWith(a + '/')) return false;
-  return !(f === a + '/readme.md' || f === a + '/template.md');
-}
-
-/**
- * Write the missing scaffold files under root; never one that exists, never outside root.
- * @param {string} root the project's real path
- * @param {Array<[string, string]>} files
- * @param {string | null} [adr] the ADR library's project-relative path; a target resolving into it
- *   other than its README.md or template.md is refused
- * @returns {string[]} the files written
- */
-export function writeMissing(root, files, adr = null) {
-  const written = [];
-  const missing = files
-    .map(([rel, content]) => /** @type {[string, string, string]} */ ([rel, content, path.join(root, ...rel.split('/'))]))
-    .filter(([, , target]) => !fs.existsSync(target) && !isSymlink(target));
-  // Confinement is decided for every file BEFORE anything is created: the nearest ancestor that exists
-  // (a symlink counts as existing, dangling or not) must resolve inside the project, so every directory
-  // mkdir creates is new and below it. Checking after mkdir created directories through a link (PR #528).
-  const library = adr === null ? null : resolved(path.join(root, ...adr.split('/')));
-  for (const [rel, , target] of missing) {
-    if (!confinedAncestor(root, path.dirname(target))) {
-      throw new UsageError('refusing to write ' + rel + ': its directory resolves outside the project');
-    }
-    const at = resolved(target);
-    if (library !== null && at !== null && inAdrLibrary(at.split(path.sep).join('/'), library.split(path.sep).join('/'))) {
-      throw new UsageError('refusing to write ' + rel + ': it resolves into the ADR library, where only README.md and template.md are scaffolded');
-    }
-  }
-  for (const [rel, content, target] of missing) {
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    try {
-      fs.writeFileSync(target, content, { flag: 'wx' });
-      written.push(rel);
-    } catch (e) {
-      if (/** @type {NodeJS.ErrnoException} */ (e).code !== 'EEXIST') throw e;
-    }
-  }
-  return written;
-}
-
-/**
- * True when the nearest existing ancestor of dir (dir included) is a directory inside root.
- * @param {string} root the project's real path
- * @param {string} dir
- */
-export function confinedAncestor(root, dir) {
-  const real = resolved(dir, true);
-  return real !== null && (real === root || real.startsWith(root + path.sep));
-}
-
-/**
- * p as it would resolve: the real path of its nearest existing ancestor (a symlink counts as existing,
- * dangling or not), with the components that do not exist yet appended; null when that ancestor cannot
- * be resolved (a dangling link) or, with mustBeDir, is not a directory.
- * @param {string} p an absolute path
- * @param {boolean} [mustBeDir] whether the nearest existing ancestor itself must be a directory
- */
-export function resolved(p, mustBeDir = false) {
-  let at = p;
-  const rest = [];
-  for (;;) {
-    let exists = true;
-    try {
-      fs.lstatSync(at);
-    } catch {
-      exists = false;
-    }
-    if (exists) break;
-    const up = path.dirname(at);
-    if (up === at) return null;
-    rest.unshift(path.basename(at));
-    at = up;
-  }
-  try {
-    const real = fs.realpathSync.native(at);
-    if (mustBeDir && !fs.statSync(real).isDirectory()) return null;
-    return rest.length ? path.join(real, ...rest) : real;
-  } catch {
-    return null;
-  }
-}
-
-/** @param {string} p */
-function isSymlink(p) {
-  try {
-    return fs.lstatSync(p).isSymbolicLink();
-  } catch {
-    return false;
-  }
-}
-
-/**
- * The read-only validation: one line per finding, and the gap count.
- * @param {string} root
- * @param {Record<string, string | undefined>} env
- * @param {string} [platform]
- * @returns {{ gaps: number, lines: string[] }}
- */
-export function validate(root, env, platform) {
-  /** @type {string[]} */
-  const lines = [];
-  let gaps = 0;
-  const gap = (/** @type {string} */ s) => {
-    gaps += 1;
-    lines.push('GAP   ' + s);
-  };
-  /** @type {Manifest} */
-  let manifest;
-  let manifestValid = false;
-  try {
-    manifest = readManifest(path.join(root, MANIFEST));
-    manifestValid = true;
-    lines.push('OK    ' + MANIFEST + ' is a valid manifest, ' + manifest.capabilities.length + ' capabilities');
-  } catch (e) {
-    if (!(e instanceof UsageError)) throw e;
-    gap(e.message);
-    manifest = defaultManifest(repoName(root));
-    lines.push('NOTE  the items below are checked against the default baseline');
-  }
-  const b = manifest.baseline;
-  const need = (/** @type {string} */ label, /** @type {string} */ rel) => {
-    if (isFile(path.join(root, ...rel.split('/')))) lines.push('OK    ' + label + ': ' + rel);
-    else gap(label + ': ' + rel + ' is missing');
-  };
-  need('README', /** @type {string} */ (b.readme));
-  need('requirements document', /** @type {string} */ (b.prd));
-  need('ADR library index', b.adr_library + '/README.md');
-  need('ADR template', b.adr_library + '/template.md');
-  for (const key of ['architecture', 'sequences']) {
-    const item = b[key];
-    if (typeof item !== 'string') {
-      lines.push('NOTE  ' + key + ': not applicable, ' + item.not_applicable);
-      continue;
-    }
-    const file = path.join(root, ...item.split('/'));
-    if (!isFile(file)) gap(key + ' diagram: ' + item + ' is missing');
-    else if (!fs.readFileSync(file, 'utf8').split('\n').some((l) => l.trimEnd() === '```mermaid')) gap(key + ' diagram: ' + item + ' carries no ```mermaid block');
-    else lines.push('OK    ' + key + ' diagram: ' + item);
-  }
-  if (manifestValid) {
-    let tracked = null;
-    try {
-      const g = gitIn(root, env, platform);
-      const top = git(g, ['rev-parse', '--show-toplevel']).trim();
-      // native: on Windows git prints the long path where a temporary directory may be an 8.3 short one.
-      if (top && fs.realpathSync.native(top) === fs.realpathSync.native(root)) tracked = git(g, ['ls-files', '-z']).split('\0').filter(Boolean);
-    } catch (e) {
-      if (!(e instanceof GitError)) throw e;
-    }
-    if (tracked === null) {
-      lines.push('NOTE  coverage not checked: ' + root + ' is not the top of a git repository');
-    } else {
-      const out = tracked.filter((f) => !manifest.capabilities.some((c) => anyMatches(c.code, f) || anyMatches(c.docs, f)));
-      if (out.length) gap(out.length + ' tracked file(s) outside every capability, first: ' + out.slice(0, 5).join(', '));
-      else lines.push('OK    every one of ' + tracked.length + ' tracked files belongs to a capability');
-      // How much each capability owns (first match, as the check assigns it): a catch-all that owns most
-      // of the tree means almost any document edit satisfies almost any change (PR #528 lens).
-      /** @type {Map<string, number>} */
-      const owned = new Map();
-      for (const f of tracked) {
-        const owner = manifest.capabilities.find((c) => anyMatches(c.code, f));
-        if (owner) owned.set(owner.id, (owned.get(owner.id) || 0) + 1);
-      }
-      lines.push('NOTE  tracked files each capability owns (first match): '
-        + manifest.capabilities.map((c) => c.id + ' ' + (owned.get(c.id) || 0)).join(', ') + ' of ' + tracked.length);
-    }
-  }
-  const policy = path.join(root, 'project-policy.json');
-  if (isFile(policy)) {
-    let extra = [];
-    try {
-      const doc = JSON.parse(fs.readFileSync(policy, 'utf8'));
-      extra = doc?.baseline_override?.documentation?.additional_docs ?? [];
-    } catch {
-      gap('project-policy.json is not JSON; validate it with the delivery gates Action\'s contract gate');
-    }
-    for (const d of Array.isArray(extra) ? extra : []) {
-      if (d && typeof d.path === 'string' && !badPath(d.path, false)) need('additional document (project-policy.json)', d.path);
-    }
-    lines.push('NOTE  project-policy.json is present; the delivery gates Action\'s contract gate validates it, this command does not');
-  }
-  lines.push(gaps ? 'GAP   ' + gaps + ' gap(s) in the documentation baseline' : 'OK    the documentation baseline is complete');
-  return { gaps, lines };
-}
-
 // -- the commands -----------------------------------------------------------------------------------
 
 /**
@@ -757,7 +473,6 @@ function options(argv, valued, flags) {
  */
 
 const CHECK_USAGE = 'usage: mhw docs-baseline check --base=REF [--head=REF] [--body-file=PATH] [--project=DIR] [--manifest=PATH]\n';
-const ONBOARD_USAGE = 'usage: mhw onboard [--project=DIR] [--scaffold]\n';
 
 /**
  * The manifest as the commit holds it: the manifest, null when the commit has no file there, or the
@@ -838,41 +553,6 @@ export function runCheck(argv, io) {
 }
 
 /**
- * `mhw onboard ...`
- * @param {string[]} argv
- * @param {Io} io
- */
-export function runOnboard(argv, io) {
-  try {
-    const o = options(argv, ['--project'], ['--scaffold']);
-    const dir = path.resolve(io.cwd, /** @type {string} */ (o['--project'] ?? '.'));
-    let root;
-    try {
-      root = fs.realpathSync.native(dir);
-      if (!fs.statSync(root).isDirectory()) throw new Error('not a directory');
-    } catch {
-      throw new UsageError('not a directory: ' + dir);
-    }
-    if (o['--scaffold']) {
-      const existing = isFile(path.join(root, MANIFEST)) ? readManifest(path.join(root, MANIFEST)) : null;
-      const manifest = existing || defaultManifest(repoName(root));
-      const written = writeMissing(root, scaffoldFiles(manifest, repoName(root), existing === null), /** @type {string} */ (manifest.baseline.adr_library));
-      for (const rel of written) io.out('WROTE ' + rel + '\n');
-      if (!written.length) io.out('NOTE  nothing to write: every baseline file exists\n');
-    }
-    const { gaps, lines } = validate(root, io.env, io.platform);
-    io.out(lines.join('\n') + '\n');
-    return gaps ? 1 : 0;
-  } catch (e) {
-    if (e instanceof UsageError) {
-      io.err('mhw onboard: ' + e.message + '\n' + ONBOARD_USAGE);
-      return 2;
-    }
-    throw e;
-  }
-}
-
-/**
  * @param {(argv: string[], io: Io) => number} fn
  * @returns {(argv: string[], env: Record<string, string | undefined>) => number}
  */
@@ -886,4 +566,3 @@ function entry(fn) {
 }
 
 export const checkMain = entry(runCheck);
-export const onboardMain = entry(runOnboard);

@@ -109,7 +109,7 @@
       "id": "documentation-baseline",
       "layer": "user",
       "paths": ["src/commands/docs-baseline.js"],
-      "gap": "A command a repository's CI and an onboarding session run, not a harness carrier: install renders nothing from it. Written and tested; only this repository runs the check, through .github/workflows/docs-baseline.yml against docs/documentation-baseline.json (ADR-0044, #523)."
+      "gap": "The check a repository's CI runs, not a harness carrier: install renders nothing from it. Written and tested; only this repository runs it, through .github/workflows/docs-baseline.yml and the delivery gates Action's docs-baseline gate against docs/documentation-baseline.json (ADR-0044, #523, #592). Onboarding left the CLI at #599: it is the method skill onboard, rendered with the method."
     },
     {
       "id": "model-defaults",

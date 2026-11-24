@@ -58,8 +58,11 @@ workflow or action a project references as `uses: tedeuxx/mhw/...@vX`.
 ## Decision outcome
 
 Option 1. `mhw policy`, `mhw delivery-gate` and `mhw docs-baseline` are unknown subcommands (exit 2).
-`mhw onboard` stays in the CLI until #599 moves it to a skill; its code stays in
-`src/commands/docs-baseline.js` beside the check's.
+~~`mhw onboard` stays in the CLI until #599 moves it to a skill; its code stays in
+`src/commands/docs-baseline.js` beside the check's.~~ *(Struck 2026-11-24,
+[#599](https://github.com/tedeuxx/mhw/issues/599): `mhw onboard` left the CLI and is the method skill
+`onboard`, which names this Action's `docs-baseline` and `contract` gates; its code left
+`src/commands/docs-baseline.js`, which keeps the check.)*
 
 | Action input `gate` | was | runs |
 |---|---|---|

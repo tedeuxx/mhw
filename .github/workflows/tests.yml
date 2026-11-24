@@ -661,12 +661,12 @@ jobs:
       # its text checks run on src/lib/clean.js directly): the workflow commands render on all three agent harnesses with their required
       # sections, Codex implicit invocation off (four since #196 removed /handover, five with #198's
       # /handoff); the sanitisation check on a synthetic fixture, kept after that removal because it never
-      # reads the command file. #198: each /handoff carrier defaults to its own agent harness, an explicit
-      # first-word target overrides it, mhw launch-line (launch-line.py until #476) prints one fenced block for the
-      # target, the block parses under sh, bash (and zsh where present) and carries the prompt (quotes,
-      # $, backticks, newlines) and the launch environment exactly, and no rendering token survives.
-      # #454: both /handoff templates (continuation and ask) and the fallback reach every carrier, and the
-      # ask template, filled, passes mhw launch-line for each target. Text checks plus one script run.
+      # reads the command file. #198: each /handoff carrier defaults to its own agent harness and states the
+      # first-word target table; since #599 (mhw launch-line left the CLI) the session writes the block, and
+      # the suite applies the quoting rule each carrier states to a synthetic prompt, which parses under sh,
+      # bash (and zsh where present) back to the prompt (quotes, $, backticks, newlines); no rendering token
+      # survives. #454: both /handoff templates (continuation and ask) and the fallback reach every carrier,
+      # and the ask template, filled, passes the stated checks. Text checks plus shell parses.
       # /need-me (owner, 2026-10-26): its headings and phrases reach every carrier; its source text (front matter included, markup stripped)
       # carries no four-option ceiling and names exactly three options; it confirms the owner-action label
       # before reading an empty list as zero, against the status reader's repository and label (owner-actions.js); and its
@@ -692,11 +692,12 @@ jobs:
       # #128: the rite-cadence dater of session check 3, in throwaway git repositories.
       # #475: the milestone routes were Node; #593 removed them with `mhw milestone` (the skills call gh api,
       # and test/render/gh-api.test.js holds the gh api rule set, in the node job).
-      # #476: so is mhw launch-line (the S05 goldens); mhw worklog was too until it left the CLI at #594
-      # (test/method/worklog-skill.test.js holds the worklog skill that replaced it).
+      # #476: so was mhw launch-line (the S05 goldens) until it left the CLI at #599; mhw worklog was too
+      # until it left at #594 (test/method/worklog-skill.test.js holds the worklog skill that replaced it).
       # #477: so is rite-cadence (mhw rite-cadence, test/method/rite-cadence.test.js).
-      # #478: and mhw funnel-review (test/method/funnel-review.test.js and the S07 goldens). With both moved,
-      # the method scripts step had nothing left to run and was removed.
+      # #478: and mhw funnel-review (the S07 goldens), until it left the CLI at #599; its rite's text is held
+      # by test/method/funnel-review.test.js. With both moved, the method scripts step had nothing left to
+      # run and was removed.
       # ADR-0011, the paste filter: its prompt hook was Node since #488 (S17 of #470), src/commands/hook-prompt.js,
       # until #600 removed it; the fixed-pattern check (src/hooks/pattern-check.js, #588) is the prompt hook
       # now, with its suites in test/hooks/. add-term and its suites, the term lists and the salt left with #589;

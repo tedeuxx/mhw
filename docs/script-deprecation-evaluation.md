@@ -150,6 +150,13 @@ are deleted, `confine.py` with them (its last importers). The rows stay as this 
 skill reads each agent harness's own session log and posts the event; the contract stays
 `method/scripts/worklog-contract/event.schema.json`. The rows stay as this evaluation read them.*
 
+*Amended 2026-11-24 ([#599](https://github.com/tedeuxx/mhw/issues/599)): `mhw launch-line` and
+`mhw funnel-review` left the CLI (CLI native baseline PRD, section 5); `src/commands/launch-line.js` and
+`src/commands/funnel-review.js` are deleted, with the S07 goldens, the funnel-review fixtures and its
+store contract. `/handoff` writes the launch command itself (or names the harness's native resume) and
+`/funnel-review` writes the report, each figure citing its source line. The rows stay as this
+evaluation read them.*
+
 *Amended 2026-11-24 ([#593](https://github.com/tedeuxx/mhw/issues/593)): `mhw milestone` left the CLI
 (CLI native baseline PRD, section 5) and `src/commands/milestone.js` is deleted. The method skills call
 `gh api` against the milestones endpoint; by the owner's decision the floor's `gh api` write prefixes

@@ -23,11 +23,12 @@ otherwise it is a **continuation**, exactly as below, and nothing in this sectio
    must carry out in another agent harness (for example: open Codex and approve its prompt hook with
    `/hooks`). Read only that message and only its most recent unanswered ask; an ask from earlier in
    the session, or one you would infer from the work, does not count.
-3. That ask names exactly one agent harness, and the script resolves it to a target other than this
-   one: run `mhw launch-line --resolve {{agent-harness}} <its id>`, with the
-   id written as one of `claude-code`, `codex` or `kiro`. The second output line must be `consumed` and
-   the first line, the target, must differ from `{{agent-harness}}`. A harness the script cannot target
-   (the Kiro IDE, a desktop app) or an ask naming two harnesses fails this.
+3. That ask names exactly one agent harness, it is one of the three targets in *The arguments*
+   (`claude-code`, `codex` or `kiro`, an alias read as its target), and that target is not this one,
+   `{{agent-harness}}`. A harness with no target here (the Kiro IDE, a desktop app) or an ask naming
+   two harnesses fails this. ~~run `mhw launch-line --resolve {{agent-harness}} <its id>`~~ *(struck
+   2026-11-24, mhw#599: `mhw launch-line` left the CLI; you resolve the target yourself, by the table
+   below.)*
 4. The ask is tied to an Issue, so the result has somewhere to go back to.
 
 When any of these is in doubt, it is a continuation. This is a judgement you make from your own last
@@ -36,12 +37,19 @@ message, not a check: nothing stores a pending ask, and nothing verifies that yo
 ## The arguments
 
 `$ARGUMENTS` is `[target] [objective]`. Only its first word can name the target, and only when it is
-exactly one of `claude-code`, `claude`, `codex`, `kiro` or `kiro-cli`. Decide it with the script, not by
-eye: run `mhw launch-line --resolve {{agent-harness}} <the first word>` (with
-no argument at all, omit the word; a first word carrying anything but letters and hyphens cannot name
-a target, so omit it too). Its first output line is the target; its second is `consumed` when
-the word named the target, so the objective is the rest of `$ARGUMENTS`, or `kept` when it did not, so
-the target is this agent harness and the objective is the whole of `$ARGUMENTS`. To give an objective
+exactly, case and all, one of these five words:
+
+| first word | target |
+|---|---|
+| `claude-code` or `claude` | `claude-code` |
+| `codex` | `codex` |
+| `kiro` or `kiro-cli` | `kiro` |
+
+When it is, the word is **consumed**: that is the target, and the objective is the rest of
+`$ARGUMENTS`. Otherwise it is **kept**: the target is this agent harness, `{{agent-harness}}`, and the
+objective is the whole of `$ARGUMENTS`. `Claude`, `ship` or `$x` name no target. ~~Decide it with the
+script, not by eye: run `mhw launch-line --resolve`~~ *(struck 2026-11-24, mhw#599: the command left the
+CLI, and the table above is the whole of what it decided.)* To give an objective
 that starts with one of those words, name the target first: `/handoff claude-code codex settings fix`.
 The objective from the arguments is used only when none was anchored.
 For an ask, there are no arguments: the target is the one *Continuation or ask* resolved.
@@ -67,7 +75,7 @@ Re-derive every field from the tracker, not from memory of this conversation:
 3. **Revision.** The repository, branch and commit the work stands at (`git -C <repo> rev-parse HEAD`
    and the branch name). `unknown` when there is none.
 4. **Checkout.** The top of the work tree the work stands in (`git -C <repo> rev-parse
-   --show-toplevel`), a worktree included. It goes to the script as `--cd`, never into the prompt. With
+   --show-toplevel`), a worktree included. It goes into the block's `cd`, never into the prompt. With
    no repository at all there is nothing to change into: say so in one line and stop.
 5. **Handoff state and next act.** The latest effective `handoff` or `checkpoint` worklog event's
    `handoff.state` and `next_act`, read as the worklog contract's *Resuming* section reads them. If no
@@ -88,8 +96,8 @@ Fill this template. Drop a line whose field is empty; keep the first line and th
 typed in the new session before it starts working: the prompt is its first message.
 ~~The prompt carries its own `/goal` line~~ *(struck 2026-11-01, #198: the owner ruled that a fresh
 session does not start with `/goal`, and «o handoff tem que sempre ser um comando de inicio da sessao de
-harness com prompt inline». The prompt opens with the objective as plain text, and the script refuses a
-prompt whose first line opens with `/goal`.)*
+harness com prompt inline». The prompt opens with the objective as plain text, and you refuse a
+prompt whose first line opens with `/goal` (*Check it*, below).)*
 
 ```
 Objective: <the objective, one line>
@@ -134,60 +142,106 @@ The template opens with `Objective:` and never with a slash command. *Hypothesis
 prompt passed as the start command's argument that opens with `/` (such as `/hooks`) may run as that
 agent harness's own command instead of reaching it as a message. Do not put a slash command first.
 
+## Native resume or a fresh launch
+
+**A handoff is a fresh launch: the block below starts a new session with the prompt inline.** Each
+agent harness also has a native resume, which reopens an earlier conversation **with its whole
+context**. That is the opposite of what a handoff is for, so use it only when the owner asks to reopen
+this same conversation (a closed terminal, say) and the context is not the reason for the handoff.
+Never use it after a configuration change: the workstation brief says resume is not a substitute for a
+fresh session. ~~`mhw launch-line` printed the block~~ *(struck 2026-11-24, mhw#599: the command left
+the CLI; you write the block yourself, by the rule in *Quote it*.)*
+
+Each form below was **read from that version's own `--help` on 2026-11-24 (documented); none was run,
+and no session was started to measure it.**
+
+| target | fresh launch, the prompt inline | native resume |
+|---|---|---|
+| `claude-code` (Claude Code 2.1.331) | `claude '<prompt>'`: the `[prompt]` argument | `claude --continue` (the most recent conversation in the current directory) or `claude --resume <session-id>` |
+| `codex` (Codex CLI 0.163.0) | `codex '<prompt>'`: the `[PROMPT]` argument | `codex resume --last` (the most recent session; the picker is filtered to the current directory unless `--all`) or `codex resume <SESSION_ID>` |
+| `kiro` (Kiro CLI 3.5.0) | `kiro-cli chat '<prompt>'`: the `[INPUT]` argument, "the first question to ask" | `kiro-cli chat --resume` (the most recent conversation from this directory) or `kiro-cli chat --resume-id <SESSION_ID>` |
+
+The Kiro IDE takes the same prompt as `kiro chat '<prompt>'` (`kiro chat --help` 1.3.11, as this
+command recorded it before mhw#599; not re-read); the block does not print it, and no IDE resume form is
+documented here. The Claude Code and Kiro resume forms read the current directory, and the Codex picker
+is filtered by it, so a resume block is `cd '<checkout>' && <the resume form>`, with no prompt.
+
+## Quote it
+
+**You quote the block yourself, by this rule, for a POSIX shell (zsh, bash). Never improvise it.**
+
+- **The whole prompt goes inside one pair of single quotes**, `'…'`. Inside single quotes the shell
+  changes nothing: `$`, backticks, `"`, `\`, `!` and newlines reach the agent harness as typed.
+- **Each single quote in the prompt becomes the four characters `'\''`**: close the quote, an escaped
+  quote, reopen. Nothing else in the prompt is escaped, and nothing is removed.
+- **The checkout is quoted the same way**, whatever it holds.
+- The block is one line of shell (the prompt's own newlines stay inside its quotes):
+  `cd '<checkout>' && claude '<prompt>'`, `cd '<checkout>' && codex '<prompt>'` or
+  `cd '<checkout>' && kiro-cli chat '<prompt>'`.
+- **Fence it with one more backtick than the longest run of backticks in the line**, three at least, so
+  a backtick run in the prompt cannot close the fence.
+- **No launch environment.** The method declares no launch variable today, so the block carries no
+  `NAME=value` prefix. ~~`LAUNCH_ENV` in mhw's `src/commands/launch-line.js`~~ *(struck 2026-11-24,
+  mhw#599: the list left with the command; it was empty.)* ~~today `HARNESS_SWEEP_ORIGIN`, the origin (or
+  space-separated origins, mhw#220 D7) the chrome-devtools server is bounded to~~ *(struck 2026-10-29,
+  mhw#224 decision D8: the chrome-devtools server has no origin bound, so nothing reads that variable.)*
+  If the next act needs a variable at launch, say so to the owner instead of adding one: declaring a
+  launch variable is a reviewed change to this command. A secret the next act needs stays where it lives
+  and is named in the prompt by its name only.
+
+## Check it
+
+**Before you print, check the filled prompt and the checkout. If any check fails, fix the prompt and
+check again; never print a block that fails one.** These are the refusals the deleted command made,
+now yours to apply:
+
+- the prompt is not empty, and its first line never opens with `/goal` (#198: a fresh session does not
+  start with `/goal`);
+- no line is over 280 characters;
+- no machine-local path anywhere (`/Users/`, `/tmp/`, `~/`, `/home/`, `/private/`, `/var/folders/`,
+  `file://`, a drive path such as `C:\`, `.brand`), in any letter case;
+- no control character: a terminal control such as `^C`, ESC, TAB or a carriage return, and no
+  bidirectional control (U+202A to U+202E, U+2066 to U+2069). The prompt's own line breaks are the
+  only control it carries;
+- the checkout is an absolute path to an existing directory holding a `.git` entry, with no control
+  character or line break in it.
+
+This is a string check you make by reading, not a guarantee: copied private content carries none of
+those strings and passes, and the sanitising rule in *Build the prompt* is what covers it.
+
 ## Print it
 
-1. **Launch environment.** Name every environment variable the next act reads only at launch. Only
-   the launch variables the method declares are accepted (`LAUNCH_ENV` in mhw's `src/commands/launch-line.js`), and today
-   it declares **none**, so every `--env` is refused. ~~today `HARNESS_SWEEP_ORIGIN`, the origin (or
-   space-separated origins, mhw#220 D7) the chrome-devtools server is bounded to~~ *(struck 2026-10-29,
-   mhw#224 decision D8: the chrome-devtools server has no origin bound, so nothing reads that variable.)*
-   A name, once declared, becomes `--env NAME=VALUE`. Any other name is refused; if the next act needs one, say so to the owner instead of
-   working around it, since adding a name is a reviewed change to that list. A value is public: no
-   secret, no personal data, no machine-local path. A secret the next act needs stays where it lives
-   and is named in the prompt by its name only. With none, pass no `--env`.
-2. Write the filled prompt to a file outside every repository (the session scratchpad, or the system
-   temporary directory).
-3. Run `mhw launch-line <target> <that file> --cd <the checkout>
-   [--env NAME=VALUE]...` (until mhw#476 the script `method/scripts/launch-line.py`; same output), with the target from *The arguments* and the checkout from *Build the
-   prompt*. It quotes the checkout, the environment and the prompt for a POSIX shell (zsh, bash),
-   deterministically, so `'`, `$`, backticks and newlines reach the new session intact, and prints one
-   fenced block holding one command: `cd '<checkout>' && <the start command> '<prompt>'`. It refuses a
-   prompt whose first line opens with `/goal` ~~does not open with `/goal`~~ (struck 2026-11-01, #198),
-   a line over 280 characters, a machine-local path, a control character (a terminal control such as
-   `^C`, ESC or TAB, or a bidirectional control), an `--env` whose name is not a declared launch
-   variable or whose value is unsafe, and a `--cd` that is not an absolute path to a git checkout; fix
-   it and run it again. It reads the file only when it resolves under the
-   system temporary directory or the current work tree, is a regular file and holds at most 64 KiB.
-   Never quote the prompt by hand.
-4. End your reply with the script's output, exactly as printed, and nothing after it. Do not print the
-   prompt separately, do not refer to it from another line and add no instruction around the block:
-   the prompt is inside it. The output is the block alone, for every target, Kiro included.
+1. Fill the prompt, check it (*Check it*) and quote it (*Quote it*) into one fenced block, with the
+   target from *The arguments* (or the ask's target) and the checkout from *Build the prompt*.
+2. End your reply with that block, and nothing after it. Do not print the prompt separately, do not
+   refer to it from another line and add no instruction around the block: the prompt is inside it.
+   The output is the block alone, for every target, Kiro included.
    ~~For the Kiro target the output opens with one line for the Kiro IDE: the block is for Kiro CLI,
    and the IDE takes the same block with `kiro chat` in place of `kiro-cli chat`.~~ *(Struck
-   2026-11-01, #198: that line was text around the command. The Kiro IDE is named below instead.)*
+   2026-11-01, #198: that line was text around the command. The Kiro IDE is named above instead.)*
    **On Windows, end your reply instead with the filled prompt in one fenced block, and nothing after
-   it.** The script's block is for a POSIX shell: PowerShell reads its `'\''` differently, so an
-   apostrophe in the prompt would arrive corrupted. Run step 3 anyway so the prompt is checked, but do
-   not print its output. Fence the prompt with more backticks than any run of backticks inside it. The
-   owner opens a new session and pastes the prompt as its first message.
-5. Then stop working in this session, for a continuation. Two sessions on one checkout overwrite each
+   it.** The block is for a POSIX shell: PowerShell reads its `'\''` differently, so an apostrophe in
+   the prompt would arrive corrupted. Check the prompt anyway, but do not print the quoted block:
+   do not print its output. Fence the prompt with more backticks than any run of backticks
+   inside it. The owner opens a new session and pastes the prompt as its first message.
+3. Then stop working in this session, for a continuation. Two sessions on one checkout overwrite each
    other's work. **For an ask, do not stop:** keep working and wait for the result on the Issue. The
    ask prompt tells the new session to change no file in the checkout; that is an instruction to
    it, and nothing enforces it.
 
-The block names the target's start command and its documented argument for an initial prompt: `claude
-'<prompt>'` (the `[prompt]` argument of `claude --help` 2.1.311), `codex '<prompt>'` (the `[PROMPT]`
-argument of `codex --help` 0.163.0) and `kiro-cli chat '<prompt>'` (the `[INPUT]` argument of
-`kiro-cli chat --help` 2.34.1, "the first question to ask"); for the Kiro IDE, `kiro chat [prompt]`
-from `kiro chat --help` 1.3.11, which takes the same prompt in place of `kiro-cli chat`; the block does
-not print it. Each is read from `--help`; none was run. ~~The block runs in the terminal's current
+~~Run `mhw launch-line <target> <that file> --cd <the checkout> [--env NAME=VALUE]...`~~ *(struck
+2026-11-24, mhw#599: the command, its prompt file and its 64 KiB read limit left the CLI; *Quote it*
+and *Check it* carry what it did.)* ~~The block runs in the terminal's current
 directory; open the terminal in a different checkout from the old session's.~~ *(Struck 2026-11-01,
 #198: that was a second step handed to the owner. The block now starts with `cd` into the checkout, so
-it runs the same from any directory.)* The launch environment is a prefix on the start command, after
-the `cd`, so it reaches the agent harness and not the shell. Where the workstation's paste wrapper is installed, those names reach it and an environment prefix
-reaches the agent harness through it; a prompt passed as an argument is not cleaned by the wrapper, so
-the sanitising above is the clean-up. On Windows the block does not apply: step 4 prints the prompt
-instead.
+it runs the same from any directory.)* Where the workstation's paste wrapper is installed, a prompt
+passed as an argument is not cleaned by it, so the sanitising above is the clean-up. On Windows the
+block does not apply: step 2 prints the prompt instead.
+
+**What holds this, at its real level: an instruction.** Nothing runs the checks or the quoting for
+you, and nothing verifies that the block you print parses. The method's test suite applies the
+quoting rule as written to a synthetic prompt and parses the result under `sh`, `bash` and, where it is
+installed, `zsh`, so the rule is checked; whether a session follows it is not.
 
 ## What this command never does
 
