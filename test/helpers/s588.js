@@ -8,7 +8,12 @@
 //   - the check's hook entries inside the shared files: Claude Code's settings (UserPromptSubmit, and the
 //     PreToolUse group), the Codex hooks.json and the Codex admin requirements.toml.
 // Anything else #588 changed is still compared. It never rewrites a text that holds no entry of ours.
+// #589 adds one more entry the same goldens predate: the third-party term check, a `prompt`-type
+// UserPromptSubmit entry in Claude Code's settings, found by JUDGE_ID in its prompt text. It is taken out of
+// the settings document the same way (each golden's expected-differences.json names it), and
+// test/hooks/pattern-check-install.test.js and test/render/settings-merge.test.js hold the entry itself.
 import { parse, stringify } from '../../src/lib/jq-json.js';
+import { JUDGE_ID } from '../../src/render/term-judge.js';
 
 const ID = '/pattern-check.js" ';
 
@@ -35,7 +40,8 @@ export function stripOutput(text) {
 /** @param {any} v */
 const isMap = (v) => v instanceof Map;
 /** @param {any} h */
-const ours = (h) => isMap(h) && typeof h.get('command') === 'string' && h.get('command').includes(ID);
+const ours = (h) => isMap(h) && ((typeof h.get('command') === 'string' && h.get('command').includes(ID))
+  || (h.get('type') === 'prompt' && typeof h.get('prompt') === 'string' && h.get('prompt').includes(JUDGE_ID)));
 
 /**
  * A Claude Code settings document without the check's entries: its hook entries dropped from every group
@@ -74,7 +80,7 @@ function stripClaudeJson(text) {
  * @param {string} p the path (or its label) @param {string} text
  */
 export function stripFile(p, text) {
-  if (!/pattern-check\.js\\?" /.test(text)) return text; // in JSON text the quote is escaped
+  if (!/pattern-check\.js\\?" /.test(text) && !text.includes(JUDGE_ID)) return text; // in JSON text the quote is escaped
   if (/hooks\.json$/.test(p)) {
     // The Codex user hooks.json is rendered as text (src/commands/install-user.js, kind codexhooks).
     return text.replace(/\},\n {10}\{"type": "command", "command": "[^\n]*pattern-check\.js[^\n]*", "timeout": 30\}\n/, '}\n')

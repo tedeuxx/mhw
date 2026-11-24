@@ -20,6 +20,7 @@ import { privateCopy } from '../lib/private-copy.js';
 import { onPath } from '../lib/onpath.js';
 import { runAbsolute } from '../lib/run.js';
 import { deriveStamp, parseFloor } from '../lib/user-layer.js';
+import { termLeftovers } from '../lib/term-leftovers.js';
 
 /** @typedef {Record<string, string | undefined>} Env */
 /** @typedef {{ out: (text: string | Buffer) => void, err: (text: string | Buffer) => void }} Io */
@@ -803,6 +804,10 @@ export function mergeSettings(ctx) {
       args.push('--pattern-tool-cmd=' + patternCmd('claude', 'pre-tool', ctx.wrapNode, ctx.paths.patternScript, ctx.paths.clipConfDest));
     }
   }
+  // #589: the third-party term check, a `prompt`-type hook Claude Code runs itself (no node, no script), so it
+  // is placed whatever the paste filter's node and in either hooks mode; the admin layer carries none (ADR-0047).
+  // patternOff (the S20 goldens' step driver) predates it too.
+  if (!ctx.patternOff) args.push('--term-judge=on');
   const rc = runNode(ctx, /** @type {string} */ (ctx.allowNode), args);
   if (rc === 0) return;
   if (ctx.mode === 'check' && rc === 1) raise(ctx, 1);
@@ -1045,20 +1050,86 @@ function restartState(ctx) {
 }
 
 /**
- * The term lists' salt is a 0600 file since #488. A list that holds hashes while no salt file exists was
- * hashed with the macOS Keychain salt of an earlier install; it is NOT migrated, and the owner re-adds the terms.
- * @param {Ctx} ctx
+ * Move f aside to a backup that never replaces an existing one (#589, QA A2): <f>.pmhwc-backup, else the
+ * first free <f>.pmhwc-backup.N. The new name is made by a hard link, which fails on an existing name
+ * instead of overwriting it, then f is unlinked; the backup is then set to 0600. stage names what failed:
+ * 'move' (f is left where it was) or 'chmod' (f is already moved, to bak). ops is a seam for the tests.
+ * @param {string} f
+ * @param {{ linkSync: typeof fs.linkSync, unlinkSync: typeof fs.unlinkSync, chmodSync: typeof fs.chmodSync }} [ops]
+ * @returns {{ stage: 'done' | 'move' | 'chmod', bak: string, error?: unknown }}
  */
-function saltNotice(ctx) {
-  const lo = ctx.dataDir + '/local-overlay';
-  if (isFile(lo + '/clipboard-salt')) return;
-  for (const list of ['clipboard-terms', 'clipboard-terms-health', 'clipboard-terms-colleague']) {
-    const raw = isFile(lo + '/' + list) ? readBytes(lo + '/' + list) : null;
-    if (raw !== null && raw.toString('latin1').split('\n').some((l) => /^[0-9a-f]{64}$/.test(l))) {
-      say(ctx, 'SKIP    ' + lo + '/' + list + ': its hashes were made with the macOS Keychain salt, which mhw no longer reads (#488); '
-        + 'nothing was migrated. Re-add each term with mhw add-term; until then term matching is off and every prompt says so');
+export function moveAside(f, ops = fs) {
+  let bak = f + '.pmhwc-backup';
+  for (let n = 1; ; n++) {
+    try {
+      ops.linkSync(f, bak);
+      break;
+    } catch (e) {
+      if (!(e instanceof Error && /** @type {NodeJS.ErrnoException} */ (e).code === 'EEXIST') || n > 999) return { stage: 'move', bak, error: e };
+      bak = f + '.pmhwc-backup.' + n;
     }
   }
+  try {
+    ops.unlinkSync(f);
+  } catch (e) {
+    try {
+      ops.unlinkSync(bak);
+    } catch {
+      // the link stays; the original is still in place too
+    }
+    return { stage: 'move', bak, error: e };
+  }
+  try {
+    ops.chmodSync(bak, 0o600);
+  } catch (e) {
+    return { stage: 'chmod', bak, error: e };
+  }
+  return { stage: 'done', bak };
+}
+
+/**
+ * The line for one moveAside result: [ok, text]. A move failure says the file is left where it was; a chmod
+ * failure says the file was already moved, names the backup and what to do with it.
+ * @param {string} f @param {{ stage: string, bak: string, error?: unknown }} r @param {string} what
+ * @returns {[boolean, string]}
+ */
+export function asideNotice(f, r, what) {
+  const why = r.error instanceof Error ? r.error.message : String(r.error);
+  if (r.stage === 'move') return [false, 'REFUSE  ' + f + ': could not be moved aside (' + why + '); left as it is, nothing was backed up'];
+  if (r.stage === 'chmod') {
+    return [false, 'REFUSE  ' + f + ': moved aside to ' + r.bak + ', but setting its mode to 0600 failed (' + why
+      + '); the backup may be readable by others: run chmod 600 on it, or delete it'];
+  }
+  return [true, 'REMOVED ' + f + ' (' + what + '; backup kept as ' + r.bak + ', 0600: delete it when you no longer need it)'];
+}
+
+/**
+ * The term lists and their salt (#589): `mhw add-term` and every reader of them are removed, and third-party
+ * terms are judged by the model (the brief, and on Claude Code a prompt hook). What an earlier install left
+ * in <data dir>/local-overlay is moved aside, on install and on uninstall alike: each file becomes a 0600
+ * <file>.pmhwc-backup beside it, named in the notice, and the directory goes when nothing else is in it.
+ * --check names each as STALE (drift); --dry-run says what install would do. The files' content is never
+ * read or printed.
+ * @param {Ctx} ctx
+ */
+export function termListsStep(ctx) {
+  const lo = ctx.dataDir + '/local-overlay';
+  const what = 'a term list or its salt from an earlier install, no longer read (#589: terms are judged by the model)';
+  for (const f of termLeftovers(lo)) {
+    if (ctx.mode === 'check') {
+      say(ctx, 'STALE   ' + f + ': ' + what + '; install moves it aside');
+      raise(ctx, 1);
+    } else if (ctx.mode === 'dry-run') say(ctx, 'WOULD REMOVE ' + f + ' (' + what + '; a 0600 copy would be kept as ' + f + '.pmhwc-backup)');
+    else if (ctx.mode === 'install' || ctx.mode === 'uninstall') {
+      const [ok, line] = asideNotice(f, moveAside(f), what);
+      if (ok) say(ctx, line);
+      else {
+        warn(ctx, line);
+        raise(ctx, 4);
+      }
+    }
+  }
+  if ((ctx.mode === 'install' || ctx.mode === 'uninstall') && isDir(lo) && !isLink(lo)) rmdir(lo);
 }
 
 /** The fixed-pattern check's installed files (#588), package.json first. @param {Record<string, string>} p */
@@ -1141,6 +1212,7 @@ export function run(ctx) {
     chromeStep(ctx);
     kiroStep(ctx);
     startupStep(ctx); // before uninstallUser, which removes the data directory once it is empty
+    termListsStep(ctx); // before uninstallUser, for the same reason (#589)
     uninstallUser(ctx);
     methodStep(ctx);
     say(ctx, 'NOTE    the admin layer is not touched here; ' + ctx.cmd + ' uninstall prints its sudo line');
@@ -1160,7 +1232,7 @@ export function run(ctx) {
   ctx.codexFloorRefused = ctx.processRefused; // the Codex allow list is not written beside a refused floor (#491)
   retire(ctx, p.clipDest, 'the Python prompt hook core, replaced by mhw hook prompt (Node, #488; removed by #600)');
   processTarget(ctx, 'clipconf', p.clipConfDest);
-  saltNotice(ctx);
+  termListsStep(ctx);
   pasteFiles(ctx);
   plist(ctx);
   mergeSettings(ctx);

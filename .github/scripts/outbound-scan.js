@@ -27,21 +27,17 @@
 // inside the required attribution trailer is not reported; the name is scanned.
 //
 // It informs and never blocks: exit 0 with or without findings. Exit 2 means the scan could not run.
-// Every category is reported, whatever block_categories says. Employer and client terms, and the term
-// half of health and colleague-name, are matched only where the owner's hashed lists and their salt are
-// readable without a prompt; a NOTE line says so whenever they are not (in CI, every time).
-//
-// The salt is read the way the prompt hook reads it, from its file (src/lib/salt.js): since #488 it is a
-// file on every system (owner ruling, 2026-11-21), so no process is started for it and the Keychain is never
-// read. A missing or unreadable salt file gets a NOTE and no term list is checked. The salt never leaves this
-// process. Reads files and git objects; writes nothing. node: modules only.
+// Every category is reported, whatever block_categories says. Patterns only: since #589 no term list and no
+// salt exist, so employer and client terms, and the term half of health and colleague-name, are not
+// matched here. Third-party terms are judged by the model (the global brief, and on Claude Code a prompt
+// hook); this script cannot judge them, and says nothing about them. Reads files and git objects; writes
+// nothing. node: modules only.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { onPath } from '../../src/lib/onpath.js';
 import * as core from '../../src/lib/clean.js';
-import { readSalt } from '../../src/lib/salt.js';
 import * as baseUrl from '../../src/lib/base-url.js';
 // The -U0 patch reader and the attribution-trailer rule, written once in the fixed-pattern check (#588), which
 // reads a push's commits the way this script does; re-exported here for this script's own tests.
@@ -136,12 +132,9 @@ function outbound(ctx, base) {
 /**
  * [line, category, length] for every finding in text, in order. Never the matched text.
  * @param {string} text
- * @param {Set<string>} terms
- * @param {string | null} salt
- * @param {Record<string, Set<string>>} lists
  * @returns {Array<[number, string, number]>}
  */
-export function scanText(text, terms = new Set(), salt = null, lists = {}) {
+export function scanText(text) {
   const o = core.offsets(text);
   /** @type {number[]} */
   const lineStarts = [];
@@ -158,36 +151,8 @@ export function scanText(text, terms = new Set(), salt = null, lists = {}) {
     return lo + 1;
   };
   /** @type {Array<[number, string, number]>} */
-  const found = core.findSpans(text, terms, salt, lists).map(([s, e, cat]) => [lineAt(o.toUnit(s)), cat, e - s]);
+  const found = core.findSpans(text).map(([s, e, cat]) => [lineAt(o.toUnit(s)), cat, e - s]);
   return found.sort((a, b) => a[0] - b[0] || core.CATEGORY_ORDER.indexOf(a[1]) - core.CATEGORY_ORDER.indexOf(b[1]) || a[2] - b[2]);
-}
-
-/**
- * The term lists and salt, with a NOTE for every list that cannot be checked. Never silent.
- * @param {Ctx} ctx
- * @param {Record<string, string>} conf
- * @returns {[Set<string>, string | null, Record<string, Set<string>>]}
- */
-function termDetector(ctx, conf) {
-  const [terms, lists] = core.readTermLists(conf);
-  if (!terms.size) {
-    ctx.out.push('NOTE    no employer and client term list could be read (absent, empty or unreadable); '
-      + 'employer-client-term was NOT checked\n');
-  }
-  for (const [cat, hashes] of Object.entries(lists)) {
-    if (!hashes.size) {
-      ctx.out.push('NOTE    no ' + cat + ' term list could be read (absent, empty or unreadable); ' + cat + ' was checked '
-        + 'by its pattern only, NOT against a term list\n');
-    }
-  }
-  if (!terms.size && !Object.values(lists).some((h) => h.size)) return [terms, null, lists];
-  const { salt } = readSalt(conf);
-  if (!salt) {
-    ctx.out.push("NOTE    the term list's salt file could not be read (missing, unreadable or not a salt; re-add your "
-      + 'terms with mhw add-term); no term list was checked '
-      + '(employer-client-term, and the term half of health and colleague-name)\n');
-  }
-  return [terms, salt, lists];
 }
 
 /** @param {Ctx} ctx @returns {{ files?: string[], error?: string }} */
@@ -270,16 +235,15 @@ const shown = (label, platform) => (platform === 'win32' ? label.replaceAll('\\'
  * Findings in one commit's message and, unless it is a merge, in the lines it added.
  * @param {Ctx} ctx
  * @param {Commit} commit
- * @param {[Set<string>, string | null, Record<string, Set<string>>]} det
  * @param {number} limit
  */
-function scanCommit(ctx, [short, full, isMerge], det, limit) {
+function scanCommit(ctx, [short, full, isMerge], limit) {
   let found = 0;
   const [code, message] = git(ctx, ['log', '-1', '--format=%B', full]);
   if (code) {
     ctx.out.push('SKIPPED ' + short + ':message: unreadable, not scanned\n');
   } else {
-    for (const [, cat, length] of scanText(withoutAttributionTrailer(message), ...det)) {
+    for (const [, cat, length] of scanText(withoutAttributionTrailer(message))) {
       ctx.out.push(short + ':message: ' + cat + ', ' + length + ' chars\n');
       found += 1;
     }
@@ -300,7 +264,7 @@ function scanCommit(ctx, [short, full, isMerge], det, limit) {
       ctx.out.push('SKIPPED ' + short + ':' + file + ': added lines over ' + limit + ' bytes, not scanned\n');
       continue;
     }
-    for (const [line, cat, length] of scanText(text, ...det)) {
+    for (const [line, cat, length] of scanText(text)) {
       ctx.out.push(short + ':' + file + ':' + (first + line - 1) + ': ' + cat + ', ' + length + ' chars\n');
       found += 1;
     }
@@ -317,7 +281,6 @@ function scanCommit(ctx, [short, full, isMerge], det, limit) {
  * @param {Commit[] | null} commits
  */
 function scan(ctx, targets, conf, root, commits) {
-  const det = termDetector(ctx, conf);
   const limit = core.pyInt(conf.max_bytes);
   const top = pyRealpath(root || ctx.cwd);
   let total = 0;
@@ -351,7 +314,7 @@ function scan(ctx, targets, conf, root, commits) {
     }
     scanned += 1;
     const text = decode(raw);
-    const findings = scanText(text, ...det);
+    const findings = scanText(text);
     // #27: a Claude Code settings file whose env block sets ANTHROPIC_BASE_URL; the value is never shown.
     if (baseUrl.isSettingsPath(name)) {
       for (const [line, length] of baseUrl.findInSettings(text)) findings.push([line, baseUrl.CATEGORY, length]);
@@ -365,7 +328,7 @@ function scan(ctx, targets, conf, root, commits) {
   if (commits !== null) {
     let commitsWith = 0;
     for (const c of commits) {
-      const found = scanCommit(ctx, c, det, limit);
+      const found = scanCommit(ctx, c, limit);
       total += found;
       if (found) commitsWith += 1;
     }

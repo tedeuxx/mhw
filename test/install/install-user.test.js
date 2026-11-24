@@ -921,7 +921,7 @@ test('12. XDG_DATA_HOME is honoured: the paste filter and its data go there, and
   assert.equal(inst(hc, ['--check'], { CODEX_HOME: ch }).code, 0);
 });
 
-test('12b. #488: an install over an earlier release retires the Python core and names a Keychain-salted term list', { skip }, () => {
+test('12b. #488: an install over an earlier release retires the Python core; #589: its term list is moved aside', { skip }, () => {
   const h = dir('home-488');
   fs.mkdirSync(data(h) + '/local-overlay', { recursive: true });
   fs.mkdirSync(h + '/.claude');
@@ -935,8 +935,67 @@ test('12b. #488: an install over an earlier release retires the Python core and 
   assert.equal(pours(h + '/.claude/settings.json'), 1);
   const want = hookCmd('claude', data(h) + '/clipboard.conf');
   assert.equal(json(h + '/.claude/settings.json').hooks.UserPromptSubmit.flatMap((/** @type {any} */ g) => g.hooks).filter((/** @type {any} */ y) => y.command === want).length, 1);
-  assert.match(r.out, /^SKIP {4}.*clipboard-terms: its hashes were made with the macOS Keychain salt, which mhw no longer reads \(#488\); nothing was migrated/m);
+  assert.doesNotMatch(r.out, /Keychain salt|add-term/);
+  assert.match(r.out, /^REMOVED .*local-overlay\/clipboard-terms \(a term list or its salt from an earlier install, no longer read/m);
+  assert.ok(!exists(data(h) + '/local-overlay/clipboard-terms'));
   assert.ok(!exists(data(h) + '/local-overlay/clipboard-salt'));
+});
+
+test('12c. #589: a term list and salt an earlier install left: check names them, dry-run moves nothing, install and uninstall move them aside with a backup notice', { skip }, () => {
+  const h = dir('home-589');
+  const lo = data(h) + '/local-overlay';
+  const left = ['clipboard-salt', 'clipboard-terms', 'clipboard-terms-health', 'clipboard-terms-colleague', 'clipboard-terms.old-salt'];
+  const plant = () => {
+    fs.mkdirSync(lo, { recursive: true });
+    for (const f of left) fs.writeFileSync(lo + '/' + f, 'cd'.repeat(32) + '\n', { mode: 0o644 });
+  };
+  // A fresh install writes none of them.
+  assert.equal(inst(h).code, 0);
+  for (const f of left) assert.ok(!exists(lo + '/' + f), 'install wrote ' + f);
+  plant();
+  fs.writeFileSync(lo + '/owner-file.txt', '{}\n');
+  const check = inst(h, ['--check']);
+  assert.equal(check.code, 1, check.out);
+  for (const f of left) assert.match(check.out, new RegExp('^STALE {3}' + (lo + '/' + f).replaceAll('.', '\\.') + ': a term list or its salt', 'm'));
+  const dry = inst(h, ['--dry-run']);
+  assert.match(dry.out, /^WOULD REMOVE .*clipboard-salt \(/m);
+  for (const f of left) assert.ok(exists(lo + '/' + f) && !exists(lo + '/' + f + '.pmhwc-backup'), 'dry-run moved ' + f);
+  const r = inst(h);
+  assert.equal(r.code, 0, r.out);
+  for (const f of left) {
+    const bak = lo + '/' + f + '.pmhwc-backup';
+    assert.ok(r.out.includes('REMOVED ' + lo + '/' + f + ' (a term list or its salt from an earlier install, no longer read (#589: terms are judged by the model); backup kept as '
+      + bak + ', 0600: delete it when you no longer need it)'), f);
+    assert.ok(!exists(lo + '/' + f), f + ' is still there');
+    assert.equal(fs.statSync(bak).mode & 0o777, 0o600, f + ': the backup is 0600');
+  }
+  assert.ok(exists(lo + '/owner-file.txt'), "another file of the local overlay is the owner's and stays");
+  // QA A2: a second leftover with the same name never overwrites the first backup, and the notice names the new one.
+  fs.writeFileSync(lo + '/clipboard-salt', 'second\n');
+  const again = inst(h);
+  assert.ok(again.out.includes('backup kept as ' + lo + '/clipboard-salt.pmhwc-backup.1, 0600'), again.out);
+  assert.equal(fs.readFileSync(lo + '/clipboard-salt.pmhwc-backup', 'utf8'), 'cd'.repeat(32) + '\n', 'the first backup was overwritten');
+  fs.rmSync(lo + '/clipboard-salt.pmhwc-backup.1');
+  assert.equal(inst(h, ['--check']).code, 0, 'check is clean once they are moved aside');
+  assert.doesNotMatch(inst(h).out, /a term list or its salt/, 'a second install has nothing to move');
+  // Uninstall moves them aside too, and the directory goes when nothing else is left in it.
+  plant();
+  fs.rmSync(lo + '/owner-file.txt');
+  for (const f of left) fs.rmSync(lo + '/' + f + '.pmhwc-backup');
+  const u = inst(h, ['--uninstall']);
+  for (const f of left) {
+    assert.match(u.out, new RegExp('^REMOVED ' + (lo + '/' + f).replaceAll('.', '\\.') + ' \\(a term list', 'm'));
+    assert.ok(exists(lo + '/' + f + '.pmhwc-backup'), f + ': uninstall kept a backup');
+  }
+  for (const f of left) fs.rmSync(lo + '/' + f + '.pmhwc-backup');
+  plant();
+  for (const f of left) fs.rmSync(lo + '/' + f);
+  fs.writeFileSync(lo + '/clipboard-salt', 'x\n');
+  inst(h);
+  assert.ok(!exists(lo + '/clipboard-salt'));
+  fs.rmSync(lo + '/clipboard-salt.pmhwc-backup');
+  inst(h);
+  assert.ok(!exists(lo), 'an empty local overlay directory is removed');
 });
 
 test('13. a data path the hook command cannot quote safely: the paste filter is refused, not mis-quoted', { skip }, () => {

@@ -454,6 +454,18 @@ his ratification at the release candidate. The paste wrapper stays until slice 4
   reference machine, and not measured in a live session of any harness. Codex asks to trust the changed
   hooks again; that is the owner's act (`/hooks`).
 
+## Amendment 2026-11-24: the term part is superseded by ADR-0047 ([#589](https://github.com/tedeuxx/mhw/issues/589), proposed)
+
+Status of the record unchanged (accepted) for the paste wrapper, which slice 4
+([#590](https://github.com/tedeuxx/mhw/issues/590)) removes. **The term part of this record is superseded
+by [ADR-0047](0047-third-party-terms-judged-by-the-model.md)**: the hashed employer, client, health and
+colleague lists, their salt (the 2026-11-21 amendment above) and `mhw add-term` are removed, and
+third-party terms are judged by the model (the global brief, and on Claude Code a `prompt`-type hook).
+Read every sentence above that has the wrapper, the scan or a hook match a term list, or install name a
+Keychain-salted list, as history. The wrapper now replaces the pattern categories only, and an earlier
+install's lists and salt are moved aside by install. The 2026-11-01 amendment's five pattern categories
+are unchanged.
+
 ## Links
 
 - ADR-0011 (superseded; the history). ADR-0005 (no log). ADR-0008 (no persistence). ADR-0025 (admin

@@ -167,7 +167,7 @@ release that ships this document is the major (v11) that sets the new interface.
 
 ## 9. Decision records owed by the build
 
-- Superseding ADR-0033: no paste wrapper; terms by model judgment; fixed patterns by an installed script.
+- Superseding ADR-0033: no paste wrapper; terms by model judgment; fixed patterns by an installed script. *(Terms by model judgment: [ADR-0047](adr/0047-third-party-terms-judged-by-the-model.md), #589; the wrapper part is #590's.)*
 - The delivery route on GitHub rulesets and a skill, replacing the checked merge command.
 - The CLI's scope: distribution only.
 - Amending ADR-0002 with the public-interface table, for the owner's ratification.

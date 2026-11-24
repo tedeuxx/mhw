@@ -5,6 +5,7 @@
 //
 //   node src/render/settings-merge.js --phase=merge --mode=install|check|dry-run --settings=FILE
 //        --floor-claude=FILE --stamp=STAMP [--paste-cmd=COMMAND] [--pattern-prompt-cmd=COMMAND --pattern-tool-cmd=COMMAND]
+//        [--term-judge=on]
 //   node src/render/settings-merge.js --phase=uninstall --settings=FILE --floor-claude=FILE
 //
 // --floor-claude is the rendered floor, one Claude Code rule per line (install.sh's $floor_claude).
@@ -13,6 +14,8 @@
 // so mhw install-user never passes it and an earlier install's entry is removed). An entry of a removed hook (the HITL picker guard,
 // the restart guard) is always removed. --pattern-prompt-cmd and --pattern-tool-cmd are the fixed-pattern
 // check's two entries (#588): UserPromptSubmit, and PreToolUse on the Bash tool; without them they are removed.
+// --term-judge=on places the third-party term check (#589): a `prompt`-type UserPromptSubmit entry whose text
+// is src/render/term-judge.js's JUDGE_PROMPT, found again by JUDGE_ID in that text; without it, it is removed.
 //
 // The file is never replaced: every other key, hook and permission rule is kept in its place, no existing
 // deny entry is removed, a missing floor rule is appended, and a 0600 backup is left beside it. It is read
@@ -31,6 +34,7 @@ import { keyOptions } from '../lib/key-options.js';
 import { privateCopy } from '../lib/private-copy.js';
 import { classify, stringify, compact, equal, typeOf, JqNumber } from '../lib/jq-json.js';
 import { unifiedHunks } from '../lib/unified-diff.js';
+import { JUDGE_ID, JUDGE_MODEL, JUDGE_PROMPT, JUDGE_TIMEOUT } from './term-judge.js';
 
 /** @typedef {import('../lib/jq-json.js').JqValue} JqValue */
 /** @typedef {Map<string, JqValue>} JqObject */
@@ -91,8 +95,17 @@ function commandText(h) {
   return typeof c === 'string' ? c : compact(c);
 }
 
-/** `(.command? // "") | tostring | contains($id)`. @param {JqValue} h @param {string} id */
-const ours = (h, id) => commandText(h).includes(id);
+/** A prompt hook's text (#589), "" for any other entry. @param {JqValue} h */
+function promptText(h) {
+  const p = h instanceof Map ? (h.get('prompt') ?? null) : null;
+  return typeof p === 'string' ? p : '';
+}
+
+/**
+ * `(.command? // "") | tostring | contains($id)`, and since #589 the same over a prompt hook's text, so the
+ * term check's entry is found by JUDGE_ID. @param {JqValue} h @param {string} id
+ */
+const ours = (h, id) => commandText(h).includes(id) || promptText(h).includes(id);
 
 /**
  * jq's `$list | index($r) != null`: an element equal to r, or, when r is a non-empty array, a contiguous
@@ -192,6 +205,15 @@ export function pasteGroup(cmd) {
 }
 
 /**
+ * The third-party term check's group (#589): {hooks: [{type: "prompt", prompt: JUDGE_PROMPT, model: JUDGE_MODEL, timeout: 30}]}.
+ */
+export function judgeGroup() {
+  const hook = new Map(/** @type {Array<[string, JqValue]>} */ ([['type', 'prompt'], ['prompt', JUDGE_PROMPT], ['model', JUDGE_MODEL],
+    ['timeout', new JqNumber(String(JUDGE_TIMEOUT))]]));
+  return new Map(/** @type {Array<[string, JqValue]>} */ ([['hooks', [hook]]]));
+}
+
+/**
  * The fixed-pattern check's PreToolUse group (#588): on the Bash tool only, the one that runs git push and
  * gh pr create. @param {string} cmd
  */
@@ -235,9 +257,10 @@ export function stampValue(stamp) {
  * @param {JqValue} paste the paste filter's group, or null
  * @param {string} stamp
  * @param {{ prompt: JqValue, tool: JqValue }} [pattern] the fixed-pattern check's two groups (#588), or nulls
+ * @param {JqValue} [judge] the third-party term check's group (#589), or null
  * @returns {JqObject}
  */
-export function merged(doc, floor, paste, stamp, pattern = { prompt: null, tool: null }) {
+export function merged(doc, floor, paste, stamp, pattern = { prompt: null, tool: null }, judge = null) {
   const perms = doc.get('permissions') ?? null;
   const dRaw = perms instanceof Map ? alt(perms.get('deny') ?? null, []) : [];
   const d0 = Array.isArray(dRaw) ? dRaw : [];
@@ -257,6 +280,7 @@ export function merged(doc, floor, paste, stamp, pattern = { prompt: null, tool:
   out = withoutOldPaste(out);
   out = place(out, 'UserPromptSubmit', PASTE_ID, paste);
   out = place(out, 'UserPromptSubmit', PATTERN_ID, pattern.prompt);
+  out = place(out, 'UserPromptSubmit', JUDGE_ID, judge);
   out = place(out, 'PreToolUse', PATTERN_ID, pattern.tool);
   out = withoutEmptiedPreToolUse(doc, out);
   out = place(out, 'SessionStart', RESTART_ID, null);
@@ -303,6 +327,7 @@ export function unmerged(doc, floor) {
   out = drop(out, 'UserPromptSubmit', PASTE_ID);
   out = drop(out, 'UserPromptSubmit', OLD_PASTE_ID);
   out = drop(out, 'UserPromptSubmit', PATTERN_ID);
+  out = drop(out, 'UserPromptSubmit', JUDGE_ID);
   out = drop(out, 'PreToolUse', PATTERN_ID);
   out = drop(out, 'SessionStart', RESTART_ID);
   out = drop(out, 'PreToolUse', RESTART_ID);
@@ -490,7 +515,7 @@ export function mergeStep(ctx) {
   if (cur === null) return;
   let want;
   try {
-    want = merged(cur, floor, paste, stamp, pattern);
+    want = merged(cur, floor, paste, stamp, pattern, ctx.opts['--term-judge'] === 'on' ? judgeGroup() : null);
   } catch (e) {
     if (!(e instanceof JqError)) throw e;
     ctx.err('REFUSE  ' + settings + ': its hooks or permissions section has an unexpected shape; left untouched\n');
@@ -554,7 +579,8 @@ export function uninstallStep(ctx) {
 
 // ---- The command line ----------------------------------------------------------------------------------
 
-const OPTIONS = new Set(['--phase', '--mode', '--settings', '--floor-claude', '--stamp', '--paste-cmd', '--pattern-prompt-cmd', '--pattern-tool-cmd']);
+const OPTIONS = new Set(['--phase', '--mode', '--settings', '--floor-claude', '--stamp', '--paste-cmd', '--pattern-prompt-cmd', '--pattern-tool-cmd',
+  '--term-judge']);
 const USAGE = 'usage: ' + PROG + ' --phase=merge --mode=install|check|dry-run --settings=FILE --floor-claude=FILE --stamp=STAMP [--paste-cmd=COMMAND]\n'
   + '       ' + PROG + ' --phase=uninstall --settings=FILE --floor-claude=FILE\n';
 

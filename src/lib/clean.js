@@ -17,7 +17,6 @@
 //
 // It returns positions and categories, never the matched text, and writes nothing. node: modules only
 // (convention 5 of #470: the prompt hook will run it).
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -26,14 +25,12 @@ import {
 } from './clean-unicode.js';
 
 export const PROJECT = 'personal-multi-harness-workstation-configuration';
-export const MAX_TERM_TOKENS = 6;
-export const MIN_TERM_CHARS = 3;
-export const TERMS_HEADER = '# ' + PROJECT + ' clipboard terms v1: HMAC-SHA256(salt, normalised term), one per line; never plaintext\n';
 export const CATEGORY_ORDER = Object.freeze(['employer-client-term', 'credential', 'email', 'payment-card', 'cpf', 'cnpj',
   'phone', 'postal-address', 'contract-value', 'health', 'colleague-name']);
-/** The two categories seeded by a private term list of the owner's (Issue #36): category -> config key. */
-export const TERM_LISTS = Object.freeze({ health: 'health_terms_file', 'colleague-name': 'colleague_terms_file' });
-export const LIST_FILES = Object.freeze({ health: 'clipboard-terms-health', 'colleague-name': 'clipboard-terms-colleague' });
+// employer-client-term stays a category name, so a block_categories setting that names it still reads, but
+// nothing produces it since #589: third-party terms are judged by the model (the global brief, and on Claude
+// Code a prompt hook), never matched against a list. The term lists, their salt and `mhw add-term` are gone;
+// health and colleague-name keep their pattern half.
 /**
  * The fixed-format categories (#588, CLI native baseline PRD section 6): found by a pattern alone, no term
  * list and no judgement. src/hooks/pattern-check.js checks these; the term categories stay with the model.
@@ -52,13 +49,6 @@ export const DEFAULTS = Object.freeze({
   block_categories: CATEGORY_ORDER.filter((c) => !REPORT_ONLY_DEFAULT.includes(c)).join(','),
   report_categories: REPORT_ONLY_DEFAULT.join(','),
   show_cleaned_chars: '8000',
-  // Since #488 the salt is a file on every system (owner ruling, 2026-11-21): salt_store is always
-  // "file", and the Keychain keys (keychain_service, keychain_path) are no longer read.
-  salt_store: 'file',
-  terms_file: '',
-  health_terms_file: '',
-  colleague_terms_file: '',
-  salt_file: '',
   // The paste wrapper (src/commands/paste-wrapper.js). The first two REPLACE a paste inside the CLI's
   // input, so they stay one line.
   notice_paste_too_large: '[paste filter (ADR-0033): a paste over {max} bytes was NOT forwarded, it could not '
@@ -74,9 +64,6 @@ export const DEFAULTS = Object.freeze({
     + 'NOT cleaned until it turns it back on.',
   notice_session_summary: 'Paste filter (ADR-0033): {count} paste(s) cleaned in this session ({categories}); '
     + '{replaced} paste(s) replaced by a notice.',
-  notice_wrapper_no_salt: 'Paste filter (ADR-0033): the term list exists but its salt could not be read without '
-    + 'a prompt, so term matching (employer/client terms, health terms, colleague names) is NOT '
-    + 'applied in this session.',
   notice_wrapper_args_unmarked: 'Paste filter (ADR-0033): a command-line argument carries {categories} or could '
     + 'not be checked, so this session is NOT marked and the prompt hook checks '
     + 'every prompt.',
@@ -538,33 +525,15 @@ export function tokens(text, o = offsets(text)) {
   return out;
 }
 
-/** The normalised forms stored for one term. @param {string} term */
-export function termForms(term) {
-  const words = tokens(term).map((t) => t[2]);
-  if (!words.length) return [];
-  const forms = [words.join(' ')];
-  if (words.length > 1) forms.push(words.join(''));
-  return forms;
-}
-
-/** HMAC-SHA256(bytes.fromhex(salt), form). @param {string} salt @param {string} form */
-export function termHash(salt, form) {
-  return crypto.createHmac('sha256', Buffer.from(salt, 'hex')).update(form, 'utf8').digest('hex');
-}
-
 // --------------------------------------------------------------------------------------- findSpans
 
 /**
- * [start, end, category] for every finding, in clipboard_guard.find_spans()'s own order. termHashes is
- * the employer and client list; termLists maps "health" and "colleague-name" to the owner's private
- * lists, matched like the employer list with the same salt. Never returns the matched text.
+ * [start, end, category] for every finding, in clipboard_guard.find_spans()'s own order. Patterns only:
+ * the term lists it also matched were removed by #589. Never returns the matched text.
  * @param {string} text
- * @param {Set<string>} [termHashes]
- * @param {string | null} [salt]
- * @param {Record<string, Set<string>>} [termLists]
  * @returns {Span[]}
  */
-export function findSpans(text, termHashes = new Set(), salt = null, termLists = {}) {
+export function findSpans(text) {
   const o = offsets(text);
   const spans = patternSpans(text, o);
   for (const re of CREDENTIAL_PATTERNS) for (const m of finditer(re, text, o)) spans.push([m.start, m.end, 'credential']);
@@ -577,32 +546,6 @@ export function findSpans(text, termHashes = new Set(), salt = null, termLists =
   for (const m of finditer(CARD, text, o)) if (cardOk(m.value.replaceAll(/[ -]/g, ''))) spans.push([m.start, m.end, 'payment-card']);
   for (const m of finditer(CPF, text, o)) if (cpfOk(onlyDigits(m.value))) spans.push([m.start, m.end, 'cpf']);
   for (const m of finditer(CNPJ, text, o)) if (cnpjOk(onlyDigits(m.value))) spans.push([m.start, m.end, 'cnpj']);
-  /** @type {Array<[string, Set<string>]>} */
-  const lists = [/** @type {[string, Set<string>]} */ (['employer-client-term', termHashes]),
-    ...Object.entries(termLists).sort((a, b) => byString(a[0], b[0]))]
-    .filter((e) => e[1]?.size);
-  if (lists.length && salt) {
-    const words = tokens(text, o);
-    /** @type {Map<string, string>} */
-    const memo = new Map();
-    const digest = (/** @type {string} */ f) => {
-      let h = memo.get(f);
-      if (h === undefined) {
-        h = termHash(salt, f);
-        memo.set(f, h);
-      }
-      return h;
-    };
-    for (let i = 0; i < words.length; i++) {
-      for (let n = 1; n <= Math.min(MAX_TERM_TOKENS, words.length - i); n++) {
-        const group = words.slice(i, i + n).map((w) => w[2]);
-        const digests = new Set([digest(group.join(' ')), digest(group.join(''))]);
-        for (const [cat, hashes] of lists) {
-          if ([...digests].some((d) => hashes.has(d))) spans.push([words[i][0], words[i + n - 1][1], cat]);
-        }
-      }
-    }
-  }
   return spans;
 }
 
@@ -729,15 +672,12 @@ export function pyInt(s) {
 /**
  * clipboard_guard.load_config(): key=value per line, '#' comments, last value wins; an invalid value falls
  * back to its default. Throws PyError with the class Python raised (an unreadable or undecodable file).
- * salt_store is always "file" since #488, whatever the file says.
  * @param {string | null | undefined} file
  * @param {{ env?: Record<string, string | undefined>, platform?: string, defaults?: Readonly<Record<string, string>> }} [opts]
  *   defaults: the keys this reader knows and their values (the prompt hook adds its notices, #488)
  * @returns {Record<string, string>}
  */
 export function loadConfig(file, opts = {}) {
-  const env = opts.env || process.env;
-  const platform = opts.platform || process.platform;
   const defaults = opts.defaults || DEFAULTS;
   /** @type {Record<string, string>} */
   const conf = { ...defaults };
@@ -765,94 +705,7 @@ export function loadConfig(file, opts = {}) {
   if (!wanted.length || wanted.some((c) => !CATEGORY_ORDER.includes(c))) conf.block_categories = DEFAULTS.block_categories;
   const report = conf.report_categories.split(',').map(strip).filter(Boolean);
   if (report.some((c) => !CATEGORY_ORDER.includes(c))) conf.report_categories = DEFAULTS.report_categories;
-  conf.salt_store = 'file'; // #488: no Keychain store any more
-  const overlay = localOverlayDir(env, platform);
-  if (!conf.terms_file) conf.terms_file = path.join(overlay, 'clipboard-terms');
-  if (!conf.salt_file) conf.salt_file = path.join(overlay, 'clipboard-salt');
-  for (const [cat, key] of Object.entries(TERM_LISTS)) {
-    if (!conf[key]) conf[key] = path.join(overlay, LIST_FILES[/** @type {keyof typeof LIST_FILES} */ (cat)]);
-  }
   return conf;
-}
-
-const HASH_LINE = /^[0-9a-f]{64}$/;
-
-/**
- * The salted hashes in a term list file. An unreadable file is an empty list, as in Python; a file that
- * is not ASCII is too (Python raised UnicodeDecodeError there; see test/golden/S15/expected-differences.json).
- * @param {string} file
- * @returns {Set<string>}
- */
-export function readTerms(file) {
-  let text;
-  try {
-    text = readTextPy(file, 'ascii');
-  } catch {
-    return new Set();
-  }
-  return new Set(text.split('\n').map(strip).filter((l) => HASH_LINE.test(l)));
-}
-
-/**
- * clipboard_guard.read_terms() exactly, for the prompt hook (#488, PR #536 QA B1): an OS error (absent,
- * unreadable) is an empty list, as Python caught OSError; a file that does not decode as ASCII throws
- * PyError('UnicodeDecodeError'), as Python raised it, so the hook prints its NOT-checked notice instead of
- * passing the prompt silently. readTerms() above keeps mhw scan's declared reading (a NOTE).
- * @param {string} file
- * @returns {Set<string>}
- */
-export function readTermsStrict(file) {
-  let text;
-  try {
-    text = readTextPy(file, 'ascii');
-  } catch (e) {
-    if (e instanceof PyError) throw e;
-    return new Set();
-  }
-  return new Set(text.split('\n').map(strip).filter((l) => HASH_LINE.test(l)));
-}
-
-/**
- * The salt file, as clipboard_guard.SaltStore.get() read it: absent or unreadable is no salt; not ASCII
- * throws PyError('UnicodeDecodeError') (the prompt hook's notice); otherwise the salt or null.
- * @param {string} file
- */
-export function fileSaltStrict(file) {
-  let value;
-  try {
-    value = strip(readTextPy(file, 'ascii'));
-  } catch (e) {
-    if (e instanceof PyError) throw e;
-    return null;
-  }
-  return /^[0-9a-f]{64}$/.test(value) ? value : null;
-}
-
-/**
- * (employer and client hashes, {category: hashes} for the private health and colleague lists).
- * @param {Record<string, string>} conf
- * @returns {[Set<string>, Record<string, Set<string>>]}
- */
-export function readTermLists(conf, read = readTerms) {
-  /** @type {Record<string, Set<string>>} */
-  const lists = {};
-  const terms = read(conf.terms_file); // the employer list first, as clipboard_guard.read_term_lists() read it
-  for (const [cat, key] of Object.entries(TERM_LISTS)) lists[cat] = read(conf[key]);
-  return [terms, lists];
-}
-
-/**
- * The salt in a file store, or null (absent, unreadable, or not 64 lowercase hex digits).
- * @param {string} file
- */
-export function fileSalt(file) {
-  let value;
-  try {
-    value = strip(readTextPy(file, 'ascii'));
-  } catch {
-    return null;
-  }
-  return /^[0-9a-f]{64}$/.test(value) ? value : null;
 }
 
 /** @param {Record<string, string>} conf */
