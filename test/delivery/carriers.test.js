@@ -110,3 +110,19 @@ test('mhw delivery is an unknown command (#591): it merges nothing and runs no g
     assert.ok(!sh.stdout.includes('MERGED'));
   }
 });
+
+test('the global brief and its renderings carry no rule to run mhw scan (#600)', () => {
+  // `mhw scan` left the CLI (CLI native baseline PRD, section 5): brief rule 8 is removed from the source,
+  // from the owner overlay's rendering of it, and from the repository brief. The fixed-pattern check's
+  // PreToolUse hook carries the outbound check now.
+  for (const carrier of ['global/AGENTS.md', 'overlay/desktop-instructions.md', 'overlay/AGENTS.md', 'AGENTS.md']) {
+    const text = flat(carrier);
+    assert.ok(!/run `?(\.\/)?mhw scan`?/.test(text), carrier + ': a rule to run mhw scan');
+    assert.ok(!text.includes('Before every push and pull request'), carrier + ': brief rule 8');
+  }
+  // The brief's "What you must do" list ends at rule 7 now, in the source and in the overlay's rendering.
+  for (const carrier of ['global/AGENTS.md', 'overlay/desktop-instructions.md']) {
+    const must = read(carrier).split('## What you must do')[1].split('\n## ')[0];
+    assert.deepEqual(must.match(/^\d+\. /gm), ['1. ', '2. ', '3. ', '4. ', '5. ', '6. ', '7. '], carrier);
+  }
+});

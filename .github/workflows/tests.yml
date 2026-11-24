@@ -191,7 +191,7 @@ jobs:
           out=$(node --test --test-reporter=tap --test-name-pattern="real security binary" test/render/mcp.test.js) || { echo "$out"; exit 1; }
           echo "$out"
           echo "$out" | grep -E '^ *ok [0-9]+ - a keychain secret reaches only the server' | grep -vq SKIP
-      # #486 (S15 of #470): the live arms of the cleaning core and mhw scan against the same CPython:
+      # #486 (S15 of #470): the live arms of the cleaning core and the outbound scan against the same CPython:
       # the shared corpus answered by clipboard_guard.py (the base revision's copy since #488 deleted it), the base revision's
       # scan.py on the same repositories, and a fresh recording of every Unicode table clean.js pins
       # (about two minutes). MHW_S15_LIVE_REQUIRED=1 turns any skip of the three into a failure.
@@ -229,21 +229,20 @@ jobs:
         run: |
           node --test --test-name-pattern="^live" test/clipboard/paste-wrapper.test.js
           node bin/mhw.js paste-wrapper check
-      # #488 (S17 of #470): the prompt hook's parity golden played live on the base revision's
-      # clipboard_guard.py with the same CPython while the base still holds it, and add-term on a real pty
-      # (echo off, Ctrl+C, Ctrl+D, terminal modes restored). MHW_S17_LIVE_REQUIRED=1 turns a skip into a
-      # failure: a missing base or interpreter while the base holds the original, or a pty that does not load.
-      - name: S17 live parity and add-term on a pty
+      # #488 (S17 of #470): add-term on a real pty (echo off, Ctrl+C, Ctrl+D, terminal modes restored).
+      # MHW_S17_LIVE_REQUIRED=1 turns a skip into a failure: a pty that does not load. The prompt hook's
+      # parity golden it also played left with `mhw hook prompt` (#600); add-term's golden is
+      # test/clipboard/add-term-golden.test.js, in the node job (npm test).
+      - name: S17 add-term on a pty
         if: runner.os != 'Windows'
         shell: bash
         env:
           TMPDIR: ${{ runner.temp }}
           MHW_S17_LIVE_REQUIRED: "1"
         run: |
-          python3 --version
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/clipboard/hook-golden.test.js test/clipboard/hook.test.js) || { echo "$out"; exit 1; }
+          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/clipboard/add-term.test.js) || { echo "$out"; exit 1; }
           echo "$out"
-          # The two pty arms must have run (the golden arm may skip once the base no longer holds the original).
+          # The two pty arms must have run.
           for name in "live: add-term reads the term twice with nothing echoed" "live: Ctrl+C and Ctrl+D cancel add-term cleanly"; do
             echo "$out" | grep -F "ok " | grep -F "$name" | grep -vq SKIP || { echo "SKIPPED or missing: $name"; exit 1; }
           done
@@ -659,9 +658,10 @@ jobs:
       # test/check/merge-authority.test.js, in the node job (npm test) on all three OSes.
       # Issue #224: Chrome's remote-debugging key in Local State is Node since #480 (mhw chrome-debugging);
       # its suite, on fixture files only, runs in the node job (npm test, test/render/chrome-debugging.test.js).
-      # ADR-0035 decision 7: mhw scan, the outbound scan, is Node since #486 (S15 of #470); its suites
-      # (test/scan/, test/clean/) run in the node job (npm test) on all three OSes, and their live arms
-      # against the recorded CPython in that job's S15 step.
+      # ADR-0035 decision 7: the outbound scan is Node since #486 (S15 of #470), and since #600 a CI script,
+      # .github/scripts/outbound-scan.js (mhw scan left the CLI); its suites (test/scan/, test/clean/) run in
+      # the node job (npm test) on all three OSes, and their live arms against the recorded CPython in that
+      # job's S15 step.
       # Issue #61, ADR-0032: the working-method renderer is Node since #489 (S18 of #470); its suite,
       # test/render/method.test.js (every rendered agent keeps its tool list and every rendered file its
       # provenance stamp, in throwaway HOMEs only), runs in the node job (npm test) on all three OSes.
@@ -710,9 +710,10 @@ jobs:
       # #477: so is rite-cadence (mhw rite-cadence, test/method/rite-cadence.test.js).
       # #478: and mhw funnel-review (test/method/funnel-review.test.js and the S07 goldens). With both moved,
       # the method scripts step had nothing left to run and was removed.
-      # ADR-0011, the paste filter: its prompt hook is Node since #488 (S17 of #470), src/commands/hook-prompt.js;
-      # its suites, test/clipboard/hook.test.js and hook-golden.test.js, run in the node job on all three
-      # OSes, and their live arms in that job's S17 step. The salt is a file since #488 (owner ruling,
+      # ADR-0011, the paste filter: its prompt hook was Node since #488 (S17 of #470), src/commands/hook-prompt.js,
+      # until #600 removed it; the fixed-pattern check (src/hooks/pattern-check.js, #588) is the prompt hook
+      # now, with its suites in test/hooks/. add-term's suites, test/clipboard/add-term.test.js and
+      # add-term-golden.test.js, run in the node job on all three OSes, and the pty arms in that job's S17 step. The salt is a file since #488 (owner ruling,
       # 2026-11-21), so no suite reads a Keychain for it any more.
       # ADR-0017: the MCP renderer is Node since #484 (S13 of #470), src/render/mcp.js; its suites,
       # test/render/mcp.test.js and test/render/mcp-golden.test.js, run in the node job on all three OSes, on

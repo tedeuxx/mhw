@@ -74,8 +74,9 @@ personal by policy and never persists employer or client confidential data
 content is cleaned where it enters an agent harness command line, as he decided (*"tem que ser limpo
 sozinho"*): a pty wrapper launcher, activated by shell functions the owner sources, replaces an
 employer or client reference, a credential or personal data in a bracketed paste before the agent
-harness sees it. A prompt hook on Claude Code and Codex is the safety net: in a session the wrapper
-did not start, it blocks such a prompt and shows a redacted copy
+harness sees it. A prompt hook on Claude Code and Codex is the safety net: ~~in a session the wrapper
+did not start,~~ it blocks such a prompt and shows a redacted copy *(since #600 the fixed-pattern check,
+an installed script, in every session; no hook command names `mhw`, and `mhw hook prompt` left the CLI)*
 ([ADR-0033](docs/adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md), ~~proposed~~ accepted 2026-11-17; it supersedes
 [ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), whose clipboard watcher was withdrawn on
 the owner's correction). Operational
@@ -302,10 +303,16 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   are removed from both installers; a leftover `aws-api` table or an enabled plugin is removed by hand,
   and `mhw status` names the plugin.
 - **Outbound scan** ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md) decision 7,
-  slice F): `mhw scan` checks the files and commits a branch changed and prints `file:line`, the
-  category and the length, never the text; the `outbound-scan` CI check runs it on every pull request.
-  *Written and tested*; **not installed** on the reference machine. Findings never block; employer and
-  client terms are not checked on the CI runner. macOS and Linux only.
+  slice F): ~~`mhw scan` checks the files and commits a branch changed and prints `file:line`, the
+  category and the length, never the text; the `outbound-scan` CI check runs it on every pull request.~~
+  *Amended 2026-11-23 ([#600](https://github.com/tedeuxx/mhw/issues/600)):* `mhw scan` and `mhw hook`
+  left the CLI, and brief rule 8, the instruction to scan before every push, left the global brief. In an agent
+  harness the fixed-pattern check's `PreToolUse` hook (#588) blocks a `git push` or `gh pr create` that
+  would send a fixed-format finding; the `outbound-scan` CI check runs the same engine from
+  `.github/scripts/outbound-scan.js` on every pull request and prints `file:line`, the category and the
+  length, never the text. *Written and tested*; **not installed** on the reference machine. The CI check
+  never blocks; employer and client terms are not checked on the runner, and a push from the owner's own
+  terminal is checked by nothing on the workstation.
 - **Owner-action queue** ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md) decision 9):
   actions only the owner can take are Issues in mhw labelled `owner-action`, and `mhw status` shows
   their open count, or `not read` with a reason, never a false 0. *Written and tested*; **not

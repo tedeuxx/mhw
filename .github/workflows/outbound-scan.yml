@@ -1,14 +1,17 @@
-# The outbound scan (ADR-0035, decision 7) on every pull request: `mhw scan` over the files the PR
-# changes and over every PR commit's added lines and message, with the paste filter's detectors
-# (ADR-0011). Findings never block: they are printed as file:line, category and match length, never the
+# The outbound scan (ADR-0035, decision 7) on every pull request: .github/scripts/outbound-scan.js over the
+# files the PR changes and over every PR commit's added lines and message, with the paste filter's
+# detectors (ADR-0011). Findings never block: they are printed as file:line, category and match length, never the
 # matched text (ADR-0005), and the scan exits 0 with findings. The job goes red only when the scan itself
 # cannot run or crashes. It is not among delivery-ci's needs in tests.yml, but the delivery rulesets
 # require its job, `scan`, by name (global/github-repo-settings.json, #591; mhw delivery merge refused any
 # non-green check until then), so a red or pending scan holds the merge: a scan that cannot run fails
 # closed, visibly. No term list exists on the runner, so employer and client terms
 # are not checked here, and the scan prints a NOTE saying so.
-# Since #486 (S15 of #470) the scan is the Node command (src/commands/scan.js on src/lib/clean.js). It
-# imports only node: modules, so nothing is installed from a registry here: no npm ci, no Python.
+# Since #486 (S15 of #470) the scan is Node, on src/lib/clean.js. Since #600 it is no longer the `mhw scan`
+# command (the CLI native baseline PRD, section 5: "CI calls the engine directly"): the script imports the
+# engine and the fixed-pattern check's patch reader (src/hooks/pattern-check.js) itself, and it imports
+# only node: modules and this tree's src/, so nothing is installed from a registry here: no npm ci, no
+# Python.
 name: outbound-scan
 
 on:
@@ -32,7 +35,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 26.13.1
-      - name: mhw scan of this pull request's changes (informs only)
+      - name: outbound scan of this pull request's changes (informs only)
         env:
           BASE_REF: ${{ github.base_ref }}
-        run: node bin/mhw.js scan "--base=origin/$BASE_REF"
+        run: node .github/scripts/outbound-scan.js "--base=origin/$BASE_REF"

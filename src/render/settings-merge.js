@@ -9,7 +9,8 @@
 //
 // --floor-claude is the rendered floor, one Claude Code rule per line (install.sh's $floor_claude).
 // --paste-cmd is the paste filter's hook command; without it the entry of ours is removed instead of
-// written (paste filter refused, or --hooks=managed). An entry of a removed hook (the HITL picker guard,
+// written (paste filter refused, or --hooks=managed; and since #600 always: `mhw hook prompt` left the CLI,
+// so mhw install-user never passes it and an earlier install's entry is removed). An entry of a removed hook (the HITL picker guard,
 // the restart guard) is always removed. --pattern-prompt-cmd and --pattern-tool-cmd are the fixed-pattern
 // check's two entries (#588): UserPromptSubmit, and PreToolUse on the Bash tool; without them they are removed.
 //
@@ -42,7 +43,7 @@ const PROG = 'settings-merge.js';
 export const STAMP_KEY = NAME;
 /** The deny-floor rules this installer appended (Issue #67). */
 export const OWN_KEY = NAME + '-owned-deny';
-/** The prompt hook's command carries this (`mhw hook prompt`, Node since #488). */
+/** The prompt hook's command carried this (`mhw hook prompt`, Node since #488, removed by #600): an entry of it is removed. */
 export const PASTE_ID = '/bin/mhw.js" hook prompt --harness ';
 /** The fixed-pattern check's commands carry this (src/hooks/pattern-check.js, installed by #588). */
 export const PATTERN_ID = '/pattern-check.js" ';

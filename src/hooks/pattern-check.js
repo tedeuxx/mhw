@@ -3,23 +3,23 @@
 // the cleaning core it imports (../lib/clean.js, ../lib/clean-unicode.js), and that each agent harness runs
 // from a NATIVE command hook. No hook command names `mhw`. It checks the fixed-format categories only
 // (FIXED_CATEGORIES: credentials, e-mail addresses, card and identity numbers, phone numbers); the term
-// categories stay with `mhw hook prompt` until #600 and then with the model.
+// categories are the model's since `mhw hook prompt` left the CLI (#600; PRD section 6).
 //
-//   node pattern-check.js prompt   --harness claude|codex|kiro [--config FILE] [--defer-to-paste-filter]
+//   node pattern-check.js prompt   --harness claude|codex|kiro [--config FILE]
 //       Before each prompt (UserPromptSubmit). A finding blocks the prompt and shows a redacted copy, in the
-//       protocol `mhw hook prompt` uses on that harness: Claude Code and Codex print
+//       protocol `mhw hook prompt` used on that harness until #600: Claude Code and Codex print
 //       {"decision": "block", "reason": ...} (Claude Code also suppressOriginalPrompt) and exit 0; Kiro exits
 //       2 with the message on stderr. A clean prompt prints nothing. A check that could not run says so
 //       ({"systemMessage": ...}; on Kiro on stderr, which Kiro drops at exit 0) and the prompt passes.
-//       --defer-to-paste-filter: `mhw hook prompt` is registered beside this hook (until #600) and blocks the
-//       same fixed-format findings itself, so this hook stays silent where it would: everywhere on Kiro, and
-//       on Claude Code and Codex outside a session the paste wrapper started (PMHWC_PASTE_WRAPPER=1, where
-//       that hook lets every prompt through and this one still checks what is typed). One prompt, one block.
+//       Since #600 it is the only prompt hook, in every session: in one the paste wrapper started (until
+//       #590) the wrapper has already cleaned a pasted finding, so this hook reads the cleaned text, and it
+//       blocks what is typed. (--defer-to-paste-filter, which kept it silent while `mhw hook prompt` ran
+//       beside it, went with that hook.)
 //   node pattern-check.js pre-tool --harness claude|codex|kiro [--config FILE]
 //       Before a tool call (PreToolUse). Only a shell command that runs `git push` (`git -C DIR push`
 //       included) or `gh pr create` is checked; every other call passes at once. Checked: the command text
 //       (a pull request's title and body included), the file a `--body-file`/`-F` names, and every commit
-//       that push would send: its message and the lines it adds (as `mhw scan` reads them; the vendor
+//       that push would send: its message and the lines it adds (as the outbound scan reads them; the vendor
 //       no-reply address of the attribution trailer excepted). A finding blocks the call on every harness:
 //       exit 2, the findings on stderr, never the matched text. A check that could not run blocks too
 //       (fail closed): the outbound act is the boundary, and the owner can still push from his own terminal.
@@ -45,7 +45,7 @@ export const DEADLINE_MS = 20000;
 
 /**
  * The deadline: DEADLINE_MS, or a shorter one from MHW_HOOK_DEADLINE_MS (a whole number of milliseconds),
- * read only when MHW_HOOK_TEST=1 is set too, as `mhw hook prompt` reads it: tests only, and it can only
+ * read only when MHW_HOOK_TEST=1 is set too, as `mhw hook prompt` read it: tests only, and it can only
  * shorten the wait.
  * @param {Record<string, string | undefined>} env
  */
@@ -55,7 +55,7 @@ export function deadlineOf(env) {
 }
 const FIXED = new Set(core.FIXED_CATEGORIES);
 
-/** The notices. The first four share their keys with `mhw hook prompt`, so one overlay localises both. */
+/** The notices. The first four keep the keys `mhw hook prompt` used (until #600), so an overlay localising them still applies. */
 export const NOTICES = Object.freeze({
   notice_blocked: 'Paste filter (ADR-0033): {categories} in this prompt. It was NOT sent, and nothing '
     + 'was changed. A redacted copy is below: submit that instead, or edit your prompt.',
@@ -109,7 +109,7 @@ export function fixedSpans(text, cats) {
   return core.findSpans(text).filter((s) => cats.has(s[2]));
 }
 
-/** JSON as `mhw hook prompt` writes it: ASCII only, ", " and ": " separators. @param {unknown} v @returns {string} */
+/** JSON as `mhw hook prompt` wrote it: ASCII only, ", " and ": " separators. @param {unknown} v @returns {string} */
 export function asciiJson(v) {
   if (typeof v === 'string') return JSON.stringify(v).replace(/[\u007f-\uffff]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
   if (v === null || typeof v === 'boolean' || typeof v === 'number') return String(v);
@@ -137,25 +137,12 @@ export function payloadOf(raw) {
 
 // --------------------------------------------------------------------------------------- prompt
 
-/** The paste wrapper's session marker (src/commands/hook-prompt.js, WRAPPER_MARKER), and its value. */
-export const WRAPPER_MARKER = 'PMHWC_PASTE_WRAPPER';
-
-/**
- * True when `mhw hook prompt` blocks this prompt's fixed-format findings itself: on Kiro always (its Kiro mode
- * ignores the marker), elsewhere outside a session the paste wrapper started.
- * @param {string} harness @param {Record<string, string | undefined>} env
- */
-export function pasteFilterBlocks(harness, env) {
-  return harness === 'kiro' || env[WRAPPER_MARKER] !== '1';
-}
-
 /**
  * What the prompt hook writes for one payload.
  * @param {Record<string, string>} conf @param {string} harness @param {Buffer} raw
- * @param {boolean} [defer] the paste filter blocks the same findings here (--defer-to-paste-filter)
  * @returns {{ stdout: string, stderr: string, code: number }}
  */
-export function promptCheck(conf, harness, raw, defer = false) {
+export function promptCheck(conf, harness, raw) {
   /** @param {string} msg */
   const warnOut = (msg) => (harness === 'kiro' ? { stdout: '', stderr: msg + '\n', code: 0 } : { stdout: asciiJson({ systemMessage: msg }) + '\n', stderr: '', code: 0 });
   try {
@@ -165,7 +152,7 @@ export function promptCheck(conf, harness, raw, defer = false) {
     if (typeof prompt !== 'string') throw new core.PyError('ValueError');
     if (Buffer.byteLength(prompt, 'utf8') > max) return warnOut(notice(conf, 'notice_too_large', { max: conf.max_bytes }));
     const spans = fixedSpans(prompt, blocked(conf));
-    if (!spans.length || defer) return { stdout: '', stderr: '', code: 0 };
+    if (!spans.length) return { stdout: '', stderr: '', code: 0 };
     const cleaned = core.sanitise(prompt, spans);
     const chars = [...cleaned].length;
     const parts = [notice(conf, 'notice_blocked', { categories: core.categories(spans).join(', ') })];
@@ -392,7 +379,7 @@ const ATTRIBUTION_TRAILER = new RegExp(String.raw`(?<![^\n])` + core.ci('co-auth
 // git's push options that take the next word (git-push(1)); a refspec is any other word after the remote.
 const PUSH_VALUE = new Set(['--repo', '--receive-pack', '--exec', '-o', '--push-option', '--signed']);
 
-/** The message with only the vendor address of each attribution trailer cut, as `mhw scan` reads it. @param {string} message */
+/** The message with only the vendor address of each attribution trailer cut, as the outbound scan reads it. @param {string} message */
 export function withoutAttributionTrailer(message) {
   return message.replace(ATTRIBUTION_TRAILER, (whole, name) => (core.strip(name) ? whole.slice(0, 'co-authored-by:'.length + name.length) : whole));
 }
@@ -449,7 +436,7 @@ function git(ctx, dir, gitDir, args) {
 
 /**
  * [path, first line, text or null] from a -U0 patch: each hunk's added lines as one block; a binary file is
- * one entry with text null. As `mhw scan` reads a commit (src/commands/scan.js addedBlocks).
+ * one entry with text null. The outbound scan (.github/scripts/outbound-scan.js) imports this reader.
  * @param {string} patch
  * @returns {Array<[string, number, string | null]>}
  */
@@ -518,7 +505,7 @@ function located(text, cats) {
 
 /**
  * The findings in what one push would send: every commit reachable from its revisions and from no
- * remote-tracking ref, its message and the lines it adds (a merge's message only, as `mhw scan`).
+ * remote-tracking ref, its message and the lines it adds (a merge's message only, as the outbound scan).
  * @param {{ git: string, env: Record<string, string | undefined>, deadlineAt: number, limit: number, cats: Set<string> }} ctx
  * @param {string} dir @param {string | null} gitDir @param {string[]} revs
  * @returns {Array<[string, string, number]>} [where, category, length]
@@ -572,7 +559,7 @@ function commitFindings(ctx, record, patch) {
   /** @type {Array<[string, string, number]>} */
   const found = located(withoutAttributionTrailer(message), ctx.cats).map(([, cat, len]) => [short + ':message', cat, len]);
   for (const [file, first, text] of addedBlocks(patch)) {
-    if (text === null) continue; // binary: a text pattern cannot read it (`mhw scan` names it SKIPPED)
+    if (text === null) continue; // binary: a text pattern cannot read it (the outbound scan names it SKIPPED)
     if (Buffer.byteLength(text, 'utf8') > ctx.limit) throw new core.PyError('TooLargeToCheck');
     for (const [line, cat, len] of located(text, ctx.cats)) found.push([short + ':' + file + ':' + (first + line - 1), cat, len]);
   }
@@ -722,16 +709,14 @@ export async function run(argv, env, io = {}) {
   let config = null;
   /** @type {string | null} */
   let harness = null;
-  let defer = false;
   while (rest.length) {
     const flag = /** @type {string} */ (rest.shift());
-    if (flag === '--defer-to-paste-filter' && mode === 'prompt') defer = true;
-    else if (flag === '--config' && rest.length) config = /** @type {string} */ (rest.shift());
+    if (flag === '--config' && rest.length) config = /** @type {string} */ (rest.shift());
     else if (flag === '--harness' && rest.length) harness = /** @type {string} */ (rest.shift());
     else return { stdout: '', stderr: 'pattern-check: unknown or incomplete argument: ' + flag + '\n', code: 2 };
   }
   if (!MODES.includes(mode) || !harness || !HARNESSES.includes(harness)) {
-    return { stdout: '', stderr: 'usage: pattern-check.js prompt|pre-tool --harness claude|codex|kiro [--config FILE] [--defer-to-paste-filter]\n', code: 2 };
+    return { stdout: '', stderr: 'usage: pattern-check.js prompt|pre-tool --harness claude|codex|kiro [--config FILE]\n', code: 2 };
   }
   const h = harness;
   /** @param {string} error */
@@ -761,7 +746,7 @@ export async function run(argv, env, io = {}) {
     } catch (e) {
       return failed(errorClass(e));
     }
-    if (mode === 'prompt') return promptCheck(c, h, raw, defer && pasteFilterBlocks(h, env));
+    if (mode === 'prompt') return promptCheck(c, h, raw);
     const r = preToolCheck(c, raw, env, deadlineAt);
     // Synchronous work past the deadline (the core's patterns on a long text) cannot be interrupted; an
     // answer that comes in late is not trusted as a pass.

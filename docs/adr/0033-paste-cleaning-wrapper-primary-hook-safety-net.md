@@ -368,8 +368,11 @@ Status of the record unchanged (accepted). This amendment records slice 2a of th
 [CLI native baseline PRD](../mhw-product-requirements-document-cli-native-baseline.md) (sections 5 and 6).
 The direction is the owner's (2026-11-23: *"native with fallback"*; fixed-format patterns by *"a small
 script installed as a file, no CLI subcommand"*). The mechanism details below are the agents' and await
-his ratification at the release candidate. Superseding this record as a whole is slice 2b
-([#600](https://github.com/tedeuxx/mhw/issues/600)), which removes `mhw hook prompt` and the wrapper.
+his ratification at the release candidate. ~~Superseding this record as a whole is slice 2b
+([#600](https://github.com/tedeuxx/mhw/issues/600)), which removes `mhw hook prompt` and the wrapper.~~
+*(Corrected by the #600 amendment below: slice 2b removes `mhw hook prompt` and amends this record; the
+wrapper's removal, and the record that supersedes this one, are slice 4's,
+[#590](https://github.com/tedeuxx/mhw/issues/590).)*
 
 - **The carrier.** `src/hooks/pattern-check.js` checks the fixed-format categories only (credential,
   email, payment-card, cpf, cnpj, phone; `FIXED_CATEGORIES` in the core). `mhw install` copies it and the
@@ -385,7 +388,8 @@ his ratification at the release candidate. Superseding this record as a whole is
 - **The prompt half** blocks a fixed-format finding with a redacted copy, in the protocol the prompt hook
   already uses on each harness, and reads the same `clipboard.conf` (its `block_categories`, its notices),
   so a localised overlay localises it. A clean prompt prints nothing.
-- **One block message while both run.** `mhw hook prompt` stays registered and unchanged (its term
+- ~~**One block message while both run.**~~ *(Removed by the #600 amendment below: `mhw hook prompt` and
+  `--defer-to-paste-filter` are gone; what this bullet describes held until then.)* `mhw hook prompt` stays registered and unchanged (its term
   categories are #589's) and already blocks every fixed-format finding outside a session the paste wrapper
   started. So the new prompt hook is rendered with `--defer-to-paste-filter` and stays silent wherever the
   prompt hook blocks: always on Kiro (whose prompt hook ignores the marker), and on Claude Code and Codex
@@ -408,6 +412,47 @@ his ratification at the release candidate. Superseding this record as a whole is
   check's prompt half and for the paste filter's Kiro hook alike, which ran in the same turn. On Kiro CLI
   the prompt half is therefore not a block; the outbound half (PreToolUse) is not measured.
 - **Windows.** Not carried by this amendment: see ADR-0035 decision 7's amendment of the same date.
+
+## Amendment 2026-11-23: `mhw hook prompt` leaves the CLI; the fixed-pattern check is the prompt hook ([#600](https://github.com/tedeuxx/mhw/issues/600), proposed)
+
+Status of the record unchanged (accepted). This amendment records slice 2b of the
+[CLI native baseline PRD](../mhw-product-requirements-document-cli-native-baseline.md) (section 5,
+where `hook prompt` goes to native hooks, with fallback; the owner: *"I find it an antipattern given our
+strategy of native components."*). The removal is the owner's decision; the details below are the agents' and await
+his ratification at the release candidate. The paste wrapper stays until slice 4
+([#590](https://github.com/tedeuxx/mhw/issues/590)).
+
+- **What leaves.** `mhw hook prompt` and `mhw hook check-config` are unknown commands, and
+  `src/commands/hook-entry.js` and `src/commands/hook-prompt.js` are deleted. No rendered hook names `mhw`
+  any more: `mhw install` stops writing the `mhw hook prompt` entry in `~/.claude/settings.json` and
+  `~/.codex/hooks.json`, and removes one an earlier install left (the settings merge drops every entry of
+  ours that it is not given; the Codex file is rendered whole). The Kiro CLI V3 hook file
+  `~/.kiro/hooks/<project>-paste-filter.json` is retired (removed when it carries our marker); the check's
+  own file, `<project>-pattern-check.json`, carries the prompt half on Kiro. The admin layer stops staging
+  `bin/hook/src/commands/hook-entry.js` and `hook-prompt.js`: both are now legacy files that
+  `mhw install-admin --apply` deletes and `--check` reports as STALE, so no managed hook points at a removed
+  module. Its Claude Code drop-in and Codex requirements carry only the check's entries.
+- **The fixed-pattern check is the prompt hook now, and `--defer-to-paste-filter` is gone.** The flag existed
+  only while `mhw hook prompt` ran beside it (the 2026-11-23 amendment above, *"One block message while both
+  run"*). With that hook gone the check blocks every fixed-format finding itself, in every session.
+- **With the paste wrapper still installed (until #590), behaviour stays safe, and here is how.** In a
+  session the wrapper started (`PMHWC_PASTE_WRAPPER=1`) the wrapper still cleans a bracketed paste before
+  the harness sees it, so the check reads the cleaned text: no second block for a paste already cleaned. A
+  typed credential there is blocked by the check, as it already was since #588. Outside a wrapped session
+  the check now blocks what `mhw hook prompt` blocked for the fixed-format categories, with the same notices
+  and the same redacted copy; the wrapper's shell functions are untouched. Its Kiro notice (*"who checks
+  now"*) reads the check's Kiro hook file instead of the retired one.
+- **What is lost, said plainly.** The term categories (`employer-client-term`, and the term halves of
+  `health` and `colleague-name`) are no longer checked at the prompt by any hook: they were
+  `mhw hook prompt`'s, and the owner chose that the model judges them (PRD section 6; the brief, and #589).
+  The Claude Code paste-marker stripping and the report-only notice went with it. `mhw add-term` keeps
+  working until #589 removes it, but nothing at the prompt reads its lists now.
+- **Status.** `mhw status` reads the check's prompt entries as the paste filter's (same node, same start
+  fallback) and names a `mhw hook prompt` entry or the old Kiro file still present as a leftover.
+- **Evidence level.** Written and tested in throwaway homes (install, upgrade from a home holding the old
+  entries, uninstall; the admin layer staged and applied in a throwaway root). Not installed on the
+  reference machine, and not measured in a live session of any harness. Codex asks to trust the changed
+  hooks again; that is the owner's act (`/hooks`).
 
 ## Links
 

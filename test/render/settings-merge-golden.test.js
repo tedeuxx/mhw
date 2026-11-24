@@ -106,7 +106,7 @@ function runScenario(sc, tree_) {
       env: { PATH: process.env.PATH || '', HOME: d.H, TMPDIR: path.join(T, 'tmp'), LANG: 'C', MHW_NODE: process.execPath,
         A_WRAP_NODE: '/opt/s20/bin/node', A_WRAP_MHW: '/opt/s20/mhw/bin/mhw.js',
         A_INSTALL_SH: path.join(tree_, 'global', 'install.sh'), A_SCRIPT_DIR: path.join(tree_, 'global'),
-        A_MODE: r.mode || 'install', A_HOOKS: r.hooks || 'user', A_PASTE_OK: r.paste === false ? '0' : '1', A_PATTERN_OFF: '1', A_STAMP: r.stamp || STAMP,
+        A_MODE: r.mode || 'install', A_HOOKS: r.hooks || 'user', A_PASTE_OK: r.paste === false ? '0' : '1', A_PATTERN_OFF: '1', A_PASTE_LEGACY: '1', A_STAMP: r.stamp || STAMP,
         A_MANAGED_ROOT: d.A, A_FLOOR: path.join(INPUTS, 'deny-floor.conf'),
         A_FLOOR_CLAUDE: path.join(INPUTS, sc.floor === 'dup' ? 'floor-dup.claude' : 'floor.claude'),
         A_FLOOR_CODEX: path.join(INPUTS, 'floor.codex'), A_NODE: process.execPath, A_PHASE: r.phase },

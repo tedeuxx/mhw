@@ -147,3 +147,31 @@ export const SCENARIOS = [
     runs: [{ args: [] }, { args: ['--check', '--overlay=T/empty-overlay'], before: [{ mkdir: 'T/empty-overlay' }] }],
   },
 ];
+
+// #600: `mhw hook prompt` left the CLI; these scenarios' output and hashed trees moved with it, and the originals are
+// deleted, so each is declared and its Node transcript, recorded at #600's head, is <scenario>.node.json
+// (expected-differences.json names why).
+const DECLARED_600 = new Set([
+  'drift-and-stamp',
+  'dry-run-fresh',
+  'hooks-managed-and-method',
+  'kiro-hook-backup',
+  'lifecycle-generic',
+  'lifecycle-overlay',
+  'node-missing',
+  'node-not-executable',
+  'node-that-is-not-node',
+  'quote-in-data-dir',
+  'retirements-foreign',
+  'retirements',
+  'settings-nested-300-deep',
+  'settings-owner',
+  'settings-permissions-array',
+  'settings-unparseable',
+  'shell-rc-explicit',
+  'uninstall-without-node-after-install',
+  'unmanaged-in-the-way',
+  'workstation-overlay-env',
+  'xdg-and-codex-home',
+]);
+for (const sc of SCENARIOS) if (DECLARED_600.has(sc.name)) sc.declared = true;

@@ -11,7 +11,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { which } from '../helpers/home.js';
-import { pasteCmd } from '../../src/commands/install-user.js';
+import { patternCmd } from '../../src/commands/install-user.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const MHW = path.join(ROOT, 'bin', 'mhw.js');
@@ -104,13 +104,21 @@ const fingerprint = (h) => targets(h).map((f) => read(f) ?? 'absent ' + f);
 /** Entries of the removed HITL picker guard in a settings file (must stay 0). @param {string} f */
 const ours = (f) => (json(f).hooks?.PreToolUse ?? []).flatMap((/** @type {any} */ g) => g.hooks ?? [])
   .filter((/** @type {any} */ x) => String(x.command).includes(NAME + '/hitl-escalation-guard.sh')).length;
-/** Paste-filter entries of ours (UserPromptSubmit) in a settings file. @param {string} f */
+/**
+ * Prompt-hook entries of ours (UserPromptSubmit) in a settings file: the fixed-pattern check's (the prompt hook
+ * since #600), `mhw hook prompt`'s (removed by #600) and the Python core's (removed by #488).
+ * @param {string} f
+ */
 const pours = (f) => (json(f).hooks?.UserPromptSubmit ?? []).flatMap((/** @type {any} */ g) => g.hooks ?? [])
-  .filter((/** @type {any} */ x) => String(x.command).includes('/bin/mhw.js" hook prompt --harness ') || String(x.command).includes(NAME + '/clipboard_guard.py')).length;
+  .filter((/** @type {any} */ x) => String(x.command).includes('/pattern-check.js" prompt --harness ') || String(x.command).includes('/bin/mhw.js" hook prompt --harness ')
+    || String(x.command).includes(NAME + '/clipboard_guard.py')).length;
 /** How many times a rule is in permissions.deny. @param {string} f @param {string} r */
 const hasRule = (f, r) => (json(f).permissions?.deny ?? []).filter((/** @type {string} */ x) => x === r).length;
-/** The prompt hook command install renders. @param {string} harness @param {string} conf */
-const hookCmd = (harness, conf) => pasteCmd(harness, NODE, WRAP_MHW, conf);
+/**
+ * The prompt hook command install renders: the fixed-pattern check's prompt half since #600, its script beside
+ * the settings file. @param {string} harness @param {string} conf
+ */
+const hookCmd = (harness, conf) => patternCmd(harness, 'prompt', NODE, path.dirname(conf) + '/pattern-check/src/hooks/pattern-check.js', conf);
 
 // Expected rules, derived from the floor sources independently of the installer: a cmd line is one rule,
 // a glob line one (Claude Code only), a file line two (Read and Edit).
@@ -136,7 +144,8 @@ test('1. dry-run writes nothing', { skip }, () => {
   assert.deepEqual(files(h), [], 'dry-run wrote a file');
   assert.match(r.stdout, /^WOULD WRITE/m);
   assert.match(r.stdout, /^WOULD MERGE/m);
-  assert.match(r.stdout, /^\+.*hook prompt --harness claude/m);
+  assert.match(r.stdout, /^\+.*pattern-check\.js\\?" prompt --harness claude/m);
+  assert.doesNotMatch(r.stdout, /hook prompt --harness/);
   assert.match(r.stdout, /^\+ *"Bash\(git push --force:\*\)"/m);
   assert.match(r.stdout, /^WOULD WRITE .*\/\.codex\/rules\/workstation-deny-floor\.rules/m);
 });
@@ -896,9 +905,10 @@ test('12. XDG_DATA_HOME is honoured: the paste filter and its data go there, and
   assert.equal(inst(h, [], { XDG_DATA_HOME: x }).code, 0);
   const xd = x + '/' + NAME;
   assert.ok(exists(xd + '/clipboard.conf') && !exists(data(h)));
-  // Two prompt entries read it: the paste filter and the fixed-pattern check (#588), whose script is there too.
+  // One prompt entry reads it: the fixed-pattern check's (#588), whose script is there too. The paste filter's
+  // `mhw hook prompt` entry read it as well until #600 removed that command.
   assert.equal(json(h + '/.claude/settings.json').hooks.UserPromptSubmit.flatMap((/** @type {any} */ g) => g.hooks)
-    .filter((/** @type {any} */ y) => String(y.command).includes(xd + '/clipboard.conf')).length, 2);
+    .filter((/** @type {any} */ y) => String(y.command).includes(xd + '/clipboard.conf')).length, 1);
   assert.ok(exists(xd + '/pattern-check/src/hooks/pattern-check.js'));
   assert.ok(/** @type {string} */ (read(h + '/.codex/hooks.json')).includes(xd + '/clipboard.conf'));
   assert.equal(inst(h, ['--check'], { XDG_DATA_HOME: x }).code, 0);
@@ -1301,60 +1311,55 @@ test('24. the Kiro deny floor merges beside the owner\'s rule; uninstall takes b
   assert.ok(!exists(data(hk) + '/kiro-permissions-owned.json'));
 });
 
-test('24. Kiro CLI V3\'s user-level prompt hook: one managed file, run as Kiro runs it', { skip }, () => {
+test('24. Kiro CLI V3\'s prompt hook is the fixed-pattern check\'s file; the retired paste-filter file is removed when ours (#600)', { skip }, () => {
   const hh = dir('kirohook');
   const kh = hh + '/.kiro/hooks/' + NAME + '-paste-filter.json';
+  const kp = hh + '/.kiro/hooks/' + NAME + '-pattern-check.json';
   let r = inst(hh);
-  assert.equal(r.code, 0);
-  const want = hookCmd('kiro', data(hh) + '/clipboard.conf');
-  const doc = json(kh);
+  assert.equal(r.code, 0, r.out);
+  assert.ok(!exists(kh), 'the retired file was written');
+  const doc = json(kp);
   assert.equal(doc.version, 'v1');
-  assert.equal(doc.hooks.length, 1);
-  assert.ok(doc.hooks[0].description.startsWith(MARKER + '; source: global/install.sh'));
-  assert.equal(doc.hooks[0].trigger, 'UserPromptSubmit');
-  assert.deepEqual(doc.hooks[0].action, { type: 'command', command: want });
-  assert.equal(doc.hooks[0].timeout, 30);
-  assert.ok(doc.hooks[0].name.length > 0);
-  assert.ok(/** @type {string} */ (read(kh)).split('\n').slice(0, 5).some((l) => l.includes(MARKER)));
-  const cmd = doc.hooks[0].action.command;
-  let p = runPaste(hh, cmd, 'deploy with ' + SYNTHETIC_KEY + ' please', { PMHWC_PASTE_WRAPPER: '1' });
-  assert.equal(p.status, 2);
-  assert.equal(p.stdout, '');
-  assert.ok(p.stderr.includes('REDACTED:credential') && !p.stderr.includes(SYNTHETIC_KEY));
-  p = runPaste(hh, cmd, 'refactor the parser');
+  const prompt = doc.hooks.filter((/** @type {any} */ x) => x.trigger === 'UserPromptSubmit');
+  assert.equal(prompt.length, 1);
+  assert.ok(prompt[0].description.startsWith(MARKER + '; source: src/hooks/pattern-check.js'));
+  assert.deepEqual(prompt[0].action, { type: 'command', command: hookCmd('kiro', data(hh) + '/clipboard.conf') });
+  assert.equal(prompt[0].timeout, 30);
+  const cmd = prompt[0].action.command;
+  // Blocked with the wrapper's session marker set as without it: nothing defers since #600.
+  for (const extra of /** @type {Array<Record<string, string>>} */ ([{}, { PMHWC_PASTE_WRAPPER: '1' }])) {
+    const p = runPaste(hh, cmd, 'deploy with ' + SYNTHETIC_KEY + ' please', extra);
+    assert.equal(p.status, 2, JSON.stringify(extra));
+    assert.equal(p.stdout, '');
+    assert.ok(p.stderr.includes('REDACTED:credential') && !p.stderr.includes(SYNTHETIC_KEY));
+  }
+  let p = runPaste(hh, cmd, 'refactor the parser');
   assert.deepEqual([p.status, p.stdout, p.stderr], [0, '', '']);
   p = spawnSync('/bin/sh', ['-c', cmd], { input: 'not json', encoding: 'utf8', env: { PATH: process.env.PATH || '', HOME: hh } });
   assert.deepEqual([p.status, p.stdout], [0, '']);
   r = inst(hh, ['--check']);
-  assert.equal(r.code, 0);
-  assert.match(r.out, new RegExp('^OK      ' + esc(kh) + ' \\(', 'm'));
-  r = inst(hh);
-  assert.match(r.out, new RegExp('^OK      ' + esc(kh) + ' \\(', 'm'));
-  assert.ok(!exists(kh + '.pmhwc-backup'));
-  const edited = json(kh);
-  edited.hooks[0].timeout = 1;
-  fs.writeFileSync(kh, JSON.stringify(edited, null, 2));
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, new RegExp('^OK      ' + esc(kp) + ' \\(', 'm'));
+  // An earlier release's file of ours goes, with its own REMOVED line; check names it STALE first.
+  fs.writeFileSync(kh, '{\n  "version": "v1",\n  "hooks": [\n    {\n      "description": "' + MARKER + '; source: global/install.sh (paste filter, ADR-0033); x",\n'
+    + '      "trigger": "UserPromptSubmit",\n      "action": {"type": "command", "command": "x hook prompt --harness kiro"}\n    }\n  ]\n}\n');
   r = inst(hh, ['--check']);
   assert.equal(r.code, 1);
-  assert.match(r.out, new RegExp('^DRIFT   ' + esc(kh) + ' \\(', 'm'));
+  assert.match(r.out, new RegExp('^STALE   ' + esc(kh) + ': the Kiro prompt hook that ran mhw hook prompt, removed \\(#600\\); install removes it$', 'm'));
   r = inst(hh);
-  assert.equal(r.code, 0);
-  assert.equal(mode(kh + '.pmhwc-backup'), '600');
-  assert.equal(json(kh + '.pmhwc-backup').hooks[0].timeout, 1);
-  assert.equal(json(kh).hooks[0].timeout, 30);
-  assert.ok(r.out.includes('previous version kept as ' + kh + '.pmhwc-backup'));
-  r = inst(hh, ['--uninstall']);
-  assert.equal(r.code, 0);
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, new RegExp('^REMOVED ' + esc(kh) + ' \\(the Kiro prompt hook that ran mhw hook prompt, removed \\(#600\\)\\)$', 'm'));
   assert.ok(!exists(kh));
-  assert.match(r.out, new RegExp('^REMOVED ' + esc(kh) + '$', 'm'));
+  // A file of that name that is not ours is left alone, and named.
   fs.writeFileSync(kh, '{"version": "v1", "hooks": [{"name": "mine", "trigger": "Stop", "action": {"type": "command", "command": "true"}}]}\n');
   r = inst(hh);
-  assert.equal(r.code, 3);
-  assert.match(r.out, new RegExp('^REFUSE  ' + esc(kh) + ': exists and is NOT managed', 'm'));
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, new RegExp('^NOTE    ' + esc(kh) + ' exists and is NOT managed', 'm'));
   assert.ok(/** @type {string} */ (read(kh)).includes('"mine"'));
   r = inst(hh, ['--uninstall']);
+  assert.equal(r.code, 0);
+  assert.ok(!exists(kp));
   assert.ok(/** @type {string} */ (read(kh)).includes('"mine"'));
-  assert.match(r.out, new RegExp('^NOTE    ' + esc(kh) + ' exists and is NOT managed', 'm'));
 });
 
 test('mcp_step\'s two refusals: no node is a SKIP, an MHW_NODE that is not executable is refused, never another node', { skip }, async () => {

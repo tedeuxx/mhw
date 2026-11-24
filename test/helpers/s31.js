@@ -30,7 +30,7 @@ export const TAGS = ['fx-old', 'fx-good', 'fx-broken', 'fx-install-fails'];
  * @typedef {{ path: string, mode: string, sha256: string }} TarEntry
  * @typedef {{ steps: Result[], tarballs: Record<string, TarEntry[]> }} Transcript
  * @typedef {{ install: (repo: string) => void, argv: (repo: string) => string[] }} Runner
- * @typedef {{ case: string[], stream: Array<'stdout' | 'stderr'>, base?: string, head?: string, replace: string, why: string }} ExpectedDifference
+ * @typedef {{ case: string[], stream: Array<'stdout' | 'stderr' | 'tarballs'>, base?: string, head?: string, replace?: string, path?: string, why: string }} ExpectedDifference
  */
 
 /** @param {string} dir @param {string} dest */
@@ -213,13 +213,16 @@ export function differences(name, base, head, expected) {
   const mine = expected.filter((e) => e.case.includes(name) || e.case.includes('*'));
   /** @param {Transcript} t @param {'base' | 'head'} side */
   const apply = (t, side) => ({
-    tarballs: t.tarballs,
+    // An entry on the "tarballs" stream (#600) blanks the sha256 of each packed file whose path it names, on
+    // both sides: a fixture file changed on purpose; its presence and mode are still compared.
+    tarballs: Object.fromEntries(Object.entries(t.tarballs).map(([k, files]) => [k, files.map((f) => (mine.some((e) => e.stream.includes('tarballs')
+      && e.path && new RegExp(e.path).test(f.path)) ? { ...f, sha256: '<DECLARED>' } : f))])),
     steps: t.steps.map((r) => {
       const out = { ...r };
       for (const e of mine) {
         const pat = e[side];
         if (!pat) continue;
-        for (const stream of e.stream) out[stream] = out[stream].replace(new RegExp(pat, 'gm'), e.replace);
+        for (const stream of e.stream) if (stream !== 'tarballs') out[stream] = out[stream].replace(new RegExp(pat, 'gm'), e.replace ?? '');
       }
       return out;
     }),

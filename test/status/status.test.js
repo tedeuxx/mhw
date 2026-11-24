@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import * as st from '../../src/commands/status.js';
 import { keyVerdict, readKey, mismatchLine } from '../../src/lib/readers/version-key.js';
-import { readHooks, hooksText, LEFTOVER, GUARD, OLD_PASTE, KIRO_HOOK, oldPasteLeftover, hookNodeText, termListsState } from '../../src/lib/readers/hooks.js';
+import { readHooks, hooksText, LEFTOVER, GUARD, OLD_PASTE, KIRO_HOOK, OLD_KIRO_HOOK, oldPasteLeftover, hookPromptLeftover, hookNodeText, termListsState } from '../../src/lib/readers/hooks.js';
 import { adminState, adminInstalled, adminDropin, adminStamp, adminPresent, issues } from '../../src/lib/readers/admin.js';
 import { readSettings, methodState, permissionsText, unreadSources } from '../../src/lib/readers/settings.js';
 import { rootBriefFindings, mainCheckoutOf, workspace } from '../../src/lib/readers/workspace.js';
@@ -523,18 +523,25 @@ describe('the hooks reader', () => {
     assert.deepEqual(readHooks(env), { user: [], admin: [] });
     assert.equal(hooksText(readHooks(env)), 'admin: none · user: none');
   });
-  /** The prompt hook command as install.sh renders it since #488. @param {string} node @param {string} entryJs @param {string} harness */
-  const nodeCmd = (node, entryJs, harness) => '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + node + '" "'
-    + entryJs + '" hook prompt --harness ' + harness + ' --config "' + path.join(data, 'clipboard.conf') + '"';
+  /**
+   * The prompt hook command as mhw install-user renders it since #600: the fixed-pattern check's prompt half.
+   * @param {string} node @param {string} script @param {string} harness
+   */
+  const nodeCmd = (node, script, harness) => '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + node + '" "'
+    + script + '" prompt --harness ' + harness + ' --config "' + path.join(data, 'clipboard.conf') + '"';
+  /** `mhw hook prompt`'s command, as installers rendered it from #488 until #600. @param {string} node @param {string} mhwJs @param {string} harness */
+  const oldCmd = (node, mhwJs, harness) => '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + node + '" "'
+    + mhwJs + '" hook prompt --harness ' + harness + ' --config "' + path.join(data, 'clipboard.conf') + '"';
+  const script = () => path.join(data, 'pattern-check', 'src', 'hooks', 'pattern-check.js');
   test('user entries count only with their node and entry (#488)', () => {
     const node = path.join(data, 'node');
-    const mhw = path.join(data, 'pkg', 'bin', 'mhw.js');
+    const mhw = script();
     write(path.join(env.HOME, '.claude', 'settings.json'), JSON.stringify(entry('UserPromptSubmit', nodeCmd(node, mhw, 'claude'))));
     // PR #536 lens B3: a registered hook that cannot start is a FAIL item, never just absent.
     assert.deepEqual(readHooks(env).user, ['paste filter (Claude Code) FAIL: ' + node + ' and ' + mhw + ' not found, the prompt hook cannot start']);
     write(node, '#\n');
     assert.deepEqual(readHooks(env).user, ['paste filter (Claude Code) FAIL: ' + mhw + ' not found, the prompt hook cannot start'], 'the entry it runs is missing');
-    assert.match(hooksText(readHooks(env)), /user: paste filter \(Claude Code\) FAIL: .*mhw\.js not found/);
+    assert.match(hooksText(readHooks(env)), /user: paste filter \(Claude Code\) FAIL: .*pattern-check\.js not found/);
     write(mhw, '#\n');
     write(path.join(env.HOME, '.codex', 'hooks.json'), JSON.stringify(entry('UserPromptSubmit', nodeCmd(node, mhw, 'codex'))));
     assert.deepEqual(readHooks(env).user, ['paste filter (Claude Code)', 'paste filter (Codex)']);
@@ -545,14 +552,31 @@ describe('the hooks reader', () => {
   });
   test('the command wrapped in the start fallback is read as the prompt hook (#488)', () => {
     const node = path.join(data, 'node');
-    const mhw = path.join(data, 'bin', 'mhw.js');
+    const mhw = script();
     const wrapped = "/bin/sh -c '" + nodeCmd(node, mhw, 'claude') + ' || { printf "%s\\n" "{}"; exit 0; }\'';
     write(path.join(env.HOME, '.claude', 'settings.json'), JSON.stringify(entry('UserPromptSubmit', wrapped)));
     write(node, '#\n');
     write(mhw, '#\n');
     assert.deepEqual(readHooks(env).user, ['paste filter (Claude Code)']);
     fs.unlinkSync(mhw);
-    assert.match(String(readHooks(env).user), /FAIL: .*mhw\.js not found/);
+    assert.match(String(readHooks(env).user), /FAIL: .*pattern-check\.js not found/);
+  });
+  test('a `mhw hook prompt` entry or Kiro file an earlier install left is named as a leftover, never as the prompt hook (#600)', () => {
+    const node = path.join(data, 'node');
+    const mhw = path.join(data, 'pkg', 'bin', 'mhw.js');
+    write(node, '#\n');
+    write(mhw, '#\n');
+    write(path.join(env.HOME, '.claude', 'settings.json'), JSON.stringify(entry('UserPromptSubmit', oldCmd(node, mhw, 'claude'))));
+    write(path.join(env.HOME, '.codex', 'hooks.json'), JSON.stringify(entry('UserPromptSubmit', "/bin/sh -c '" + oldCmd(node, mhw, 'codex') + " || exit 0'")));
+    assert.deepEqual(readHooks(env).user, [hookPromptLeftover('Claude Code'), hookPromptLeftover('Codex')]);
+    assert.equal(hookNodeText(env), 'no prompt hook registered');
+    fs.rmSync(path.join(env.HOME, '.claude'), { recursive: true });
+    fs.rmSync(path.join(env.HOME, '.codex'), { recursive: true });
+    const old = path.join(env.HOME, '.kiro', 'hooks', OLD_KIRO_HOOK);
+    write(old, '{"description": "someone else"}');
+    assert.deepEqual(readHooks(env).user, [], 'a file of that name that is not ours is not named');
+    write(old, '{"description": "' + MARKER + '; old"}');
+    assert.deepEqual(readHooks(env).user, [hookPromptLeftover('Kiro CLI V3')]);
   });
   test('the Python hook an earlier install left registered is named (#488)', () => {
     write(path.join(env.HOME, '.claude', 'settings.json'), JSON.stringify(entry('UserPromptSubmit', 'python3 ' + path.join(data, OLD_PASTE) + ' prompt-hook')));
@@ -563,9 +587,11 @@ describe('the hooks reader', () => {
   test('the Kiro hook file is present, modified or absent', () => {
     const kiro = path.join(env.HOME, '.kiro', 'hooks', KIRO_HOOK);
     const node = path.join(data, 'node');
-    const mhw = path.join(data, 'bin', 'mhw.js');
+    const mhw = script();
     const cmd = nodeCmd(node, mhw, 'kiro');
-    const doc = { version: 'v1', hooks: [{ description: MARKER + '; source: global/install.sh', name: 'paste filter', trigger: 'UserPromptSubmit', action: { type: 'command', command: cmd }, timeout: 30 }] };
+    // The fixed-pattern check's file (#600): its prompt half, then its outbound half, which status does not read.
+    const doc = { version: 'v1', hooks: [{ description: MARKER + '; source: src/hooks/pattern-check.js', name: 'fixed-pattern check, prompt', trigger: 'UserPromptSubmit', action: { type: 'command', command: cmd }, timeout: 30 },
+      { description: MARKER + '; source: src/hooks/pattern-check.js', name: 'fixed-pattern check, outbound', trigger: 'PreToolUse', action: { type: 'command', command: cmd.replace('" prompt --harness', '" pre-tool --harness') }, timeout: 30 }] };
     write(kiro, JSON.stringify(doc));
     assert.deepEqual(readHooks(env).user, ['paste filter (Kiro CLI V3) FAIL: ' + node + ' and ' + mhw + ' not found, the prompt hook cannot start'], 'its node and entry are missing');
     write(node, '#\n');
@@ -580,7 +606,8 @@ describe('the hooks reader', () => {
     assert.deepEqual(readHooks(env).user, ['paste filter (Kiro CLI V3, modified)']);
     fs.unlinkSync(kiro);
     assert.deepEqual(readHooks(env).user, []);
-    assert.equal(KIRO_HOOK, NAME + '-paste-filter.json');
+    assert.equal(KIRO_HOOK, NAME + '-pattern-check.json');
+    assert.equal(OLD_KIRO_HOOK, NAME + '-paste-filter.json');
   });
   // #488 (PR #536 lens O2): a hashed term list the salt file does not cover is named, never silent.
   const HASH = 'ab'.repeat(32);
@@ -643,8 +670,8 @@ describe('the hooks reader', () => {
     const bin = env.WORKSTATION_MANAGED_ROOT + (process.platform === 'darwin' ? '/Library/Application Support/' : '/etc/') + NAME + '/bin';
     const doc = /** @type {Record<string, any>} */ (entry('PreToolUse', '/bin/sh "' + path.join(bin, GUARD) + '"'));
     const node = path.join(data, 'node');
-    const entryJs = path.join(bin, 'hook', 'src', 'commands', 'hook-entry.js');
-    const adminCmd = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + node + '" "' + entryJs + '" --harness claude --config "x"';
+    const entryJs = path.join(bin, 'hook', 'src', 'hooks', 'pattern-check.js');
+    const adminCmd = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + node + '" "' + entryJs + '" prompt --harness claude --config "x"';
     Object.assign(doc.hooks, entry('UserPromptSubmit', adminCmd).hooks);
     doc[NAME] = 'stamp';
     write(adminDropin(env), JSON.stringify(doc));
@@ -656,6 +683,12 @@ describe('the hooks reader', () => {
     assert.deepEqual(readHooks(env).admin, [LEFTOVER, 'paste filter (Claude Code)']);
     write(req, '# ' + MARKER + '\n[[hooks.UserPromptSubmit]]\ncommand = ' + codexCmd + '\n');
     assert.deepEqual(readHooks(env).admin, [LEFTOVER, 'paste filter (Claude Code)', 'paste filter (Codex)']);
+    // #600: an admin layer from before #600 still registers hook-entry.js; it is a leftover, not the prompt hook.
+    const oldEntry = path.join(bin, 'hook', 'src', 'commands', 'hook-entry.js');
+    const oldAdmin = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + node + '" "' + oldEntry + '" --harness codex --config "x"';
+    write(oldEntry, '#\n');
+    write(req, '# ' + MARKER + '\n[[hooks.UserPromptSubmit]]\ncommand = ' + JSON.stringify(oldAdmin) + '\n');
+    assert.deepEqual(readHooks(env).admin, [LEFTOVER, 'paste filter (Claude Code)', hookPromptLeftover('Codex')]);
   });
 });
 

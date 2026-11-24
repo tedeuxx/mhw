@@ -69,7 +69,10 @@ export const EXIT_DRAIN_SECONDS = 0.2;
 export const STOP_POLL_MS = 250;
 export const WRAPPER_MARKER = 'PMHWC_PASTE_WRAPPER';
 export const WRAPPER_MARKER_VALUE = '1';
+// The Kiro hook file that ran `mhw hook prompt` (#455), retired by #600; the name is kept (the S16 golden's
+// constants carry it). The prompt hook on Kiro is the fixed-pattern check's own file now (#588).
 export const KIRO_HOOK_FILE = core.PROJECT + '-paste-filter.json';
+export const KIRO_CHECK_FILE = core.PROJECT + '-pattern-check.json';
 // Exit status when the pty library cannot be used: the POSIX "found but cannot execute".
 export const REFUSED = 126;
 // DEC private mode set/reset; the parameter list is digits and semicolons only (no backtracking).
@@ -425,14 +428,15 @@ export function notice(conf, key, values = {}) {
 }
 
 /**
- * True when the managed Kiro hook file is there and runs the core in its kiro mode. A read only: the
- * file can be present and still not run (an untrusted workspace, a V2 engine).
+ * True when the managed Kiro hook file is there and runs the fixed-pattern check's prompt half in its kiro
+ * mode (since #600; `mhw hook prompt`'s file until then). A read only: the file can be present and still not
+ * run (an untrusted workspace, a V2 engine).
  * @param {string} home
  */
 export function kiroHookInstalled(home) {
   let text;
   try {
-    const fd = fs.openSync(path.join(home, '.kiro', 'hooks', KIRO_HOOK_FILE), 'r');
+    const fd = fs.openSync(path.join(home, '.kiro', 'hooks', KIRO_CHECK_FILE), 'r');
     try {
       const buf = Buffer.alloc(65536 * 4);
       text = new TextDecoder('utf-8', { fatal: true }).decode(buf.subarray(0, fs.readSync(fd, buf, 0, buf.length, 0))).slice(0, 65536);
@@ -442,7 +446,8 @@ export function kiroHookInstalled(home) {
   } catch {
     return false;
   }
-  return text.includes('managed-by: ' + core.PROJECT) && text.includes('hook prompt --harness kiro');
+  // In the JSON text the quote after the script path is escaped (a backslash before it); either form matches.
+  return text.includes('managed-by: ' + core.PROJECT) && /pattern-check\.js\\?" prompt --harness kiro /.test(text);
 }
 
 /**

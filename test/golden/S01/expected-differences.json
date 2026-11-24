@@ -124,5 +124,68 @@
     "pattern": "file\\(s\\) to write \\(no password needed\\)$",
     "whenBaseLacks": "src/hooks/pattern-check.js",
     "why": "#588: the install plan counts the files it writes, which grows by the fixed-pattern check's five; the line is left out on both sides while the base lacks the check, and every other line is compared."
+  },
+  {
+    "case": "help",
+    "stream": "stdout",
+    "pattern": "^    \\./mhw scan \\[--base=REF \\| PATH\\.\\.\\.\\][^\\n]*\\n(?: {42}[^\\n]*\\n)*    \\./mhw scan --file=PATH[^\\n]*\\n(?: {42}[^\\n]*\\n)*",
+    "replace": "",
+    "why": "#600 took `mhw scan` out of the CLI (CLI native baseline PRD, section 5): the usage text no longer lists `./mhw scan [--base=REF | PATH...]` or `./mhw scan --file=PATH`, so their lines (each entry and its 42-column continuations) are taken out of the original's side; every other usage line is still compared."
+  },
+  {
+    "case": "unknown-subcommand",
+    "stream": "stderr",
+    "pattern": "check, scan, policy check",
+    "replace": "check, policy check",
+    "why": "#600: the unknown-subcommand refusal lists the subcommands mhw has, and scan is no longer one; only that word is taken out of the original's list."
+  },
+  {
+    "case": "windows-help",
+    "stream": "stdout",
+    "pattern": "^\\(Windows: install --admin, scan and uninstall are macOS and Linux only\\)$",
+    "replace": "(Windows: install --admin and uninstall are macOS and Linux only)",
+    "why": "#600: the Windows usage line named scan among the commands that are macOS and Linux only; scan is no longer a command. Applied after the S27 entry, which rewrote the same line's install.ps1 clause."
+  },
+  {
+    "case": "windows-no-args",
+    "stream": "stdout",
+    "pattern": "^\\(Windows: install --admin, scan and uninstall are macOS and Linux only\\)$",
+    "replace": "(Windows: install --admin and uninstall are macOS and Linux only)",
+    "why": "#600: the same Windows usage line as windows-help, printed with exit 2 when no command is given."
+  },
+  {
+    "case": "windows-help",
+    "stream": "stdout",
+    "pattern": " \\| scan \\[--base=REF \\| PATH\\.\\.\\. \\| --file=PATH\\]$",
+    "replace": "",
+    "why": "#600: the Windows usage's first line ended with the scan command's synopsis; scan is no longer a command, so that clause is taken out of the original's line and the rest of the line is still compared."
+  },
+  {
+    "case": "windows-no-args",
+    "stream": "stdout",
+    "pattern": " \\| scan \\[--base=REF \\| PATH\\.\\.\\. \\| --file=PATH\\]$",
+    "replace": "",
+    "why": "#600: the same first usage line as windows-help, printed with exit 2 when no command is given."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree-drop",
+    "pattern": "^\\.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter\\.json$",
+    "whenBaseHas": "src/commands/hook-prompt.js",
+    "why": "#600: install no longer writes the Kiro CLI V3 hook file that ran `mhw hook prompt`; the fixed-pattern check's own Kiro file carries the prompt half. A base that still holds mhw hook prompt writes it, so it is left out of both sides of the live arm until #600 has merged."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree",
+    "pattern": "^\\.claude/settings\\.json$|^\\.codex/hooks\\.json$|^\\.kiro/hooks/personal-multi-harness-workstation-configuration-pattern-check\\.json$|pattern-check/src/hooks/pattern-check\\.js$|^\\.claude/CLAUDE\\.md$|^\\.codex/AGENTS\\.md$|^\\.kiro/steering/workstation-global-brief\\.md$",
+    "whenBaseHas": "src/commands/hook-prompt.js",
+    "why": "#600: the settings and the Codex hooks file no longer carry the `mhw hook prompt` entry, the check's prompt entries drop --defer-to-paste-filter (and so does the script itself), and the three rendered global briefs lose brief rule 8. Those files are compared by kind and mode only in the live arm while the base still holds the old code; test/hooks/pattern-check-install.test.js and test/delivery/carriers.test.js hold their content."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "stdout",
+    "pattern": "file\\(s\\) to write \\(no password needed\\)$",
+    "whenBaseHas": "src/commands/hook-prompt.js",
+    "why": "#600: the install plan counts one file fewer (the retired Kiro hook file); the line is left out on both sides of the live arm while the base still writes that file."
   }
 ]

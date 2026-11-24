@@ -305,7 +305,13 @@ test('for kiro-cli the "NOT cleaned" notice says whether the Kiro prompt hook ch
   fs.mkdirSync(path.join(home, '.kiro', 'hooks'), { recursive: true });
   fs.writeFileSync(path.join(home, '.kiro', 'hooks', w.KIRO_HOOK_FILE), '{"description": "managed-by: ' + core.PROJECT + '", "command": "x prompt-hook --harness kiro"}');
   assert.match(w.noPasteNotice(conf, 'notice_no_bracketed_paste', '/opt/bin/kiro-cli', home), /No Kiro prompt hook/, 'the Python hook command no longer counts (#488)');
+  // #600: `mhw hook prompt` and its Kiro file are gone, so that file no longer counts either; the fixed-pattern
+  // check's own Kiro file (#588), its prompt half, is what checks a prompt now.
   fs.writeFileSync(path.join(home, '.kiro', 'hooks', w.KIRO_HOOK_FILE), '{"description": "managed-by: ' + core.PROJECT + '", "command": "x hook prompt --harness kiro"}');
+  assert.match(w.noPasteNotice(conf, 'notice_no_bracketed_paste', '/opt/bin/kiro-cli', home), /No Kiro prompt hook/, 'the retired hook file no longer counts (#600)');
+  fs.writeFileSync(path.join(home, '.kiro', 'hooks', w.KIRO_CHECK_FILE), '{"description": "managed-by: ' + core.PROJECT + '", "command": "\\"/n\\" \\"/d/pattern-check.js\\" pre-tool --harness kiro --config c"}');
+  assert.match(w.noPasteNotice(conf, 'notice_no_bracketed_paste', '/opt/bin/kiro-cli', home), /No Kiro prompt hook/, 'only the prompt half counts');
+  fs.writeFileSync(path.join(home, '.kiro', 'hooks', w.KIRO_CHECK_FILE), '{"description": "managed-by: ' + core.PROJECT + '", "command": "\\"/n\\" \\"/d/pattern-check.js\\" prompt --harness kiro --config c"}');
   const on = w.noPasteNotice(conf, 'notice_no_bracketed_paste', '/opt/bin/kiro-cli', home);
   assert.match(on, /has not enabled bracketed paste/);
   assert.match(on, /only in a trusted workspace/);

@@ -23,10 +23,11 @@
 //   1. the deny floor rendered into the three agent harness carriers (Claude Code settings.json, the Codex
 //      rules file, Kiro permissions.yaml), and into the admin layer under the throwaway root, equals what
 //      global/deny-floor.conf plus overlay/deny-floor.conf in --source say it must be;
-//   2. the installed prompt hook, run as the harness runs it with the paste-wrapper marker unset, blocks
-//      a synthetic credential-shaped prompt and passes a clean one (Claude Code and Codex); Kiro CLI V3's
-//      user-level hook file (Issue #455) exists in the V3 shape, and its command blocks the same prompt with
-//      exit 2, the redacted copy on stderr and nothing on stdout, with the marker SET as well;
+//   2. the installed prompt hook (the fixed-pattern check's prompt half since #600; it was `mhw hook prompt`),
+//      run as the harness runs it, blocks a synthetic credential-shaped prompt and passes a clean one, with the
+//      paste-wrapper marker unset and SET (Claude Code and Codex); Kiro CLI V3's user-level hook file (the
+//      check's own, #588) exists in the V3 shape, and its prompt command blocks the same prompt with exit 2,
+//      the redacted copy on stderr and nothing on stdout, with the marker SET as well;
 //   3. `mhw status` and `mhw check` exit 0;
 //   4. `mhw uninstall --yes` restores every file the owner had, removes the admin layer, and leaves no
 //      floor rule, brief or data directory of mhw behind.
@@ -52,7 +53,7 @@ import { pyRepr, pyStrip, isPyWs, cmpStr, codePoints } from '../../src/lib/py.js
 import { splitLines } from '../../src/lib/py-text.js';
 import { onPath } from '../../src/lib/onpath.js';
 
-export const MARKER = 'PMHWC_PASTE_WRAPPER'; // src/commands/hook-prompt.js, WRAPPER_MARKER
+export const MARKER = 'PMHWC_PASTE_WRAPPER'; // src/commands/paste-wrapper.js, WRAPPER_MARKER (it was hook-prompt.js's until #600)
 export const NAME = 'personal-multi-harness-workstation-configuration';
 const WORD = /^[A-Za-z0-9._/~=:@+*-]+$/;
 // `pack` reads the checkout this script sits in (.github/scripts/ -> the repository root); `run` needs
@@ -64,8 +65,8 @@ const FLOOR_FILES = ['global/deny-floor.conf', 'overlay/deny-floor.conf']; // in
 const MAX_BUFFER = 256 * 1024 * 1024;
 // The file kinds one runtime retires (#470): none may be in the installed package.
 const RETIRED_KINDS = ['.py', '.sh', '.ps1'];
-// install.sh's start fallback for Kiro (paste_wrap, PR #536 lens B3): test/clipboard/hook.test.js holds it
-// to install.sh's own function.
+// install.sh's start fallback for Kiro (paste_wrap, PR #536 lens B3; mhw install-user's pasteWrap since #503):
+// test/ci/prod-canary.test.js holds it to that function.
 export const KIRO_NOTICE = 'Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.';
 
 /** @type {string[]} */
@@ -734,12 +735,12 @@ function checkAdmin(box, exp) {
 }
 
 /**
- * The paste filter's prompt hook among the admin hooks: the fixed-pattern check's entries (#588, the installed
- * src/hooks/pattern-check.js) sit beside it in the same documents and are held by test/hooks/ and
- * test/install/admin.test.js, so this canary keeps checking the one hook it always checked.
+ * The prompt hook among the admin hooks: since #600 the fixed-pattern check's prompt half (#588, the installed
+ * src/hooks/pattern-check.js), where it was `mhw hook prompt`'s entry. Its pre-tool half is in other groups,
+ * and test/hooks/ and test/install/admin.test.js hold it.
  * @param {string} cmd
  */
-const pasteFilterOnly = (cmd) => !cmd.includes('/pattern-check.js"');
+const pasteFilterOnly = (cmd) => cmd.includes('/pattern-check.js" prompt --harness ');
 
 /** The command hooks of a Claude Code settings document's UserPromptSubmit. @param {unknown} doc */
 function claudeHooks(doc) {
@@ -754,29 +755,32 @@ function claudeHooks(doc) {
 }
 
 /**
- * Kiro CLI V3's hook file (Issue #455): user level, the V3 shape read from the kas 2.35.2 bundle. Returns
- * the one command to run, which is the expected string, never one read from the file.
+ * Kiro CLI V3's hook file: user level, the V3 shape read from the kas 2.35.2 bundle. Since #600 it is the
+ * fixed-pattern check's own file (#588), whose prompt entry is the prompt hook; the paste filter's file that
+ * ran `mhw hook prompt` (Issue #455) is retired and must be absent. Returns the one command to run, which is
+ * the expected string, never one read from the file.
  * @param {Box} box
  * @returns {string[]}
  */
 function checkKiroHookFile(box) {
-  const kh = path.join(box.home, '.kiro', 'hooks', NAME + '-paste-filter.json');
+  const kh = path.join(box.home, '.kiro', 'hooks', NAME + '-pattern-check.json');
   const kdoc = isFile(kh) ? readJson(kh) : {};
-  const kentries = /** @type {unknown[]} */ (Array.isArray(get(kdoc, 'hooks', null)) ? get(kdoc, 'hooks', []) : []);
+  const all = /** @type {unknown[]} */ (Array.isArray(get(kdoc, 'hooks', null)) ? get(kdoc, 'hooks', []) : []);
+  const kentries = all.filter((e) => get(e, 'trigger', null) === 'UserPromptSubmit');
   const desc = kentries.length === 1 ? get(kentries[0], 'description', '') : '';
   check(isFile(kh) && get(kdoc, 'version', null) === 'v1' && kentries.length === 1
-    && (typeof desc === 'string' ? desc : pyRepr(desc)).includes('managed-by: ' + NAME)
-    && get(kentries[0], 'trigger', null) === 'UserPromptSubmit',
+    && (typeof desc === 'string' ? desc : pyRepr(desc)).includes('managed-by: ' + NAME),
   'Kiro: the user-level hook file is rendered in the V3 shape', kh);
+  check(!isFile(path.join(box.home, '.kiro', 'hooks', NAME + '-paste-filter.json')), 'Kiro: the retired paste-filter hook file is absent (#600)');
   // The command is compared with the one install.sh must render for this HOME, and only that expected
   // string is run: a command read from a file is never executed as given.
   const data = path.join(box.home, '.local', 'share', NAME);
-  // #488: `mhw hook prompt` on the node install.sh found first on PATH (the tools directory), by absolute
-  // path, from the installed package, with NODE_OPTIONS, NODE_ICU_DATA and NODE_PATH cleared.
+  // #600: the fixed-pattern check's installed script (#588) on the node install found first on PATH (the tools
+  // directory), by absolute path, with NODE_OPTIONS, NODE_ICU_DATA, NODE_PATH and NODE_COMPILE_CACHE cleared.
   const node = path.join(path.dirname(box.d), 'tools', 'node');
-  const mhwJs = path.join(resolveLoose(box.pkg()), 'bin', 'mhw.js');
-  const inner = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + node + '" "' + mhwJs
-    + '" hook prompt --harness kiro --config "' + path.join(data, 'clipboard.conf') + '"';
+  const script = path.join(data, 'pattern-check', 'src', 'hooks', 'pattern-check.js');
+  const inner = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + node + '" "' + script
+    + '" prompt --harness kiro --config "' + path.join(data, 'clipboard.conf') + '"';
   const want = kiroHookCommand(inner);
   /** @param {unknown} e */
   const action = (e) => get(e, 'action', null);
@@ -816,7 +820,7 @@ function decisionOf(stdout) {
   return isDict(parsed) ? parsed.decision ?? null : null;
 }
 
-/** 2, Claude Code or Codex: block the dirty prompt, pass the clean one, stay silent under the marker. @param {string} harness @param {string[]} cmds @param {HookRig} rig */
+/** 2, Claude Code or Codex: block the dirty prompt, pass the clean one, and block it under the marker too. @param {string} harness @param {string[]} cmds @param {HookRig} rig */
 function checkJsonHook(harness, cmds, rig) {
   if (!check(cmds.length === 1, harness + ': exactly one installed prompt hook', 'found ' + cmds.length)) return;
   check(!(MARKER in rig.env), harness + ': the paste-wrapper marker is unset for the hook');
@@ -828,10 +832,10 @@ function checkJsonHook(harness, cmds, rig) {
   p = rig.fire(cmds[0], rig.clean, rig.env);
   check(p.returncode === 0 && p.stdout === '', harness + ': the installed hook passes a clean prompt',
     'exit ' + p.returncode + ', stdout ' + pyRepr(head(p.stdout, 300)));
-  // Calibration: the same dirty prompt in a session the paste wrapper started passes silently, so the
-  // block above came from the hook judging the prompt, not from something unrelated to the marker.
+  // Since #600 the hook defers to nothing: in a session the paste wrapper started it still blocks what is
+  // typed. (Until then `mhw hook prompt` let such a session's prompts through, and this was a calibration.)
   p = rig.fire(cmds[0], rig.dirty, { ...rig.env, [MARKER]: '1' });
-  check(p.returncode === 0 && p.stdout === '', harness + ': calibration, with the wrapper marker set the hook stays silent');
+  check(p.returncode === 0 && decisionOf(p.stdout) === 'block' && !p.stdout.includes(rig.fakeKey), harness + ': with the wrapper marker set the hook still blocks');
 }
 
 /**

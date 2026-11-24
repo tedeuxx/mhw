@@ -754,9 +754,15 @@ last bullet.
   missing its hints ships unless somebody reads for it here.
 - **Each post's text is SCANNED before it is posted, and a finding is rewritten, never masked
   (mhw#34).** Write the exact text of each post, as it will be typed, to a scratch file in the session
-  scratchpad, one file per network, and run `mhw scan --file=<that file>` (`./mhw scan --file=…` in a
+  scratchpad, one file per network, and ~~run `mhw scan --file=<that file>` (`./mhw scan --file=…` in a
   checkout). It is the workstation's outbound scan: the same detection engine as the push check, a
-  report of `file:line`, category and length, never the matched text. **On a finding, rewrite that
+  report of `file:line`, category and length, never the matched text.~~ *(struck 2026-11-23, mhw#600:
+  `mhw scan` left the CLI, and no installed command scans a file.)* Read that text yourself for a
+  credential, an e-mail address, a card, CPF, CNPJ or phone number, and for an employer's or client's
+  name or detail (the global brief, rule 4). Where a checkout of mhw is at hand,
+  `node <checkout>/.github/scripts/outbound-scan.js --file=<that file>` runs the same detection engine
+  as the push hook and reports `file:line`, category and length, never the matched text; it is a script
+  in a checkout, not an installed control, so its absence is said, not skipped silently. **On a finding, rewrite that
   passage toward the abstract** (a sector or a role instead of a name, a description instead of an
   identifier) and scan again until it reports nothing. **A `[REDACTED:…]` marker never appears in a
   public post**: a marker is itself visible, and odd, to every reader. **Tell the owner the category
@@ -786,7 +792,7 @@ is hand-voiced after generation, and regenerating over it at this cadence buys n
 | a bilingual post carries its two language hints, and sits under the length target | **an instruction** (`published-voice` rules 19–20, 2026-09-19). The gate arm asserts the clauses are WRITTEN; nothing reads a draft, and no copy hold reaches this lane to refuse a post that dropped them |
 | the share URL is locale-neutral | **an instruction** (rule 21, 2026-09-19), and it is **inert until the neutral form resolves** — so today what holds it is the precondition the rule states first. An MCP call carries the typed URL, which made a detector conceivable on that route; none exists in this method, and the route that has actually published is the browser extension no matcher sees |
 | the publish act is accounted for | **an instruction**: `agents-configuration`'s end-of-turn check 9, after the act, gating nothing |
-| each post's text is scanned before it is posted, and a finding is rewritten rather than masked | **an instruction** (mhw#34). `mhw scan --file` reports and never blocks; nothing checks that the scan ran, or that the posted text is the scanned file |
+| each post's text is scanned before it is posted, and a finding is rewritten rather than masked | **an instruction** (mhw#34). ~~`mhw scan --file` reports and never blocks~~ since mhw#600 the agent reads the text itself, and the outbound scan script runs only from a checkout of mhw; nothing checks that either ran, or that the posted text is the scanned file |
 
 **By this loop's own test — *would something stop me, or only my memory?* — nothing on this step is
 engineered**: the only native layer is the agents' tool lists, and they do not hold the orchestrator. That

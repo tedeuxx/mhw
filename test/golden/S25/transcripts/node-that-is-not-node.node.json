@@ -1,0 +1,162 @@
+[
+  {
+    "run": "install",
+    "code": 2,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.claude/CLAUDE.md (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.codex/AGENTS.md (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.kiro/steering/workstation-global-brief.md (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.codex/rules/workstation-deny-floor.rules (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.codex/hooks.json (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh (release: <RELEASE>; commit: <COMMIT>\nREFUSE  the shell start-up block: /usr/bin/true did not run as node; no start-up file changed\nREFUSE  the allow list: /usr/bin/true did not run as node; nothing written\nFLOOR   not reported: /usr/bin/true did not run as node\nRESTART REQUIRED: open fresh Claude Code, Codex and Kiro sessions before further work; Codex hook trust remains an owner action in /hooks.\n",
+    "stderr": "REFUSE  <T>/home/.claude/settings.json: /usr/bin/true did not run as node to merge the hook entry and the deny floor; left untouched\n",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/CLAUDE.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:65aa208fd43b6b35b4d0ca6b336631b624d036722119a7926bbc7da06e7901e4"
+      },
+      {
+        "path": ".codex",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/AGENTS.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:65aa208fd43b6b35b4d0ca6b336631b624d036722119a7926bbc7da06e7901e4"
+      },
+      {
+        "path": ".codex/hooks.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"description\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh (paste filter, ADR-0011); release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"hooks\": {\n    \"UserPromptSubmit\": [\n      {\n        \"hooks\": [\n          {\"type\": \"command\", \"command\": \"/bin/sh -c '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \\\"/usr/bin/true\\\" \\\"<T>/home/.local/share/personal-multi-harness-workstation-configuration/pattern-check/src/hooks/pattern-check.js\\\" prompt --harness codex --config \\\"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\\\" || { printf \\\"%s\\\\n\\\" \\\"{\\\\\\\"systemMessage\\\\\\\": \\\\\\\"Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.\\\\\\\"}\\\"; exit 0; }'\", \"timeout\": 30}\n        ]\n      }\n    ]\n  }\n}\n"
+      },
+      {
+        "path": ".codex/rules",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/rules/workstation-deny-floor.rules",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:adb9ff71ee3ad8f3b4dbb86176115a2ebed013954d87fdfd1fe5a551329dc919"
+      },
+      {
+        "path": ".kiro",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/hooks",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/steering",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/steering/workstation-global-brief.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:2ed94369b8ae1104fb1e6e1c4a30e3ff5b7f35f9071b287bfa03080ae3c39c7e"
+      },
+      {
+        "path": ".local",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:c21671ca8041060a9f5d450b019b01b0065200dcf764dc4eb81c3336b2ba0273"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/paste-filter.sh",
+        "kind": "file",
+        "mode": "644",
+        "data": "# managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh (paste wrapper, ADR-0011); release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n# The paste filter at the harness-CLI paste boundary (ADR-0011). install.sh sources it from a\n# managed block in your shell start-up file (~/.zshrc, or ~/.bashrc and on macOS ~/.bash_profile;\n# Issue #145), which reads:\n#   [ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# Then claude, codex and kiro-cli run through the wrapper, which cleans bracketed pastes before the\n# CLI sees them and marks the session (PMHWC_PASTE_WRAPPER=1), so the prompt hook lets its prompts\n# through. \"command claude\" (or codex, kiro-cli) runs a CLI without it, and the hook then checks.\nclaude() { \"/usr/bin/true\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- claude \"$@\"; }\ncodex() { \"/usr/bin/true\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- codex \"$@\"; }\nkiro-cli() { \"/usr/bin/true\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- kiro-cli \"$@\"; }\n"
+      }
+    ]
+  },
+  {
+    "run": "--uninstall",
+    "code": 2,
+    "stdout": "REFUSE  the allow list: /usr/bin/true did not run as node; nothing written\nREFUSE  the shell start-up block: /usr/bin/true did not run as node; no start-up file changed\nREMOVED <T>/home/.claude/CLAUDE.md\nREMOVED <T>/home/.codex/AGENTS.md\nREMOVED <T>/home/.kiro/steering/workstation-global-brief.md\nREMOVED <T>/home/.codex/rules/workstation-deny-floor.rules\nREMOVED <T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\nREMOVED <T>/home/.codex/hooks.json\nREMOVED <T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\nREMOVED <T>/home/.local/share/personal-multi-harness-workstation-configuration (empty)\nABSENT  <T>/home/.claude/settings.json\nNOTE    the admin layer is not touched here; ./mhw uninstall prints its sudo line\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/rules",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/hooks",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/steering",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  }
+]

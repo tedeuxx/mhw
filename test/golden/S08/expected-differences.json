@@ -12,5 +12,12 @@
     "base": "^(?:Python 3\\.9\\+, standard library only\\.|Node, node: modules only\\.) ",
     "replace": "<RUNTIME> ",
     "why": "The same docstring named its runtime, 'Python 3.9+, standard library only.'; the Node command says 'Node, node: modules only.'. The text after it on the line (the exit codes) is still compared."
+  },
+  {
+    "case": ["crlf-output-is-not-drift"],
+    "stream": "tree",
+    "base": "^(output/desktop-instructions\\.md file \\S+) [0-9a-f]{64}$",
+    "replace": "$1 <the sha256 of a CRLF copy holding the floor>",
+    "why": "This case rewrites the rendered files with CRLF line ends, and desktop-instructions.md carries the global brief (the floor) verbatim. The <FLOOR> normalisation above matches the floor in its LF form only, so the CRLF copy's sha256 changes with every edit of global/AGENTS.md (first hit by #600, which removed brief rule 8), on the original's side as on the head's. Only that one hash, in this one case, is taken out; the file's presence and mode, every other file's hash, the exit codes and both streams of every run are still compared, and the LF render runs of every other case still hold desktop-instructions.md to the original."
   }
 ]
