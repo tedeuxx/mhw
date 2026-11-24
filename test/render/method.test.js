@@ -61,6 +61,8 @@ describe('the source shape', () => {
       'merge-pull-request',
       // #567: the positioning-sync procedure, moved out of a private note.
       'positioning-sync',
+      // #594: the worklog, which replaced mhw worklog.
+      'worklog',
       // The four rites moved at #130 (owner, 2026-10-12) and became skills on 2026-10-26 (owner: "para mim sao skills").
       'sprint-planning', 'sprint-review', 'sprint-retrospective', 'funnel-review'].sort(byCode));
     // #198 added /handoff; #522 added /backlog-grooming.
