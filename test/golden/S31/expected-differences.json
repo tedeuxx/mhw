@@ -30,6 +30,55 @@
       "head": "^( {26}--work WORK \\[--commit COMMIT\\]) \\[--legacy LEGACY\\]$",
       "replace": "$1",
       "why": "run takes one more option, --legacy, the list of the files a later slice of #470 still has to retire that the installed package may carry for now; the usage names it at the end of its second line."
+    },
+    {
+      "case": ["run-broken"],
+      "stream": ["stdout"],
+      "base": "^PASS  claude: calibration, with the wrapper marker set the hook stays silent$",
+      "replace": "FAIL  claude: with the wrapper marker set the hook still blocks",
+      "why": "#600: `mhw hook prompt` left the CLI and the fixed-pattern check's prompt half is the prompt hook, which defers to nothing: in a session the paste wrapper started it still blocks what is typed. The canary's marker check was a calibration that the hook stays silent under the marker; it now checks that the hook still blocks there, and the fake package's hook follows the new behaviour. In run-broken the fake Claude Code hook passes every prompt, so the new check fails where the old calibration passed: the original's line is rewritten to the head's FAIL line, and the next two entries add it to the count and the summary."
+    },
+    {
+      "case": ["run-broken"],
+      "stream": ["stdout"],
+      "base": "^==> fresh: 14 failure\\(s\\): ",
+      "replace": "==> fresh: 15 failure(s): ",
+      "why": "#600: `mhw hook prompt` left the CLI and the fixed-pattern check's prompt half is the prompt hook, which defers to nothing: in a session the paste wrapper started it still blocks what is typed. The canary's marker check was a calibration that the hook stays silent under the marker; it now checks that the hook still blocks there, and the fake package's hook follows the new behaviour. run-broken's failure count grows by that one check; the rest of the summary line is still compared."
+    },
+    {
+      "case": ["run-broken"],
+      "stream": ["stdout"],
+      "base": "claude: the installed hook blocks a synthetic credential-shaped prompt; kiro:",
+      "replace": "claude: the installed hook blocks a synthetic credential-shaped prompt; claude: with the wrapper marker set the hook still blocks; kiro:",
+      "why": "#600: `mhw hook prompt` left the CLI and the fixed-pattern check's prompt half is the prompt hook, which defers to nothing: in a session the paste wrapper started it still blocks what is typed. The canary's marker check was a calibration that the hook stays silent under the marker; it now checks that the hook still blocks there, and the fake package's hook follows the new behaviour. run-broken's summary names that one more failed check, in the order the checks run."
+    },
+    {
+      "case": ["*"],
+      "stream": ["stdout"],
+      "base": "^PASS  (claude|codex): calibration, with the wrapper marker set the hook stays silent$",
+      "replace": "PASS  $1: with the wrapper marker set the hook still blocks",
+      "why": "#600: `mhw hook prompt` left the CLI and the fixed-pattern check's prompt half is the prompt hook, which defers to nothing: in a session the paste wrapper started it still blocks what is typed. The canary's marker check was a calibration that the hook stays silent under the marker; it now checks that the hook still blocks there, and the fake package's hook follows the new behaviour. Where the hook works, the line passes under its new name."
+    },
+    {
+      "case": ["*"],
+      "stream": ["stdout"],
+      "head": "^PASS  Kiro: the retired paste-filter hook file is absent \\(#600\\)\\n",
+      "replace": "",
+      "why": "#600: the canary checks one more thing, that the Kiro hook file that ran `mhw hook prompt` is gone after the install (install retires it); the original had no such file to look for. The line is taken out of the head side; prod-canary.test.js holds its FAIL arm."
+    },
+    {
+      "case": ["*"],
+      "stream": ["stdout"],
+      "base": "^      got \\['/bin/sh -c [^\\n]*--harness kiro [^\\n]*$",
+      "head": "^      got \\['/bin/sh -c [^\\n]*--harness kiro [^\\n]*$",
+      "replace": "      got [<the rendered Kiro prompt command>]",
+      "why": "#600: where the Kiro prompt command differs from the expected one (run-broken), the canary prints the command it found. That command now runs the installed fixed-pattern check (<data dir>/pattern-check/src/hooks/pattern-check.js prompt --harness kiro) instead of mhw.js hook prompt, so the detail line is normalised on both sides; the FAIL line above it is still compared."
+    },
+    {
+      "case": ["pack"],
+      "stream": ["tarballs"],
+      "path": "^package/bin/mhw\\.js$",
+      "why": "#600: the fake package's bin/mhw.js renders the prompt hook as the fixed-pattern check's installed script (and writes that script) instead of `mhw hook prompt`, so its packed sha256 changes. Only that file's hash is blanked; every other packed file, its mode and the file list are still compared."
     }
   ],
   "residuals": [

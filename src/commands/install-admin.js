@@ -10,7 +10,7 @@
 //
 // `mhw install` runs this command (src/lib/lifecycle.js); `mhw install --admin` is the owner's entry. It
 // runs on node: src/cli.js starts this file as a child of the node running mhw, by absolute path, because it
-// loads the vendored TOML parser, which stays off the import graph of `mhw hook prompt` (convention 5).
+// loads the vendored TOML parser, which stays off the import graph of the hook path (convention 5).
 //
 // The admin hook names node by absolute path: the node `mhw install-user` rendered into the user layer, the
 // node running mhw. On Homebrew or nvm that node, and the libraries it loads, are owner-writable code, so a
@@ -36,17 +36,17 @@ const MHW_JS = path.join(ROOT, 'bin', 'mhw.js');
 const DROPIN = '50-' + NAME + '.json';
 /** What the admin documents name as their source: kept as install-managed.sh wrote it, so an installed layer reads OK, not DRIFT. */
 const SOURCE = 'global/install-managed.sh';
-// The prompt hook in Node (#488, S17 of #470): a root-owned copy of the hook's own JavaScript, so no process
+// The fixed-pattern check (#588) in Node: a root-owned copy of the hook's own JavaScript, so no process
 // running as the owner can change THOSE files. It does NOT make the admin layer's hook root-owned end to end:
-// it runs the node `mhw install-user` found (see the header).
-// The fixed-pattern check (#588) is one more file there: it imports the same core copy (hook/src/lib).
-export const HOOK_FILES = ['hook/package.json', 'hook/src/commands/hook-entry.js', 'hook/src/commands/hook-prompt.js', 'hook/src/lib/clean.js',
-  'hook/src/lib/clean-unicode.js', 'hook/src/hooks/pattern-check.js'];
+// it runs the node `mhw install-user` found (see the header). The script imports the core copy (hook/src/lib).
+// Until #600 the copy also held `mhw hook prompt`'s entry and module (hook/src/commands/); both are LEGACY now.
+export const HOOK_FILES = ['hook/package.json', 'hook/src/lib/clean.js', 'hook/src/lib/clean-unicode.js', 'hook/src/hooks/pattern-check.js'];
 export const FILES = ['clipboard.conf', ...HOOK_FILES];
 // Removed by ADR-0028 (restart guard, switches) and by ADR-0013's 2026-10-05 amendment (HITL picker guard),
-// and the Python hook core (#488); an earlier --apply installed them. Deleted by --apply and --remove,
-// reported by --check.
-export const LEGACY = ['restart_guard.py', 'breaking_glass.py', 'hitl-escalation-guard.sh', 'hitl.conf', 'clipboard_guard.py'];
+// the Python hook core (#488), and `mhw hook prompt`'s entry and module (#600); an earlier --apply installed
+// them. Deleted by --apply and --remove, reported by --check.
+export const LEGACY = ['restart_guard.py', 'breaking_glass.py', 'hitl-escalation-guard.sh', 'hitl.conf', 'clipboard_guard.py',
+  'hook/src/commands/hook-entry.js', 'hook/src/commands/hook-prompt.js'];
 const STAGE_EXTRA = ['../claude.json', '../requirements.toml', '../kiro.json'];
 const PASTE_ENV = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE';
 const QUOTED = /["\\$`']/;
@@ -266,7 +266,8 @@ export function renderedNode(settingsFile) {
     if (!Array.isArray(hooks)) continue;
     for (const h of hooks) {
       const c = jqGet(h, 'command');
-      if (typeof c !== 'string' || !c.includes('hook prompt --harness')) continue;
+      // The fixed-pattern check's prompt entry (#588); it was `mhw hook prompt`'s until #600.
+      if (typeof c !== 'string' || !c.includes('/pattern-check.js" prompt --harness')) continue;
       const prefix = PASTE_ENV + ' "';
       if (!c.startsWith('/bin/sh -c ') || c.slice(12, 12 + prefix.length) !== prefix) return '';
       const rest = c.slice(12 + prefix.length);
@@ -351,17 +352,12 @@ export function render(ctx, st) {
     throw new Exit(2);
   }
   ctx.nodeLine = 'NODE    the admin hook runs ' + nodeOwnership(hookNode) + '; the owner accepted an owner-writable node until S32 (#536)';
-  const nodecmd = PASTE_ENV + ' "' + hookNode + '" "' + t.bin + '/hook/src/commands/hook-entry.js"';
-  const pasteClaude = pasteWrap('claude', nodecmd + ' --harness claude --config "' + t.bin + '/clipboard.conf"');
-  const pasteCodex = pasteWrap('codex', nodecmd + ' --harness codex --config "' + t.bin + '/clipboard.conf"');
-  // The fixed-pattern check (#588): the root-owned copy, before the prompt and before a tool call.
+  // The fixed-pattern check (#588): the root-owned copy, before the prompt and before a tool call. Since #600
+  // it is the only prompt hook here: `mhw hook prompt`'s entry (hook-entry.js) is gone, and the
+  // --defer-to-paste-filter flag with it.
   const patcmd = (/** @type {string} */ h, /** @type {string} */ mode) => PASTE_ENV + ' "' + hookNode + '" "' + t.bin + '/hook/src/hooks/pattern-check.js" '
     + mode + ' --harness ' + h + ' --config "' + t.bin + '/clipboard.conf"';
-  // --defer-to-paste-filter: one block message while the prompt hook above still runs (until #600).
-  const patPrompt = {
-    claude: pasteWrap('claude', patcmd('claude', 'prompt') + ' --defer-to-paste-filter'),
-    codex: pasteWrap('codex', patcmd('codex', 'prompt') + ' --defer-to-paste-filter'),
-  };
+  const patPrompt = { claude: pasteWrap('claude', patcmd('claude', 'prompt')), codex: pasteWrap('codex', patcmd('codex', 'prompt')) };
   const patTool = { claude: toolWrap(patcmd('claude', 'pre-tool')), codex: toolWrap(patcmd('codex', 'pre-tool')) };
   // The deny floor exactly as install-user rendered it (global entries, then the overlay's), so the admin copy
   // cannot drift from the user copy: the throwaway home started empty, so its deny list is the floor plus the
@@ -380,7 +376,7 @@ export function render(ctx, st) {
   const doc = new Map(/** @type {Array<[string, any]>} */ ([
     [NAME, MARKER_ID + '; source: ' + SOURCE + '; ' + stamp + '; do not edit, re-run the installer'],
     ['hooks', new Map(/** @type {Array<[string, any]>} */ ([
-      ['UserPromptSubmit', [new Map([['hooks', [entry(pasteClaude), entry(patPrompt.claude)]]])]],
+      ['UserPromptSubmit', [new Map([['hooks', [entry(patPrompt.claude)]]])]],
       ['PreToolUse', [new Map(/** @type {Array<[string, any]>} */ ([['matcher', 'Bash'], ['hooks', [entry(patTool.claude)]]]))]],
     ]))],
     ['permissions', new Map([['deny', floor]])],
@@ -390,11 +386,10 @@ export function render(ctx, st) {
     '# ' + MARKER_ID + '; source: ' + SOURCE + '; ' + stamp + '; do not edit, re-run the installer',
     '# ADR-0025. No allow_managed_hooks_only and no [features] pin: user and plugin hooks keep running.',
     '[hooks]', 'managed_dir = ' + jqQuote(t.bin),
-    // Since ADR-0028 removed the restart guard: the paste filter, and the fixed-pattern check (#588).
-    '', '[[hooks.UserPromptSubmit]]', '', '[[hooks.UserPromptSubmit.hooks]]', 'type = "command"', 'command = ' + jqQuote(pasteCodex), 'timeout = 30',
-    // The fixed-pattern check (#588): before the prompt, and before every tool call (no matcher: the script
-    // passes any call that is not a git push or gh pr create).
-    '', '[[hooks.UserPromptSubmit.hooks]]', 'type = "command"', 'command = ' + jqQuote(patPrompt.codex), 'timeout = 30',
+    // Since ADR-0028 removed the restart guard, and #600 `mhw hook prompt`: the fixed-pattern check (#588),
+    // before the prompt, and before every tool call (no matcher: the script passes any call that is not a
+    // git push or gh pr create).
+    '', '[[hooks.UserPromptSubmit]]', '', '[[hooks.UserPromptSubmit.hooks]]', 'type = "command"', 'command = ' + jqQuote(patPrompt.codex), 'timeout = 30',
     '', '[[hooks.PreToolUse]]', '', '[[hooks.PreToolUse.hooks]]', 'type = "command"', 'command = ' + jqQuote(patTool.codex), 'timeout = 30',
     // The deny floor's command entries as admin prefix rules (ADR-0016, 2026-10-05 amendment). They merge
     // with every .rules file and the most restrictive decision wins, so "codex exec --ignore-rules" cannot
@@ -507,7 +502,7 @@ function checkMode(ctx) {
     for (const f of FILES) compare(path.join(st, 'bin', f), t.bin + '/' + f);
     for (const f of LEGACY) {
       if (exists(t.bin + '/' + f)) {
-        say(ctx, 'STALE   ' + t.bin + '/' + f + ': a removed hook\'s file (ADR-0028, ADR-0013); --apply deletes it');
+        say(ctx, 'STALE   ' + t.bin + '/' + f + ': a removed hook\'s file (' + (f.startsWith('hook/') ? '#600' : 'ADR-0028, ADR-0013') + '); --apply deletes it');
         status = 1;
       }
     }
@@ -670,6 +665,7 @@ function install(ctx, work) {
   // What an earlier release installed for the restart guard, the breaking-glass switches (ADR-0028) and the
   // HITL picker guard (ADR-0013, 2026-10-05 amendment).
   for (const f of LEGACY) rmF(ctx, t.bin + '/' + f);
+  rmdirQuiet(t.bin + '/hook/src/commands'); // emptied by the two LEGACY files of #600
   rmJson(ctx, t.switches);
   rmdirQuiet(t.switches);
 }

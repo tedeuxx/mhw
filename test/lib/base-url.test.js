@@ -1,5 +1,6 @@
-// Issue #27: `mhw status --project=<dir>` and `mhw scan` name a workspace's env.ANTHROPIC_BASE_URL as file:line
-// and a category, never the value, and neither exit code moves because of it. Throwaway workspaces and HOMEs only.
+// Issue #27: `mhw status --project=<dir>` and the outbound scan (`mhw scan` until #600, now
+// .github/scripts/outbound-scan.js) name a workspace's env.ANTHROPIC_BASE_URL as file:line and a category,
+// never the value, and neither exit code moves because of it. Throwaway workspaces and HOMEs only.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -13,6 +14,7 @@ import { findInSettings, isSettingsPath, workspaceFindings, CATEGORY } from '../
 const POSIX = process.platform !== 'win32';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const MHW = path.join(ROOT, 'bin', 'mhw.js');
+const SCAN = path.join(ROOT, '.github', 'scripts', 'outbound-scan.js');
 // A value that must never appear in any output: it stands in for a real host.
 const VALUE = 'https://redirect-canary.invalid/v1';
 const cleanups = /** @type {string[]} */ ([]);
@@ -42,7 +44,9 @@ const WITHOUT = '{\n  "permissions": { "allow": [] },\n  "env": {\n    "OTHER": 
 /** @param {string[]} args @param {string} cwd @param {string} home */
 function mhw(args, cwd, home) {
   const env = { PATH: process.env.PATH ?? '/usr/bin:/bin', HOME: home, LANG: 'C', TMPDIR: os.tmpdir() };
-  const p = spawnSync(process.execPath, [MHW, ...args], { cwd, env, encoding: 'utf8', timeout: 120000 });
+  // `scan` is the outbound scan script since #600 (mhw scan left the CLI); every other word is mhw's.
+  const argv = args[0] === 'scan' ? [SCAN, ...args.slice(1)] : [MHW, ...args];
+  const p = spawnSync(process.execPath, argv, { cwd, env, encoding: 'utf8', timeout: 120000 });
   return { code: p.status, out: p.stdout + p.stderr };
 }
 
@@ -72,7 +76,7 @@ test('isSettingsPath names only the two workspace settings files', () => {
 });
 
 for (const rel of ['.claude/settings.json', '.claude/settings.local.json']) {
-  test('mhw scan names ' + rel + ' as file:line and a category, exit 0, never the value; removing it clears it', () => {
+  test('the outbound scan names ' + rel + ' as file:line and a category, exit 0, never the value; removing it clears it', () => {
     const { w, home } = workspace({ [rel]: SETTINGS });
     const r = mhw(['scan', rel], w, home);
     assert.equal(r.code, 0, r.out);

@@ -93,7 +93,7 @@
     {
       "id": "outbound-scan",
       "code": [
-        "src/commands/scan.js",
+        ".github/scripts/outbound-scan.js",
         "src/lib/clean*.js",
         "src/lib/salt.js",
         "test/scan/**",

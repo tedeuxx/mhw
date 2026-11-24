@@ -1,5 +1,6 @@
 // The fixed-pattern check as `mhw install-user` installs it (#588), in a throwaway HOME: the hook entries of
-// Claude Code, Codex and Kiro point at the installed script, never at mhw, and the INSTALLED commands, run
+// Claude Code, Codex and Kiro point at the installed script, never at mhw (since #600 nothing renders
+// `mhw hook prompt`, and an earlier install's entries are removed), and the INSTALLED commands, run
 // the way each harness runs a command hook (through a shell, one payload on stdin), block a synthetic
 // finding and pass a clean one. Then --check is clean and uninstall removes every file. POSIX only: the user
 // layer is macOS and Linux (#497). Fixtures are assembled at run time (J).
@@ -96,28 +97,26 @@ test('install writes each harness\'s hook entries at the installed script; the i
       assert.ok(cmd.includes('--harness ' + harness), harness);
     }
   }
-  // The paste filter's prompt hook stays registered beside it, unchanged (until #600).
-  const paste = {
-    claude: commandsOf(settings, 'UserPromptSubmit').filter((c) => c.includes('hook prompt --harness claude')),
-    codex: commandsOf(codex, 'UserPromptSubmit').filter((c) => c.includes('hook prompt --harness codex')),
-    kiro: [JSON.parse(fs.readFileSync(path.join(home, '.kiro', 'hooks', NAME + '-paste-filter.json'), 'utf8')).hooks[0].action.command],
-  };
+  // #600: `mhw hook prompt` left the CLI. No rendered hook names it, its module or the deferral flag, and the
+  // check's entry is the only prompt hook of each harness.
+  const promptCmds = { claude: commandsOf(settings, 'UserPromptSubmit'), codex: commandsOf(codex, 'UserPromptSubmit'),
+    kiro: kiro.hooks.filter((/** @type {any} */ h) => h.trigger === 'UserPromptSubmit').map((/** @type {any} */ h) => h.action.command) };
+  const everything = [JSON.stringify(settings), JSON.stringify(codex), JSON.stringify(kiro)].join('\n');
+  for (const gone of ['hook prompt', 'hook-entry', 'hook-prompt', 'defer-to-paste-filter', 'bin/mhw.js']) assert.ok(!everything.includes(gone), 'a rendered hook names ' + gone);
+  assert.ok(!fs.existsSync(path.join(home, '.kiro', 'hooks', NAME + '-paste-filter.json')), 'the retired Kiro hook file was written');
 
   const dirty = repo('dirty', 'key ' + TOKEN + '\n');
   const clean = repo('clean', 'nothing here\n');
   /** @param {string} harness @param {{ code: number | null, stdout: string }} r */
   const blocked = (harness, r) => (harness === 'kiro' ? r.code === 2 : r.stdout.includes('"decision": "block"'));
   for (const [harness, c] of Object.entries(cmds)) {
-    const own = paste[/** @type {'claude'} */ (harness)];
-    assert.equal(own.length, 1, harness + ': one paste filter entry');
-    // Every installed prompt hook of this harness, on one dirty prompt: exactly one block message, never the token.
-    for (const marker of /** @type {Array<Record<string, string>>} */ (harness === 'kiro' ? [{}] : [{}, { PMHWC_PASTE_WRAPPER: '1' }])) {
-      const runs = [own[0], c.prompt].map((cmd) => runHook(cmd, { prompt: 'use ' + TOKEN }, BASE, marker));
-      assert.equal(runs.filter((r) => blocked(harness, r)).length, 1, harness + ' ' + JSON.stringify(marker) + ': one block message');
-      assert.ok(runs.every((r) => !(r.stdout + r.stderr).includes(TOKEN)));
+    assert.deepEqual(promptCmds[/** @type {'claude'} */ (harness)], [c.prompt], harness + ': the check is the only prompt hook');
+    // The check blocks a dirty prompt with and without the paste wrapper's session marker: nothing defers now.
+    for (const marker of /** @type {Array<Record<string, string>>} */ ([{}, { PMHWC_PASTE_WRAPPER: '1' }])) {
+      const r = runHook(c.prompt, { prompt: 'use ' + TOKEN }, BASE, marker);
+      assert.ok(blocked(harness, r), harness + ' ' + JSON.stringify(marker) + ': blocked');
+      assert.ok(!(r.stdout + r.stderr).includes(TOKEN));
     }
-    // In a wrapped session the block comes from the fixed-pattern check (Claude Code and Codex).
-    if (harness !== 'kiro') assert.ok(blocked(harness, runHook(c.prompt, { prompt: 'use ' + TOKEN }, BASE, { PMHWC_PASTE_WRAPPER: '1' })), harness);
     assert.deepEqual(runHook(c.prompt, { prompt: 'a clean prompt' }, BASE), { code: 0, stdout: '', stderr: '' }, harness);
     const tool = (/** @type {string} */ command, /** @type {string} */ cwd) => runHook(c.tool, { hook_event_name: 'PreToolUse', cwd, tool_name: 'Bash', tool_input: { command } }, cwd);
     assert.equal(tool('git push origin main', dirty).code, 2, harness + ': a dirty push');
@@ -140,6 +139,35 @@ test('install writes each harness\'s hook entries at the installed script; the i
   assert.ok(!fs.existsSync(path.join(home, '.kiro', 'hooks', NAME + '-pattern-check.json')));
   const after = JSON.parse(fs.readFileSync(path.join(home, '.claude', 'settings.json'), 'utf8'));
   assert.ok(!JSON.stringify(after).includes('pattern-check.js'));
+});
+
+test('install over a home an earlier release set up removes every `mhw hook prompt` entry and its Kiro file (#600)', { skip }, () => {
+  const home = path.join(BASE, 'home-upgrade');
+  fs.mkdirSync(home);
+  const data = path.join(home, '.local', 'share', NAME);
+  const old = (/** @type {string} */ h) => "/bin/sh -c '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \"" + process.execPath
+    + '" "' + path.join(ROOT, 'bin', 'mhw.js') + '" hook prompt --harness ' + h + ' --config "' + path.join(data, 'clipboard.conf') + "\" || exit 0'";
+  const owner = { type: 'command', command: '/bin/echo the owner own hook' };
+  fs.mkdirSync(path.join(home, '.claude'), { recursive: true });
+  fs.writeFileSync(path.join(home, '.claude', 'settings.json'), JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [owner, { type: 'command', command: old('claude'), timeout: 30 }] }] } }, null, 2) + '\n');
+  fs.mkdirSync(path.join(home, '.codex'), { recursive: true });
+  fs.writeFileSync(path.join(home, '.codex', 'hooks.json'), JSON.stringify({ description: 'managed-by: ' + NAME + '; old', hooks: { UserPromptSubmit: [{ hooks: [{ type: 'command', command: old('codex') }] }] } }, null, 2) + '\n');
+  const oldKiro = path.join(home, '.kiro', 'hooks', NAME + '-paste-filter.json');
+  fs.mkdirSync(path.dirname(oldKiro), { recursive: true });
+  fs.writeFileSync(oldKiro, '{\n  "version": "v1",\n  "hooks": [\n    {\n      "description": "managed-by: ' + NAME + '; old",\n      "trigger": "UserPromptSubmit",\n'
+    + '      "action": {"type": "command", "command": ' + JSON.stringify(old('kiro')) + '}\n    }\n  ]\n}\n');
+  const before = install(home, ['--check']);
+  assert.notEqual(before.code, 0, 'check sees the old layer');
+  assert.match(before.out, new RegExp('STALE   ' + oldKiro.replaceAll('/', '\\/').replaceAll('.', '\\.') + ': the Kiro prompt hook that ran mhw hook prompt'));
+  const r = install(home, []);
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /REMOVED .*-paste-filter\.json \(the Kiro prompt hook that ran mhw hook prompt, removed \(#600\)\)/);
+  assert.ok(!fs.existsSync(oldKiro));
+  const settings = JSON.parse(fs.readFileSync(path.join(home, '.claude', 'settings.json'), 'utf8'));
+  const codex = JSON.parse(fs.readFileSync(path.join(home, '.codex', 'hooks.json'), 'utf8'));
+  for (const doc of [settings, codex]) assert.ok(!JSON.stringify(doc).includes('hook prompt'), JSON.stringify(doc.hooks));
+  assert.ok(commandsOf(settings, 'UserPromptSubmit').includes(owner.command), "the owner's own hook is kept");
+  assert.equal(install(home, ['--check']).code, 0, 'check is clean after the upgrade');
 });
 
 test('--hooks=managed leaves the Claude Code and Codex entries to the admin layer; Kiro keeps its file', { skip }, () => {

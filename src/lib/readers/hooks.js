@@ -15,22 +15,31 @@ import { pyStr } from '../py.js';
 // status can name an entry an earlier install left registered.
 export const GUARD = 'hitl-escalation-guard.sh';
 export const LEFTOVER = 'removed picker guard still registered (Claude Code)';
-// The prompt hook (ADR-0033) is `mhw hook prompt` in Node since #488 (S17). Its command, as both installers
-// render it: /usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "<node>"
-// "<entry>" [hook prompt] --harness H --config "<conf>". It counts only when its entry is registered AND the
-// node and the entry it runs are files. The Python core an earlier install registered is named while it is
-// still registered.
+// The prompt hook (ADR-0033) is the fixed-pattern check's prompt half since #600 (src/hooks/pattern-check.js,
+// installed as a file by #588); it was `mhw hook prompt` (Node since #488) until then. Its command, as both
+// installers render it: /usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE
+// "<node>" "<.../pattern-check.js>" prompt --harness H --config "<conf>". It counts only when its entry is
+// registered AND the node and the script it runs are files. Status still names it the paste filter: its
+// notices are the paste filter's, and the wrapper beside it is too (until #590). An entry of `mhw hook prompt`,
+// or of the Python core before it, that an earlier install left registered is named as a leftover.
 export const PASTE = '--harness ';
 export const OLD_PASTE = 'clipboard_guard.py';
 /** @param {string} harness */
 export const oldPasteLeftover = (harness) => 'removed Python paste filter still registered (' + harness + ')';
-const PASTE_NODE = /^(?:\/bin\/sh -c ')?\/usr\/bin\/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "([^"]+)" "([^"]+)" (?:hook prompt )?--harness /;
+const PASTE_NODE = /^(?:\/bin\/sh -c ')?\/usr\/bin\/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "([^"]+)" "([^"]+)" prompt --harness /;
+/** `mhw hook prompt`'s command (user layer: bin/mhw.js; admin layer: its hook-entry.js copy), removed by #600. */
+const HOOK_PROMPT = /"[^"]*[\\/](?:bin[\\/]mhw|hook-entry)\.js" (?:hook prompt )?--harness /;
+/** @param {string} harness */
+export const hookPromptLeftover = (harness) => 'removed mhw hook prompt still registered (' + harness + ')';
 
-/** [node, entry] of our prompt hook command, or null. @param {string} cmd */
+/** [node, script] of our prompt hook command, or null. @param {string} cmd */
 export function pasteParts(cmd) {
   const m = PASTE_NODE.exec(cmd);
-  return m && /[\\/](?:bin[\\/]mhw|hook-entry)\.js$/.test(m[2]) ? [m[1], m[2]] : null; // either separator: the readers also run on Windows
+  return m && /[\\/]pattern-check\.js$/.test(m[2]) ? [m[1], m[2]] : null; // either separator: the readers also run on Windows
 }
+
+/** True when one of cmds is `mhw hook prompt`'s entry, which #600 removed. @param {string[]} cmds */
+export const hookPromptRegistered = (cmds) => cmds.some((c) => HOOK_PROMPT.test(c));
 
 /**
  * The FAIL item for a registered prompt hook whose node or entry is gone (an npm uninstall, an nvm switch, a
@@ -60,7 +69,10 @@ export function pasteOk(cmds) {
 }
 // The restart guard was removed (ADR-0028); a v2 admin layer still registers it (Issue #52).
 export const RESTART = 'restart_guard.py';
-export const KIRO_HOOK = NAME + '-paste-filter.json';
+// The fixed-pattern check's Kiro CLI V3 hook file (#588), the prompt hook there since #600; the file that ran
+// `mhw hook prompt` until then is named while it is still there.
+export const KIRO_HOOK = NAME + '-pattern-check.json';
+export const OLD_KIRO_HOOK = NAME + '-paste-filter.json';
 
 /** @param {string} harness */
 export const restartLeftover = (harness) => 'removed restart guard still registered (' + harness + ')';
@@ -96,7 +108,8 @@ const restartRegistered = (doc) => ['SessionStart', 'PreToolUse'].some((e) => co
 
 /**
  * [label or null, read state] for Kiro CLI V3's user-level hook file, ~/.kiro/hooks/<KIRO_HOOK>.
- * present: managed, and a UserPromptSubmit command running the installed core in its kiro mode;
+ * present: managed, and among its hooks a UserPromptSubmit command running the installed check in its kiro
+ * mode (the file also carries the check's PreToolUse hook);
  * modified: the file is there but is not that; absent: null. Present is not loaded (Kiro runs it only
  * in a trusted workspace, on the V3 engine).
  * @param {Env} env
@@ -110,11 +123,11 @@ export function kiroHookState(env, data) {
   if (state === 'not read') return ['paste filter (Kiro CLI V3, modified: not JSON)', state];
   const hooks = get(doc, 'hooks');
   const ours = Array.isArray(hooks) ? hooks.filter((h) => isDict(h)) : [];
-  const first = ours[0];
+  const first = ours.find((h) => ['UserPromptSubmit', 'promptSubmit'].includes(/** @type {string} */ (get(h, 'trigger')))) || ours[0];
   const action = get(first, 'action');
   /** @param {unknown} v */
   const str = (v) => pyStr(v === undefined ? '' : v);
-  const good = isDict(doc) && get(doc, 'version') === 'v1' && ours.length === 1
+  const good = isDict(doc) && get(doc, 'version') === 'v1' && ours.length >= 1
     && str(get(first, 'description')).includes(MARKER)
     && ['UserPromptSubmit', 'promptSubmit'].includes(/** @type {string} */ (get(first, 'trigger')))
     && isDict(action) && get(action, 'type') === 'command'
@@ -149,6 +162,7 @@ export function readHooks(env) {
   const failC = pasteFail(commands(doc, 'UserPromptSubmit'), 'Claude Code');
   if (failC) found.push(failC);
   if (commands(doc, 'UserPromptSubmit').some((c) => c.includes(OLD_PASTE))) found.push(oldPasteLeftover('Claude Code'));
+  if (hookPromptRegistered(commands(doc, 'UserPromptSubmit'))) found.push(hookPromptLeftover('Claude Code'));
   [doc, state] = readJson(pathlibJoin(codexHome(env), ['hooks.json']));
   unread ||= state === 'not read';
   if (restartRegistered(doc)) found.push(restartLeftover('Codex'));
@@ -156,9 +170,12 @@ export function readHooks(env) {
   const failX = pasteFail(commands(doc, 'UserPromptSubmit'), 'Codex');
   if (failX) found.push(failX);
   if (commands(doc, 'UserPromptSubmit').some((c) => c.includes(OLD_PASTE))) found.push(oldPasteLeftover('Codex'));
+  if (hookPromptRegistered(commands(doc, 'UserPromptSubmit'))) found.push(hookPromptLeftover('Codex'));
   const [kiro, kstate] = kiroHookState(env, data);
   unread ||= kstate === 'not read';
   if (kiro) found.push(kiro);
+  const oldKiro = readText(inHome(env, '.kiro', 'hooks', OLD_KIRO_HOOK));
+  if (oldKiro !== null && oldKiro.includes(MARKER)) found.push(hookPromptLeftover('Kiro CLI V3'));
   result.user = unread && !found.length ? 'not read' : [...found, ...(unread ? ['a file not read'] : [])];
 
   found = [];
@@ -171,6 +188,7 @@ export function readHooks(env) {
   const failAC = pasteFail(commands(doc, 'UserPromptSubmit'), 'Claude Code');
   if (failAC) found.push(failAC);
   if (commands(doc, 'UserPromptSubmit').some((c) => c.includes(OLD_PASTE))) found.push(oldPasteLeftover('Claude Code'));
+  if (hookPromptRegistered(commands(doc, 'UserPromptSubmit'))) found.push(hookPromptLeftover('Claude Code'));
   const req = codexRequirements(env);
   let text = '';
   if (exists(req)) {
@@ -191,6 +209,7 @@ export function readHooks(env) {
   const failA = text.includes(MARKER) ? pasteFail(codexCmds, 'Codex') : null;
   if (failA) found.push(failA);
   if (text.includes(MARKER) && text.includes(OLD_PASTE)) found.push(oldPasteLeftover('Codex'));
+  if (text.includes(MARKER) && hookPromptRegistered(codexCmds)) found.push(hookPromptLeftover('Codex'));
   if (text.includes(MARKER) && text.includes(RESTART)) found.push(restartLeftover('Codex'));
   result.admin = unread && !found.length ? 'not read' : [...found, ...(unread ? ['a file not read'] : [])];
   return result;

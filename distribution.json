@@ -33,8 +33,6 @@
       "id": "paste-filter",
       "layer": "managed",
       "paths": [
-        "src/commands/hook-entry.js",
-        "src/commands/hook-prompt.js",
         "src/commands/add-term.js",
         "src/lib/salt.js",
         "global/clipboard.conf",
@@ -51,8 +49,8 @@
     {
       "id": "outbound-scan",
       "layer": "managed",
-      "paths": ["src/commands/scan.js", "src/lib/clean.js", "src/lib/clean-unicode.js"],
-      "gap": "No harness carrier: mhw scan runs on an instruction in the global brief, informs and never blocks (ADR-0035, decision 7)."
+      "paths": ["src/lib/clean.js", "src/lib/clean-unicode.js"],
+      "gap": "The detection engine. mhw scan and brief rule 8 were removed (#600): the fixed-pattern check's PreToolUse hook carries the outbound check in an agent harness, and the outbound-scan CI check runs the engine from .github/scripts/outbound-scan.js, which is not distributed (ADR-0035, decision 7)."
     },
     {
       "id": "managed-installer",

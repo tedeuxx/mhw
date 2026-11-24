@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // S31 fixture (#501): a FAKE mhw, the package the prod canary's golden cases install and check. It renders
 // the deny floor of its own global/ and overlay/ deny-floor.conf into a throwaway HOME and admin root in the
-// shapes the canary reads, answers `status`, `check`, `uninstall --yes` and `hook prompt`, and can be told by
+// shapes the canary reads, answers `status`, `check`, `uninstall --yes` and the prompt hook (since #600 a
+// script install writes, as the fixed-pattern check's, that runs this file with `prompt`), and can be told by
 // variant.json to break each of them (one key per property; a test may override the package's variant.json
 // with <work>.variant.json beside the canary's work directory, so one package serves every row). It is not mhw and claims nothing about mhw: it exists so both the
 // deleted prod_canary.py and .github/scripts/prod-canary.js can be run against the same package, offline,
@@ -67,9 +68,12 @@ function firstNode() {
   return process.execPath;
 }
 
+// #600: the prompt hook is an installed script (the fixed-pattern check's place), never mhw itself.
+const SCRIPT = path.join(HOME, '.local', 'share', NAME, 'pattern-check', 'src', 'hooks', 'pattern-check.js');
+
 /** @param {string} harness */
 function hookCommand(harness) {
-  return '"' + process.execPath + '" "' + path.join(PKG, 'bin', 'mhw.js') + '" hook prompt --harness ' + harness;
+  return '"' + process.execPath + '" "' + SCRIPT + '" prompt --harness ' + harness;
 }
 
 function install() {
@@ -148,20 +152,30 @@ function install() {
   const data = path.join(HOME, '.local', 'share', NAME);
   fs.mkdirSync(data, { recursive: true });
   fs.writeFileSync(path.join(data, 'clipboard.conf'), '# synthetic\n');
+  mkdirFor(SCRIPT);
+  fs.writeFileSync(SCRIPT, "'use strict';\nrequire(" + JSON.stringify(path.join(PKG, 'bin', 'mhw.js')) + ');\n');
   const inner = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + firstNode()
-    + '" "' + path.join(PKG, 'bin', 'mhw.js') + '" hook prompt --harness kiro --config "' + path.join(data, 'clipboard.conf') + '"';
+    + '" "' + SCRIPT + '" prompt --harness kiro --config "' + path.join(data, 'clipboard.conf') + '"';
   const notice = 'Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.';
   let command = "/bin/sh -c '" + inner + ' || { [ $? -eq 2 ] && exit 2; printf "' + String.raw`%s\n` + '" "' + notice + "\" >&2; exit 2; }'";
   if (VARIANT.broken) command += ' ';
-  const kh = path.join(HOME, '.kiro', 'hooks', NAME + '-paste-filter.json');
+  // The fixed-pattern check's Kiro file (#588; the prompt hook there since #600): its prompt entry and its
+  // pre-tool entry, which the canary does not run.
+  const kh = path.join(HOME, '.kiro', 'hooks', NAME + '-pattern-check.json');
   const shape = VARIANT.kiroShape;
   const entry = {
     description: shape === 'desc' ? 'someone else' : 'managed-by: ' + NAME,
     trigger: shape === 'trigger' ? 'Stop' : 'UserPromptSubmit', action: { type: 'command', command },
   };
+  const tool = { description: 'managed-by: ' + NAME, trigger: 'PreToolUse', action: { type: 'command', command: 'true' } };
   if (shape !== 'missing') {
     mkdirFor(kh);
-    fs.writeFileSync(kh, JSON.stringify({ version: shape === 'version' ? 'v0' : 'v1', hooks: shape === 'two' ? [entry, entry] : [entry] }, null, 2) + '\n');
+    fs.writeFileSync(kh, JSON.stringify({ version: shape === 'version' ? 'v0' : 'v1', hooks: shape === 'two' ? [entry, entry, tool] : [entry, tool] }, null, 2) + '\n');
+  }
+  if (VARIANT.oldKiroFile) {
+    const old = path.join(HOME, '.kiro', 'hooks', NAME + '-paste-filter.json');
+    mkdirFor(old);
+    fs.writeFileSync(old, '{"version": "v1", "hooks": []}\n');
   }
   if (VARIANT.badSettings) fs.writeFileSync(settings, '{ not json\n');
   if (VARIANT.installExit) {
@@ -192,6 +206,7 @@ function uninstall() {
     else fs.rmSync(p, { force: true });
   }
   fs.rmSync(path.join(HOME, '.codex', 'rules', 'workstation-deny-floor.rules'), { force: true });
+  fs.rmSync(path.join(HOME, '.kiro', 'hooks', NAME + '-pattern-check.json'), { force: true });
   fs.rmSync(path.join(HOME, '.kiro', 'hooks', NAME + '-paste-filter.json'), { force: true });
   fs.rmSync(path.join(HOME, '.local', 'share', NAME), { recursive: true, force: true });
   for (const f of walk(ROOT)) fs.rmSync(f, { force: true });
@@ -219,7 +234,8 @@ function hook() {
   const payload = JSON.parse(fs.readFileSync(0, 'utf8') || '{}');
   const prompt = String(payload.prompt || '');
   const kiro = harness === 'kiro';
-  if (!kiro && process.env[MARKER] && !VARIANT.hookIgnoresMarker) return 0;
+  // Since #600 the prompt hook defers to nothing; hookHonoursMarker is the break the canary must catch.
+  if (!kiro && process.env[MARKER] && VARIANT.hookHonoursMarker) return 0;
   if (VARIANT.broken && harness === 'claude') return 0;
   if (!/AKIA[0-9A-Z]{16}/.test(prompt)) return clean(kiro);
   const redacted = prompt.replaceAll(KEY_PATTERN, '[REDACTED:credential]');
@@ -247,7 +263,7 @@ function main() {
   const [cmd, ...rest] = process.argv.slice(2);
   if (cmd === 'install' && rest[0] === '--yes') return install();
   if (cmd === 'uninstall' && rest[0] === '--yes') return uninstall();
-  if (cmd === 'hook' && rest[0] === 'prompt') return hook();
+  if (cmd === 'prompt') return hook(); // run through the installed script (#600)
   if (cmd === 'status') {
     process.stdout.write('mhw status (fixture)\n  source fixture package\n  evidence installed\n');
     return VARIANT.statusExit1 ? 1 : 0;

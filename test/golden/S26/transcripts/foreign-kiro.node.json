@@ -1,0 +1,93 @@
+[
+  {
+    "run": "render beside a clean root",
+    "code": 0,
+    "stdout": "STAGED  <T>/tmp/pmhwc-managed.<X> (validated; nothing installed)\nNODE    the admin hook runs <NODE> (owner-writable: a process running as you can replace it, or the libraries it loads); the owner accepted an owner-writable node until S32 (#536)\nRUN     sudo \"<NODE>\" \"<T>/tree/bin/mhw.js\" install-admin --apply=\"<T>/tmp/pmhwc-managed.<X>\" --sha256=<SHA> --root=\"<T>/clean\"\nTHEN    ./mhw install   (detects the admin layer and removes the user-level duplicates), then open fresh sessions\n",
+    "stderr": "",
+    "tree": []
+  },
+  {
+    "run": "render beside a foreign Kiro file",
+    "code": 3,
+    "stdout": "",
+    "stderr": "REFUSE  <KIRO_FILE> exists and is NOT managed by this project (an organisation's Kiro policy?); nothing to apply\n",
+    "tree": [
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"rules\": [{\"capability\": \"shell\", \"effect\": \"deny\", \"match\": [\"theirs *\"]}]}\n"
+      }
+    ]
+  },
+  {
+    "run": "--apply=STAGE --sha256=SHA R",
+    "code": 3,
+    "stdout": "",
+    "stderr": "REFUSE  <KIRO_FILE> exists and is NOT managed by this project\n",
+    "tree": [
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"rules\": [{\"capability\": \"shell\", \"effect\": \"deny\", \"match\": [\"theirs *\"]}]}\n"
+      }
+    ]
+  },
+  {
+    "run": "--check R",
+    "code": 1,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nMISSING <BASE>/bin/clipboard.conf\nMISSING <BASE>/bin/hook/package.json\nMISSING <BASE>/bin/hook/src/lib/clean.js\nMISSING <BASE>/bin/hook/src/lib/clean-unicode.js\nMISSING <CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json\nMISSING <CODEX_DIR>/requirements.toml\nREFUSE  <KIRO_FILE>: NOT managed by this project; --apply refuses it\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"rules\": [{\"capability\": \"shell\", \"effect\": \"deny\", \"match\": [\"theirs *\"]}]}\n"
+      }
+    ]
+  },
+  {
+    "run": "--remove R",
+    "code": 0,
+    "stdout": "NOTE    <KIRO_FILE> is NOT managed by this project; left alone\nREMOVED the admin-layer hooks; run mhw install-user as yourself to restore the user-level ones\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"rules\": [{\"capability\": \"shell\", \"effect\": \"deny\", \"match\": [\"theirs *\"]}]}\n"
+      }
+    ]
+  },
+  {
+    "run": "apply beside a Kiro file that is not JSON",
+    "code": 3,
+    "stdout": "",
+    "stderr": "REFUSE  <KIRO_FILE> exists and is NOT managed by this project\n",
+    "tree": [
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "not json\n"
+      }
+    ]
+  },
+  {
+    "run": "check beside a Kiro file of ours that is not JSON",
+    "code": 1,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nMISSING <BASE>/bin/clipboard.conf\nMISSING <BASE>/bin/hook/package.json\nMISSING <BASE>/bin/hook/src/lib/clean.js\nMISSING <BASE>/bin/hook/src/lib/clean-unicode.js\nMISSING <CLAUDE_DIR>/50-personal-multi-harness-workstation-configuration.json\nMISSING <CODEX_DIR>/requirements.toml\nREFUSE  <KIRO_FILE>: NOT managed by this project; --apply refuses it\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": "<KIRO_FILE>",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration\",\n"
+      }
+    ]
+  }
+]

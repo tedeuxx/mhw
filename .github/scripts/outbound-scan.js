@@ -1,16 +1,22 @@
-// mhw scan, the outbound scan (ADR-0035, decision 7), in Node since #486 (S15 of #470): what a push or a
-// pull request is about to send, checked with the cleaning core (src/lib/clean.js), the port of the
-// paste filter's own engine. There is no second detector. It replaces global/scan.py, deleted in the
-// same slice; test/golden/S15/ holds the original's transcripts.
+#!/usr/bin/env node
+// The outbound scan (ADR-0035, decision 7): what a push or a pull request is about to send, checked with
+// the cleaning core (src/lib/clean.js), the port of the paste filter's own engine. There is no second
+// detector. It was `mhw scan` (src/commands/scan.js, Node since #486, S15 of #470) until #600 took the
+// command out of the CLI (CLI native baseline PRD, section 5: "CI calls the engine directly"); it is a
+// script of this repository's CI now, outside the npm package, and the outbound-scan workflow runs it.
+// test/golden/S15/ holds the deleted global/scan.py's transcripts, which test/scan/ plays against it.
+// It reads a commit with the fixed-pattern check's -U0 patch reader and attribution-trailer rule
+// (src/hooks/pattern-check.js, #588), so the CI check and the push hook read a commit the same way.
 //
-//     mhw scan                    what this branch would send beyond its upstream: the files changed
+//     node .github/scripts/outbound-scan.js
+//                                 what this branch would send beyond its upstream: the files changed
 //                                 since the merge base of HEAD and @{upstream}, as they are in the working
 //                                 tree (deleted files are skipped), AND the lines added by every commit
 //                                 between that merge base and HEAD, AND each of those commits' messages
-//     mhw scan --base=REF         the same, against REF instead of @{upstream} (CI passes the PR's base)
-//     mhw scan PATH...            exactly these files, provided git lists them under the current
+//     ... --base=REF              the same, against REF instead of @{upstream} (CI passes the PR's base)
+//     ... PATH...                 exactly these files, provided git lists them under the current
 //                                 directory; the file opened is always git's own entry, never the argument
-//     mhw scan --file=PATH        exactly one text file, git or no git (Issue #34)
+//     ... --file=PATH             exactly one text file, git or no git (Issue #34)
 //
 // One line per finding, never the text:
 //     path:line: category, N chars                    in the working tree
@@ -32,18 +38,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { onPath } from '../lib/onpath.js';
-import * as core from '../lib/clean.js';
-import { readSalt } from '../lib/salt.js';
-import * as baseUrl from '../lib/base-url.js';
+import { fileURLToPath } from 'node:url';
+import { onPath } from '../../src/lib/onpath.js';
+import * as core from '../../src/lib/clean.js';
+import { readSalt } from '../../src/lib/salt.js';
+import * as baseUrl from '../../src/lib/base-url.js';
 // The -U0 patch reader and the attribution-trailer rule, written once in the fixed-pattern check (#588), which
-// reads a push's commits the way this command does; re-exported here for this command's own tests.
-import { addedBlocks, withoutAttributionTrailer } from '../hooks/pattern-check.js';
+// reads a push's commits the way this script does; re-exported here for this script's own tests.
+import { addedBlocks, withoutAttributionTrailer } from '../../src/hooks/pattern-check.js';
 
 export { addedBlocks, withoutAttributionTrailer };
 
-const NO_REPOSITORY = 'not inside a git repository; mhw scan needs one, in every mode';
-const NO_GIT = 'git was not found on PATH; mhw scan needs it in this mode';
+export const PROG = 'outbound-scan';
+const NO_REPOSITORY = 'not inside a git repository; ' + PROG + ' needs one, in every mode';
+const NO_GIT = 'git was not found on PATH; ' + PROG + ' needs it in this mode';
 const OBJECT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
 
 /**
@@ -363,7 +371,7 @@ function scan(ctx, targets, conf, root, commits) {
     }
     summary += ' and ' + commitsWith + ' of ' + commits.length + ' commit(s)';
   }
-  ctx.out.push('mhw scan: ' + total + ' finding(s); ' + summary + ' had one; informs only, never blocks; the matched text is never '
+  ctx.out.push(PROG + ': ' + total + ' finding(s); ' + summary + ' had one; informs only, never blocks; the matched text is never '
     + 'shown (ADR-0005)\n');
 }
 
@@ -406,7 +414,7 @@ export function run(argv, opts = {}) {
   const platform = opts.platform || process.platform;
   /** @type {Ctx} */
   const ctx = { cwd: opts.cwd || process.cwd(), env, platform, out: [], git: onPath('git', env, platform) };
-  const fail = (/** @type {string} */ msg) => ({ code: 2, stdout: ctx.out.join(''), stderr: 'mhw scan: ' + msg + '\n' });
+  const fail = (/** @type {string} */ msg) => ({ code: 2, stdout: ctx.out.join(''), stderr: PROG + ': ' + msg + '\n' });
   /** @type {string | null} */
   let base = null;
   /** @type {string | null} */
@@ -466,7 +474,7 @@ export function run(argv, opts = {}) {
 }
 
 /**
- * The CLI entry (src/cli.js MOVED): runs in the current directory and writes both streams.
+ * The script's entry: runs in the current directory and writes both streams.
  * @param {string[]} argv
  * @param {Record<string, string | undefined>} env
  */
@@ -475,4 +483,9 @@ export function main(argv, env) {
   if (r.stdout) fs.writeSync(1, r.stdout);
   if (r.stderr) fs.writeSync(2, r.stderr);
   return r.code;
+}
+
+// Run directly (the outbound-scan workflow, or a checkout): the exit code is the scan's.
+if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url))) {
+  process.exitCode = main(process.argv.slice(2), process.env);
 }

@@ -85,6 +85,6 @@ export function main(argv, env, o = {}) {
   if (p.command === 'postinstall') return postinstall(io);
   if (p.command === 'update') return update(p.wanted, { verbose: p.verbose, yes: p.yes }, child, io);
   if (p.command === 'uninstall') return uninstall({ verbose: p.verbose, yes: p.yes }, child, io);
-  io.err('mhw: unknown subcommand ' + p.command + ' (install, install --admin, status, check, scan, policy check, update, uninstall)\n');
+  io.err('mhw: unknown subcommand ' + p.command + ' (install, install --admin, status, check, policy check, update, uninstall)\n');
   return 2;
 }

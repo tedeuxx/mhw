@@ -18,7 +18,25 @@ import tty from 'node:tty';
 import { spawnSync } from 'node:child_process';
 import * as core from '../lib/clean.js';
 import { saltOrCreate, addTermHashes, orphanedLists } from '../lib/salt.js';
-import { loadConfig, errorClass } from './hook-prompt.js';
+
+// The settings reader and the error naming came from the prompt hook (src/commands/hook-prompt.js), removed
+// with `mhw hook prompt` at #600; add-term reads only the term and salt paths, which the core's own defaults
+// carry, so the hook's notice defaults are not needed here (#589 removes add-term itself).
+/**
+ * clipboard_guard.load_config(), the core's settings.
+ * @param {string | null | undefined} file
+ * @param {{ env?: Record<string, string | undefined>, platform?: string }} [opts]
+ */
+export function loadConfig(file, opts = {}) {
+  return core.loadConfig(file, opts);
+}
+
+/** The class name of an error, as Python names an exception; never its message. @param {unknown} e */
+export function errorClass(e) {
+  if (e instanceof core.PyError) return e.pyClass;
+  if (e && typeof e === 'object' && 'code' in e && typeof (/** @type {any} */ (e).code) === 'string') return core.osErrorClass(e);
+  return e instanceof Error ? e.name : 'Error';
+}
 
 export const AGENT_MARKERS = Object.freeze(['CLAUDECODE', 'CLAUDE_CODE_ENTRYPOINT', 'AI_AGENT', 'CODEX_SANDBOX',
   'CODEX_SANDBOX_NETWORK_DISABLED']);

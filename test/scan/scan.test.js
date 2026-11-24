@@ -1,8 +1,8 @@
-// S15 parity (#486, convention 3 of #470): `mhw scan` (src/commands/scan.js) against the deleted
-// global/scan.py, on the cases of its own suite (the deleted global/scan_test.py) plus the port's edges
+// S15 parity (#486, convention 3 of #470): the outbound scan (.github/scripts/outbound-scan.js; it was
+// `mhw scan`, src/commands/scan.js, until #600) against the deleted global/scan.py, on the cases of its own suite (the deleted global/scan_test.py) plus the port's edges
 // (test/scan/cases.js).
-//   golden: each case builds a throwaway repository and runs the Node command in this process and
-//           through bin/mhw.js; every run is compared with the transcript recorded from the Python
+//   golden: each case builds a throwaway repository and runs the Node script in this process and as a
+//           process (node .github/scripts/outbound-scan.js, as the workflow runs it); every run is compared with the transcript recorded from the Python
 //           original (stdout, stderr, exit code). Every OS (a case marked posix is skipped on Windows).
 //   live:   where the base revision still holds scan.py (until this slice merges) and the recorded
 //           CPython is on PATH, the original runs on the same repository beside the Node command. POSIX
@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { run } from '../../src/commands/scan.js';
+import { run } from '../../.github/scripts/outbound-scan.js';
 import * as core from '../../src/lib/clean.js';
 import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
 import { which } from '../helpers/home.js';
@@ -146,9 +146,9 @@ function play(c, runners) {
 const inProcess = { name: 'node', run: (args, cwd, env) => run(args, { cwd, env }) };
 /** @type {Runner} */
 const cli = {
-  name: 'bin/mhw.js',
+  name: '.github/scripts/outbound-scan.js',
   run: (args, cwd, env) => {
-    const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'scan', ...args], { cwd, env, encoding: 'utf8' });
+    const p = spawnSync(process.execPath, [path.join(ROOT, '.github', 'scripts', 'outbound-scan.js'), ...args], { cwd, env, encoding: 'utf8' });
     return { code: p.status ?? 1, stdout: p.stdout, stderr: p.stderr };
   },
 };
@@ -160,12 +160,20 @@ const goldenName = (name) => 'scan/' + name + '.json';
 // stay as the original wrote them; the declared replacements of test/golden/S17/expected-differences.json
 // (section "scan") are applied to them here.
 const S17_SCAN = readGolden('S17', 'expected-differences.json').differences.filter((/** @type {any} */ d) => d.section === 'scan');
+// #600: the command became a CI script, and its own name in its output changed with it (`mhw scan` ->
+// `outbound-scan`). The declared replacement is test/golden/S15/expected-differences.json's entry with a
+// "replace" field, applied to both streams of the original's transcripts here.
+const S15_RENAMES = readGolden(SLICE, 'expected-differences.json').differences.filter((/** @type {any} */ d) => d.replace);
 /** @param {Run[]} runs @returns {Run[]} */
 function s17Expected(runs) {
   return runs.map((r) => {
-    let stdout = r.stdout;
+    let { stdout, stderr } = r;
     for (const d of S17_SCAN) stdout = stdout.replaceAll(d.replace.base, d.replace.head);
-    return { ...r, stdout };
+    for (const d of S15_RENAMES) {
+      stdout = stdout.replaceAll(d.replace.base, d.replace.head);
+      stderr = stderr.replaceAll(d.replace.base, d.replace.head);
+    }
+    return { ...r, stdout, stderr };
   });
 }
 
@@ -179,7 +187,7 @@ test('every case has a golden transcript and every golden a case', () => {
   for (const f of fs.readdirSync(path.join(ROOT, 'test', 'golden', SLICE, 'scan'))) assert.ok(names.has(f.replace(/\.json$/, '')), 'golden without a case: ' + f);
 });
 
-test('golden: the Node command, in process and through bin/mhw.js, matches the original\'s transcripts', { skip: (UPDATE && 'MHW_UPDATE_GOLDEN=1') || (!GIT && 'needs git') }, (t) => {
+test('golden: the Node script, in process and as a process, matches the original\'s transcripts', { skip: (UPDATE && 'MHW_UPDATE_GOLDEN=1') || (!GIT && 'needs git') }, (t) => {
   const diffs = [];
   for (const c of CASES) {
     const why = skipped(c);

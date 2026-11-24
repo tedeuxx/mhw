@@ -103,5 +103,41 @@
     "head": "[^\\n]*pattern-check[^\\n]*\\n",
     "replace": "",
     "why": "#588 (the fixed-pattern check; ADR-0033 and ADR-0035 decision 7 amendments of 2026-11-23): mhw install also installs the check's script and core under <data dir>/pattern-check, its own Kiro hook file and, in the admin layer, bin/hook/src/hooks/pattern-check.js. Each line the head prints that names one of those files (an OK, MISSING, WROTE, REMOVED, SKIP or STAMP line of --check, install or uninstall) is taken out of the head side; nothing else in the line set changes, and every other line is still compared. test/hooks/pattern-check-install.test.js and test/install/admin.test.js hold those files and lines."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "[^\\n]*personal-multi-harness-workstation-configuration-paste-filter\\.json[^\\n]*\\n",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#600 (the CLI native baseline PRD, slice 2b; ADR-0033 and ADR-0035 decision 7, 2026-11-23 amendments): `mhw hook prompt` left the CLI, and with it the Kiro CLI V3 hook file that ran it, ~/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json. Install no longer writes or checks it (it retires one an earlier release left), so every line naming it in the original's transcript (MISSING, OK, DRIFT, WOULD WRITE, REMOVED) is taken out of the base side here; the fixed-pattern check's own Kiro file carries the prompt half (its lines are taken out of the head by the #588 entry). Every other line is still compared."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": ", hook-(?:entry|prompt)\\.js(?=[,\\n])",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#600: the admin layer no longer stages `mhw hook prompt`'s entry and module (bin/hook/src/commands/hook-entry.js and hook-prompt.js; an --apply deletes them as legacy files), so the original's lines naming either file, and the two names in its summary lines, are taken out of the base side. The count of differing targets is already normalised."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "[^\\n]*hook/src/commands/hook-(?:entry|prompt)\\.js[^\\n]*\\n",
+    "head": "(?!)",
+    "replace": "",
+    "why": "#600: the admin layer no longer stages `mhw hook prompt`'s entry and module (bin/hook/src/commands/hook-entry.js and hook-prompt.js; an --apply deletes them as legacy files), so the original's lines naming either file, and the two names in its summary lines, are taken out of the base side. The count of differing targets is already normalised."
   }
 ]

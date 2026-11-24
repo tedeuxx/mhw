@@ -18,7 +18,7 @@ const NAME = 'personal-multi-harness-workstation-configuration';
 
 /** The digest --apply checks (the algorithm both installers implement): name, length and bytes per file. @param {string} dir */
 export function stageDigest(dir) {
-  const names = ['clipboard.conf', 'hook/package.json', 'hook/src/commands/hook-entry.js', 'hook/src/commands/hook-prompt.js',
+  const names = ['clipboard.conf', 'hook/package.json',
     'hook/src/lib/clean.js', 'hook/src/lib/clean-unicode.js', 'hook/src/hooks/pattern-check.js', '../claude.json', '../requirements.toml', '../kiro.json'];
   const h = crypto.createHash('sha256');
   for (const n of names) {
@@ -47,7 +47,7 @@ const OTHER = '0123456789abcdef0123456789abcdef01234567';
 const restamp = (s) => s.replace(/; commit: [^;"]*;/, '; commit: ' + OTHER + ';');
 
 /** The staged files a changed byte must invalidate. */
-const STAGED = ['bin/hook/src/commands/hook-entry.js', 'bin/hook/src/lib/clean.js', 'bin/hook/package.json', 'bin/clipboard.conf',
+const STAGED = ['bin/hook/src/hooks/pattern-check.js', 'bin/hook/src/lib/clean.js', 'bin/hook/package.json', 'bin/clipboard.conf',
   'claude.json', 'requirements.toml', 'kiro.json'];
 
 /** @type {Scenario[]} */
@@ -183,3 +183,15 @@ export const SCENARIOS = [
     ],
   },
 ];
+
+// #600: `mhw hook prompt` left the CLI; these scenarios' output and hashed trees moved with it, and the originals are
+// deleted, so each is declared and its Node transcript, recorded at #600's head, is <scenario>.node.json
+// (expected-differences.json names why).
+const DECLARED_600 = new Set([
+  'foreign-codex',
+  'foreign-kiro',
+  'legacy-leftovers',
+  'lifecycle',
+  'tampered-stage',
+]);
+for (const sc of SCENARIOS) if (DECLARED_600.has(sc.name)) sc.declared = true;
