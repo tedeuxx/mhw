@@ -21,8 +21,11 @@ import {
 const POSIX = process.platform !== 'win32';
 /** @type {Record<string, string>} */
 const KIRO = { Read: 'read', Grep: 'read', Glob: 'read', Write: 'write', Edit: 'write', Bash: 'shell' };
-// Stated, not derived from the renderer: the documents a rite names and the render installs (#181).
-const DOCUMENTS = ['funnel-review-contract/README.md'];
+// Stated, not derived from the renderer: the documents a rite names and the render installs (#181). None
+// since #599: the funnel-review store contract left with `mhw funnel-review`, and the rite carries the
+// collection file's shape itself. The mechanism stays, exercised on a source copy below and in S18.
+/** @type {string[]} */
+const DOCUMENTS = [];
 // The old command names, kept for one release as deprecated aliases (2026-10-26) and removed at #524 once
 // that release had shipped. Stated, so the regression below names exactly what an earlier install left.
 /** @type {Record<string, string>} */
@@ -63,6 +66,8 @@ describe('the source shape', () => {
       'positioning-sync',
       // #594: the worklog, which replaced mhw worklog.
       'worklog',
+      // #599: onboarding, which replaced mhw onboard.
+      'onboard',
       // The four rites moved at #130 (owner, 2026-10-12) and became skills on 2026-10-26 (owner: "para mim sao skills").
       'sprint-planning', 'sprint-review', 'sprint-retrospective', 'funnel-review'].sort(byCode));
     // #198 added /handoff; #522 added /backlog-grooming.
@@ -536,12 +541,11 @@ describe('the social-post format catalog', () => {
   test('the catalog names no consumer', () => {
     assert.deepEqual(catalogSection().split('\n').filter((l) => new RegExp(CONSUMER_WORDS.source, 'i').test(l)), []);
   });
-  test('funnel-review and its contract read the format code', () => {
+  test('funnel-review reads the format code', () => {
     const rite = flatten(read(src('skills/funnel-review/SKILL.md')));
     for (const clause of ['**Each post figure carries the post\'s format code**', '`<metric>.<format>.<post>`',
       '**When the report compares posts, it compares them BY FORMAT CODE (mhw#564).**',
       '**`unlabelled` posts are reported as such and left out of every per-format comparison.**']) assert.ok(rite.includes(clause), clause);
-    assert.ok(read(src('scripts/funnel-review-contract/README.md')).includes('<metric>.<format>.<post>'));
   });
   test('the catalog reaches every agent harness carrier', () => {
     const home = methodHome();
@@ -859,6 +863,8 @@ describe('render', () => {
     const home = methodHome();
     assert.equal(home.run(['--mode=install']).code, 0);
     const dir = home.p(SCRIPTS_DIR);
+    // Since #599 no document is installed there, so the directory is the earlier version's.
+    fs.mkdirSync(dir, { recursive: true });
     const left = path.join(dir, 'milestone-read.py');
     fs.writeFileSync(left, '#!/usr/bin/env python3\n# ' + marker('method/scripts/milestone-read.py', OTHER) + '\nprint(1)\n', { mode: 0o700 });
     const hand = path.join(dir, 'my-tool.py');
@@ -875,34 +881,33 @@ describe('render', () => {
     assert.equal(home.run(['--mode=check']).code, 0);
   });
 
-  test('the store contract ships with the installed rite', () => {
-    // Issue #181 AC1: the funnel-review store contract is installed beside the scripts, and the rendered rite
-    // names a path that exists there. The worklog contract is read only by a test in this source tree.
+  test('no store contract is installed since #599, and the rite names no installed document', () => {
+    // Issue #181 AC1 installed the funnel-review store contract beside the scripts; #599 removed it with
+    // `mhw funnel-review`, and the rite now carries the collection file's shape itself. The worklog
+    // contract is read only by a test in this source tree.
     const scripts = h.p(SCRIPTS_DIR);
-    for (const directory of ['worklog-contract', 'funnel-review-contract']) assert.ok(fs.statSync(src('scripts/' + directory + '/README.md')).isFile(), directory);
+    assert.ok(fs.statSync(src('scripts/worklog-contract/README.md')).isFile());
+    assert.ok(!fs.existsSync(src('scripts/funnel-review-contract')), 'the funnel-review contract is back in the source');
     assert.ok(!fs.existsSync(path.join(scripts, 'worklog-contract')), 'the worklog contract was installed');
-    const installed = path.join(scripts, 'funnel-review-contract', 'README.md');
-    assert.ok(fs.statSync(installed).isFile(), 'the funnel-review contract was not installed');
-    const lines = read(installed).split('\n');
-    assert.ok(lines[0].includes(MARKER));
-    assert.ok(lines[0].includes('source: method/scripts/funnel-review-contract/README.md'));
-    assert.equal(lines.slice(1).join('\n'), read(src('scripts/funnel-review-contract/README.md')));
-    // #478: the report is `mhw funnel-review` now, so no funnel-review script is installed.
+    assert.ok(!fs.existsSync(path.join(scripts, 'funnel-review-contract')), 'a funnel-review contract was installed');
     assert.ok(!fs.existsSync(path.join(scripts, 'funnel-review.sh')));
-    assert.ok(read(src('skills/funnel-review/SKILL.md')).includes('`{{method-scripts}}/funnel-review-contract/README.md`'));
-    for (const rendered of ['.claude/skills/funnel-review/SKILL.md', '.agents/skills/funnel-review/SKILL.md', '.kiro/skills/funnel-review/SKILL.md']) {
-      // The token is replaced by the directory and the source's own /: on Windows the path mixes both, as
-      // the original's text did.
-      assert.ok(read(h.p(rendered)).includes('`' + scripts + '/funnel-review-contract/README.md`'), rendered);
-    }
+    assert.ok(!read(src('skills/funnel-review/SKILL.md')).includes('{{method-scripts}}/'));
     const old = 'docs/funnel-review/' + 'README.md';
     const named = filesUnder(SOURCE).filter((f) => ['.md', '.sh', '.py', '.tsv'].includes(path.extname(f)) && read(f).includes(old));
     assert.deepEqual(named, [], "a method file still names the consumer store's README as the contract");
   });
 
-  test('the installed document is not executable', { skip: !POSIX && 'POSIX file modes' }, () => {
-    // ADR-0032, amendment 2026-10-16.
-    const installed = path.join(h.p(SCRIPTS_DIR), 'funnel-review-contract', 'README.md');
+  test('an installed document is not executable', { skip: !POSIX && 'POSIX file modes' }, () => {
+    // ADR-0032, amendment 2026-10-16. No method file names a document since #599, so a source copy names one.
+    const home = methodHome();
+    const copy = sourceCopy('document-source');
+    fs.mkdirSync(path.join(copy, 'scripts', 'probe-contract'));
+    fs.writeFileSync(path.join(copy, 'scripts', 'probe-contract', 'README.md'), '# probe\n');
+    fs.appendFileSync(path.join(copy, 'skills', 'funnel-review', 'SKILL.md'), '\nSee `{{method-scripts}}/probe-contract/README.md`.\n');
+    const r = home.run(['--mode=install', '--source=' + copy]);
+    assert.equal(r.code, 0, r.out);
+    const installed = path.join(home.p(SCRIPTS_DIR), 'probe-contract', 'README.md');
+    assert.ok(fs.statSync(installed).isFile(), 'the named document was not installed');
     assert.equal(fs.statSync(installed).mode & 0o111, 0);
   });
 

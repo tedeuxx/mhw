@@ -1,7 +1,0 @@
-{
-  "name": "usage-unknown-argument",
-  "code": 2,
-  "stdout": "",
-  "stderr": "unknown argument: --bogus\n",
-  "treeUnchanged": true
-}

@@ -2,7 +2,7 @@
 
 Copy this file to `NNNN-kebab-title.md`, the next number in [the index](README.md), for a decision
 that passes the significance gate in `AGENTS.md` (MADR discipline). This template is not a record:
-`mhw onboard --scaffold` writes it, with the index, into a new repository's ADR library and never
+the `onboard` skill's scaffold (`mhw onboard --scaffold` until #599) writes it, with the index, into a new repository's ADR library and never
 writes a record (Issue #523; a record earns its place by explaining the current code).
 
 - **Status:** proposed

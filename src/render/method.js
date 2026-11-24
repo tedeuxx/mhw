@@ -37,8 +37,9 @@
 //                  so a rite carries the contract its driver reads (#181). In a rendered body,
 //                  {{method-scripts}} becomes that directory; a {{method-scripts}}/<name> naming no such
 //                  document stops the render.
-//     Scripts      none since #489. The rites run mhw commands (mhw milestone, worklog, rite-cadence,
-//                  funnel-review, launch-line), so no method/scripts/*.py or *.sh is read or installed.
+//     Scripts      none since #489. The rites run mhw commands (mhw milestone, rite-cadence; worklog
+//                  until #594, funnel-review and launch-line until #599), so no method/scripts/*.py or *.sh
+//                  is read or installed. No method file names a document since #599 either.
 //                  A copy an earlier version installed carries the managed-by line with "source: method/",
 //                  so check reports it STALE and install removes it, as for any file no longer rendered.
 //     Harness      in a command body, {{agent-harness}} becomes the id of the agent harness that copy is for

@@ -168,6 +168,18 @@ this record's writing:
 | mcp | 14 |
 | workstation (the catch-all) | 775 of 921 |
 
+## Amendment 2026-11-24: onboarding is a method skill ([#599](https://github.com/tedeuxx/mhw/issues/599))
+
+`mhw onboard` left the CLI (CLI native baseline PRD, section 5: *"a method skill"*). Its procedure is
+the method skill `onboard` (`method/skills/onboard/SKILL.md`): the same read-only validation, the same
+default manifest and scaffold, the same three write refusals (an existing file, a directory resolving
+outside the project, an ADR record), and the same `GAP` and `NOTE` lines, worded for a skill; the
+manifest's `GAP` and the `project-policy.json` lines name the delivery gates Action's `docs-baseline`
+and `contract` gates as the authorities. The session runs it, so it is an
+instruction: nothing refuses a write through a link any more, and the gaps it reports are the session's
+reading of the tree. The check itself is unchanged: the Action's `docs-baseline` gate
+(ADR-0046) on every pull request. Where this record says *Onboarding is `mhw onboard`* or quotes its
+`NOTE` line, read the skill; the measurements above were taken with the command and stay as taken.
 
 ## Amendment 2026-11-24: the paste wrapper's code leaves paste-cleaning ([#590](https://github.com/tedeuxx/mhw/issues/590))
 
@@ -176,6 +188,7 @@ The paste wrapper is removed (ADR-0047, 2026-11-24 amendment), so the 2026-11-20
 `src/lib/pty.js`, `src/vendor/node-pty/**` and `.github/workflows/node-pty-linux.yml`~~ (deleted; `src/lib/salt.js`
 already left with #589). `src/render/shell-rc.js`, which now only removes the wrapper's old start-up block, and
 its test `test/render/shell-rc.test.js` join the capability in their place. No document list changed.
+
 ## Links
 
 - Issue [#523](https://github.com/tedeuxx/mhw/issues/523); the owner's decision on the override.
