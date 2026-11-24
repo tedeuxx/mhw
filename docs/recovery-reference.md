@@ -8,12 +8,12 @@ recovery is prepared before exposure:
 > allowed only when the project's MADR defines its recovery-time objective, the runbook has been
 > tested, and an identified operator is available for the deployment and observation period.
 
-This reference is how a project's CI/CD can carry that clause. It adds two gates to `mhw delivery-gate`,
+This reference is how a project's CI/CD can carry that clause. It adds two gates to the delivery gates Action (`mhw delivery-gate` until #592),
 three jobs to the caller template and a runbook template.
 
 | File | What it is |
 | --- | --- |
-| `src/commands/delivery-gate.js` | `mhw delivery-gate recovery-plan` and `prod-validation`, beside the gates of [docs/reference-cicd.md](reference-cicd.md) (Node since [#499](https://github.com/tedeuxx/mhw/issues/499); they replaced `global/project-policy/delivery_gate.py`) |
+| `src/commands/delivery-gate.js` | The Action's `recovery-plan` and `prod-validation` gates (`mhw delivery-gate` until [#592](https://github.com/tedeuxx/mhw/issues/592)), beside the gates of [docs/reference-cicd.md](reference-cicd.md) (Node since [#499](https://github.com/tedeuxx/mhw/issues/499); they replaced `global/project-policy/delivery_gate.py`) |
 | `test/project-policy/delivery-gate.test.js` | Its suite: both recovery paths, each blocking class, the runbook template read by the gate, the template's recovery jobs |
 | `global/project-policy/reference/caller-workflow.yml` | The template's `recovery-plan`, `validate-prod` and `recover` jobs. Not live in mhw |
 | `global/project-policy/reference/runbook-template.md` | The manual-recovery runbook a project copies |
@@ -78,7 +78,7 @@ placeholder record is not a test, so a runbook copied without filling it blocks.
 
 ## The gates
 
-Each is one `mhw delivery-gate` command and re-validates the contract first, like every gate of the
+Each is one step of the delivery gates Action (`gate: recovery-plan` or `gate: prod-validation`) and re-validates the contract first, like every gate of the
 reference CI/CD.
 
 | Gate | When | It blocks when | What it does not cover |

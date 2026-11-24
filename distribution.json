@@ -101,7 +101,7 @@
       "id": "project-policy-contract",
       "layer": "user",
       "paths": ["global/project-policy/"],
-      "gap": "A contract a deploying project declares, not a harness carrier: mhw install-user renders nothing from it. Written and tested only; mhw policy check (src/commands/project-policy.js, Node since #498) validates a project's copy (#245) and mhw delivery-gate (src/commands/delivery-gate.js, Node since #499) applies it to a revision's evidence in the reference CI/CD (#246, docs/reference-cicd.md), with the recovery gates and runbook template of #247 (docs/recovery-reference.md), but no project declares one or runs any of them (ADR-0015, #244)."
+      "gap": "A contract a deploying project declares, not a harness carrier: mhw install-user renders nothing from it. Written and tested only; the delivery gates Action (actions/delivery-gates, #592; it was mhw policy check, src/commands/project-policy.js, Node since #498) validates a project's copy (#245) and its gates (src/commands/delivery-gate.js, Node since #499; mhw delivery-gate until #592) apply it to a revision's evidence in the reference CI/CD (#246, docs/reference-cicd.md), with the recovery gates and runbook template of #247 (docs/recovery-reference.md), but no project declares one or runs any of them (ADR-0015, #244)."
     },
     {
       "id": "documentation-baseline",

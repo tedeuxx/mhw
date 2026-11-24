@@ -2,7 +2,8 @@
 // the deleted global/project-policy/project_policy.py, reached as `./mhw policy ...` (global/workstation.py),
 // on the cases of test/helpers/s28-cases.js. Every run is in a throwaway directory, which is the case's
 // working directory and HOME.
-//   golden: `node bin/mhw.js policy <args>` against the transcripts recorded from the Python original (exit
+//   golden: `node src/action/gates.js policy <args>` (the delivery gates Action's engine since #592, when
+//           `mhw policy` left the CLI) against the transcripts recorded from the Python original (exit
 //           code, stdout, stderr). Every OS; cases marked posix on POSIX only.
 //   live:   where the base revision still holds project_policy.py and the recorded CPython is on PATH, the
 //           Python original and the Node command side by side on every case. POSIX only.
@@ -48,9 +49,9 @@ function transcript(c, runner) {
   return { name: c.name, args: c.args, run: normalised(r, base) };
 }
 
-/** The Node command, as a user runs it. @type {Runner} */
+/** The Node command, as the delivery gates Action runs it (#592). @type {Runner} */
 const nodeRunner = (args, env, cwd) => {
-  const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), ...args], { env, cwd, encoding: 'utf8', timeout: 60000 });
+  const p = spawnSync(process.execPath, [path.join(ROOT, 'src', 'action', 'gates.js'), ...args], { env, cwd, encoding: 'utf8', timeout: 60000 });
   return { code: p.status, stdout: p.stdout, stderr: p.stderr };
 };
 

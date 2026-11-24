@@ -423,26 +423,25 @@ test('usage errors are exit 2', () => {
   assert.equal(captured(() => checkMain(['x'])).code, 2);
 });
 
-test('the mhw command reaches the validator', { skip: process.platform === 'win32' && './mhw is the POSIX launcher (bin/mhw.js is tested below)' }, () => {
-  const env = { ...process.env, PATH: path.dirname(process.execPath) + path.delimiter + (process.env.PATH || '') };
-  const mhw = path.join(ROOT, 'mhw');
-  let p = spawnSync(mhw, ['policy', 'check', '--file=' + EXAMPLE], { encoding: 'utf8', env });
-  assert.equal(p.status, 0, p.stderr);
-  p = spawnSync(mhw, ['policy', 'check', '--project=' + dir], { encoding: 'utf8', env });
-  assert.equal(p.status, 1);
-  assert.ok(p.stderr.includes('missing'), p.stderr);
-  assert.equal(spawnSync(mhw, ['policy'], { env }).status, 2);
-});
-
-test('bin/mhw.js reaches the validator on every OS', () => {
-  let p = spawnSync(process.execPath, [MHW, 'policy', 'check', '--file=' + EXAMPLE], { encoding: 'utf8' });
+test('the delivery gates Action\'s engine reaches the validator on every OS (#592)', () => {
+  const ENGINE = path.join(ROOT, 'src', 'action', 'gates.js');
+  let p = spawnSync(process.execPath, [ENGINE, 'policy', 'check', '--file=' + EXAMPLE], { encoding: 'utf8' });
   assert.equal(p.status, 0, p.stderr);
   assert.ok(p.stdout.startsWith('OK  '), p.stdout);
-  p = spawnSync(process.execPath, [MHW, 'policy', 'check', '--project=' + dir], { encoding: 'utf8' });
+  p = spawnSync(process.execPath, [ENGINE, 'policy', 'check', '--project=' + dir], { encoding: 'utf8' });
   assert.equal(p.status, 1);
   assert.ok(p.stderr.includes('missing: no file at'), p.stderr);
-  p = spawnSync(process.execPath, [MHW, 'policy'], { encoding: 'utf8' });
+  p = spawnSync(process.execPath, [ENGINE, 'policy'], { encoding: 'utf8' });
   assert.equal(p.status, 2);
+});
+
+test('mhw policy left the CLI (#592): bin/mhw.js answers it as an unknown subcommand', () => {
+  for (const argv of [['policy'], ['policy', 'check', '--file=' + EXAMPLE]]) {
+    const p = spawnSync(process.execPath, [MHW, ...argv], { encoding: 'utf8' });
+    assert.equal(p.status, 2, argv.join(' '));
+    assert.equal(p.stdout, '', argv.join(' '));
+    assert.match(p.stderr, /^mhw: unknown (subcommand|argument for) policy/, argv.join(' '));
+  }
 });
 
 test('workstation.py, which once forwarded policy, is gone (#495)', () => {

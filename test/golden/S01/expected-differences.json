@@ -124,5 +124,19 @@
     "pattern": "file\\(s\\) to write \\(no password needed\\)$",
     "whenBaseLacks": "src/hooks/pattern-check.js",
     "why": "#588: the install plan counts the files it writes, which grows by the fixed-pattern check's five; the line is left out on both sides while the base lacks the check, and every other line is compared."
+  },
+  {
+    "case": "help",
+    "stream": "stdout",
+    "pattern": "^    \\./mhw policy check \\[--project=DIR \\| --file=PATH\\]\\n {40}validate a project's ADR-0015 project-policy contract \\(Issue\\n(?: {42}[^\\n]*\\n){5}",
+    "replace": "",
+    "why": "A break of the public interface (#592, v11, section 5 of the CLI native baseline PRD, ADR-0046): `mhw policy check`, `mhw delivery-gate` and `mhw docs-baseline check` left the CLI for the delivery gates Action (actions/delivery-gates), so the usage text drops the six lines of `./mhw policy check` and every other line is compared unchanged."
+  },
+  {
+    "case": "unknown-subcommand",
+    "stream": "stderr",
+    "pattern": "scan, policy check, update",
+    "replace": "scan, update",
+    "why": "A break of the public interface (#592, v11, section 5 of the CLI native baseline PRD, ADR-0046): `mhw policy check`, `mhw delivery-gate` and `mhw docs-baseline check` left the CLI for the delivery gates Action (actions/delivery-gates), so the usage text drops the six lines of `./mhw policy check` and the unknown-subcommand refusal no longer lists `policy check` among the commands; the rest of the line and the exit code are unchanged."
   }
 ]

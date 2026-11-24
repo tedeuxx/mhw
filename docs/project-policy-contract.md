@@ -11,7 +11,7 @@ values, ratified in its own MADR.
 | `global/project-policy/project-policy.example.json` | A valid example for a synthetic project |
 | `global/project-policy/project-policy.invalid.json` | An invalid example that weakens several parts of the floor, its coverage threshold (5) among them |
 | `test/project-policy/contract.test.js` | The suite: the valid example passes, removing each required field fails, each floor is held |
-| `src/commands/project-policy.js` | The fail-closed validator behind `mhw policy check` ([#245](https://github.com/tedeuxx/mhw/issues/245)); Node since [#498](https://github.com/tedeuxx/mhw/issues/498), which deleted `project_policy.py` |
+| `src/commands/project-policy.js` | The fail-closed validator behind the Action's `contract` gate (`mhw policy check` until [#592](https://github.com/tedeuxx/mhw/issues/592); [#245](https://github.com/tedeuxx/mhw/issues/245)); Node since [#498](https://github.com/tedeuxx/mhw/issues/498), which deleted `project_policy.py` |
 | `test/project-policy/check.test.js` | The validator's suite: one test per failure class |
 | `test/project-policy/project-policy-golden.test.js` | Parity with the deleted Python validator, on the cases recorded in `test/golden/S28/` |
 
@@ -46,11 +46,21 @@ another language must reach the same answer: an ECMA engine, or a full match.
 values. `mhw policy check --project=DIR` reads `DIR/project-policy.json` (the current directory by
 default); `--file=PATH` reads another path instead.
 
-## Validating it: `mhw policy check`
+## Validating it: the `contract` gate of the delivery gates Action
+
+~~`mhw policy check [--project=DIR | --file=PATH]`~~ left the CLI with
+[#592](https://github.com/tedeuxx/mhw/issues/592) ([ADR-0046](adr/0046-delivery-gates-as-a-reusable-github-action.md)).
+A project's CI/CD runs the validator as the first half of the Action's `contract` gate:
 
 ```
-mhw policy check [--project=DIR | --file=PATH]
+- uses: tedeuxx/mhw/actions/delivery-gates@<release tag or full commit SHA>
+  with:
+    gate: contract
+    project-dir: <DIR holding project-policy.json>
 ```
+
+In a checkout of mhw the same validator runs as `node src/action/gates.js policy check [--project=DIR |
+--file=PATH]`, with the arguments, messages and exit codes the command had.
 
 It exits 0 only when the file is a valid contract. Everything else is non-zero, with one reason per
 line on standard error, each naming its class:

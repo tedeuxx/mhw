@@ -6,7 +6,10 @@
 # rulesets require it by name (global/github-repo-settings.json, #591; mhw delivery merge did until then).
 # It runs again when the body is edited, so adding an escape line re-decides. It is a check, not a
 # hook: nothing stops a push, and a trivial doc edit or a dishonest escape still passes (ADR-0044).
-# The command imports only node: modules, so nothing is installed from a registry here.
+# The check is a step of the delivery gates Action (#592, ADR-0046; it was `mhw docs-baseline check`),
+# run here at this pull request's own ref through `uses: ./actions/delivery-gates`, as a project runs it
+# through `uses: tedeuxx/mhw/actions/delivery-gates@<ref>`. It imports only node: modules, so nothing is
+# installed from a registry here.
 name: docs-baseline
 
 on:
@@ -29,14 +32,13 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
-      # actions/setup-node v7.1.0, the same pin and Node release as tests.yml's node job.
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: 26.13.1
-      - name: every touched capability changed a document, or the body says why not
+      - name: the pull request body, as a file
         env:
-          BASE_REF: ${{ github.base_ref }}
           PR_BODY: ${{ github.event.pull_request.body }}
-        run: |
-          printf '%s\n' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
-          node bin/mhw.js docs-baseline check "--base=origin/$BASE_REF" "--body-file=$RUNNER_TEMP/pr-body.md"
+        run: printf '%s\n' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+      - name: every touched capability changed a document, or the body says why not
+        uses: ./actions/delivery-gates
+        with:
+          gate: docs-baseline
+          base: origin/${{ github.base_ref }}
+          body-file: ${{ runner.temp }}/pr-body.md

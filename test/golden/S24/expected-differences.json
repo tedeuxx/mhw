@@ -293,5 +293,29 @@
     "head": "^(dir 755|file 644)$",
     "replace": "<the merge-pull-request skill, new since the recording>",
     "why": "#591 adds the method skill merge-pull-request, which replaced mhw delivery (ADR-0045). The method install renders it into the three skill directories as it renders every other method skill: a directory 755 and a SKILL.md 644. The original never had the skill, so its side is absent; every other written path is compared unchanged."
+  },
+  {
+    "case": [
+      "usage-and-refusals"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "    \\./mhw policy check \\[--project=DIR \\| --file=PATH\\]\\n {40}validate a project's ADR-0015 project-policy contract \\(Issue\\n(?: {42}[^\\n]*\\n){5}",
+    "head": "(?!)",
+    "replace": "",
+    "why": "A break of the public interface (#592, v11, section 5 of the CLI native baseline PRD, ADR-0046): `mhw policy check`, `mhw delivery-gate` and `mhw docs-baseline check` left the CLI for the delivery gates Action (actions/delivery-gates), so the usage text drops the six lines of `./mhw policy check` and every other line is compared unchanged. Steps 0 to 3 (--help, -h, help and no argument) all print it."
+  },
+  {
+    "case": [
+      "usage-and-refusals"
+    ],
+    "stream": [
+      "stderr"
+    ],
+    "base": "scan, policy check, update",
+    "head": "(?!)",
+    "replace": "scan, update",
+    "why": "A break of the public interface (#592, v11, section 5 of the CLI native baseline PRD, ADR-0046): `mhw policy check`, `mhw delivery-gate` and `mhw docs-baseline check` left the CLI for the delivery gates Action (actions/delivery-gates), so the usage text drops the six lines of `./mhw policy check` and the unknown-subcommand refusal (step 4) no longer lists `policy check` among the commands; the rest of the line and the exit code are unchanged."
   }
 ]

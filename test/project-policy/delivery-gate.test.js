@@ -135,9 +135,9 @@ function assertBlocks(blocks, fragment) {
   assert.ok(blocks.some((b) => b.includes(fragment)), JSON.stringify(fragment) + ' not in ' + JSON.stringify(blocks));
 }
 
-/** The command, as a CI step runs it. @param {string[]} args @param {Record<string, string>} [env] */
+/** The gate, as the delivery gates Action runs it (#592). @param {string[]} args @param {Record<string, string>} [env] */
 function cli(args, env = { PATH: process.env.PATH || '' }) {
-  const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'delivery-gate', ...args], { encoding: 'utf8', env, timeout: 60000 });
+  const p = spawnSync(process.execPath, [path.join(ROOT, 'src', 'action', 'gates.js'), 'delivery-gate', ...args], { encoding: 'utf8', env, timeout: 60000 });
   return { code: p.status, out: p.stdout, err: p.stderr };
 }
 
@@ -621,7 +621,7 @@ describe('an argument that is not valid UTF-8 (QA B3)', () => {
   test('the bytes themselves: 0xff in --name, --container-image and an --evidence path', { skip: !POSIX && 'POSIX shell' }, () => {
     const env = w.write('env.json', { name: 'production-owner-approval', protection_rules: [{ type: 'required_reviewers', reviewers: [{ id: 1 }] }] });
     const ev = w.write('ev.json', containerEvidence());
-    const bin = path.join(ROOT, 'bin', 'mhw.js');
+    const bin = path.join(ROOT, 'src', 'action', 'gates.js');
     /** @param {string} script */
     const sh = (script) => spawnSync('/bin/sh', ['-c', script, process.execPath, bin, env, ev, w.project, REV, IMAGE], { encoding: 'utf8', env: { PATH: process.env.PATH || '' } });
     const ff = '"$(printf \'\\377\')"';
@@ -695,7 +695,8 @@ describe('the workflows', () => {
       const refs = [...text(p).matchAll(USES)].map((m) => m[1]);
       assert.ok(refs.length, p);
       for (const ref of refs) {
-        if (ref.startsWith('./') || ref === 'tedeuxx/mhw/.github/workflows/reference-delivery-gate.yml@<mhw-commit-sha>') continue;
+        if (ref.startsWith('./') || ref === 'tedeuxx/mhw/.github/workflows/reference-delivery-gate.yml@<mhw-commit-sha>'
+          || ref === 'tedeuxx/mhw/actions/delivery-gates@<mhw-commit-sha>') continue;
         assert.match(ref, /^[\w.-]+\/[\w./-]+@[0-9a-f]{40}$/, path.basename(p) + ': ' + ref);
       }
     }
@@ -775,31 +776,37 @@ describe('the workflows', () => {
       assert.equal(count, 1 + Object.values(pinned).filter((v) => v !== null).length, path.basename(p));
     }
   });
-  test('the gate calls the validator and every gate, in Node', () => {
+  test('the gate runs every gate through the delivery gates Action, at the pinned mhw checkout (#592)', () => {
     const body = text(GATE_WORKFLOW);
-    assert.ok(body.includes('node mhw/bin/mhw.js policy check --project='));
+    // The contract gate is the validator and then the contract gate (src/action/gates.js, plan()).
     for (const g of ['contract', 'container', 'installed-stg', 'classify', 'environment']) {
-      assert.ok(body.includes('node mhw/bin/mhw.js delivery-gate ' + g + ' '), g);
+      assert.match(body, new RegExp('^ {8}uses: \\./mhw/actions/delivery-gates\\n {8}with:\\n {10}gate: ' + g + '$', 'm'), g);
     }
+    assert.doesNotMatch(body, /bin\/mhw\.js/);
   });
   test('no workflow step runs Python; only the dry run names the fixture\'s own test commands', () => {
     // Comments may name the old line (the template's pin-move note does); no YAML line may.
     /** @param {string} p */
     const yamlLines = (p) => text(p).split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
-    for (const p of [GATE_WORKFLOW, TEMPLATE]) assert.doesNotMatch(yamlLines(p), /python3? |delivery_gate|setup-python/, path.basename(p));
-    assert.match(text(TEMPLATE), /^# .*`node mhw\/bin\/mhw\.js delivery-gate <gate>`, with the same arguments, outputs and exit codes/m);
+    for (const p of [GATE_WORKFLOW, TEMPLATE]) assert.doesNotMatch(yamlLines(p), /python3? |delivery_gate|setup-python|bin\/mhw\.js/, path.basename(p));
+    assert.match(text(TEMPLATE), /^# .*`node mhw\/bin\/mhw\.js delivery-gate <gate> --flag=value \.\.\.` to the Action with `gate: <gate>` and one$/m);
     const dry = text(DRY_RUN);
     assert.doesNotMatch(dry, /^\s+(?:- )?run:.*python|delivery_gate|setup-python/m);
     assert.deepEqual([...dry.matchAll(/python3 -B (\S+)/g)].map((m) => m[1]).sort(byString), ['container_tests.py', 'container_tests.py', 'stg_stand_in_tests.py']);
   });
-  test('every job that runs a gate sets up Node first', () => {
-    for (const p of [GATE_WORKFLOW, TEMPLATE]) {
-      const jobs = text(p).split('\njobs:\n')[1].split(/^ {2}(?=[\w-]+:$)/m).slice(1);
-      for (const job of jobs.filter((j) => j.includes('node mhw/bin/mhw.js'))) {
-        const setup = job.indexOf('actions/setup-node@');
-        assert.ok(setup >= 0 && setup < job.indexOf('node mhw/bin/mhw.js'), path.basename(p) + ': ' + job.split(':')[0]);
-      }
+  test('every job that runs a gate checks out the mhw it runs, or names it by its pin (#592)', () => {
+    // The Action sets up Node itself. The reusable workflow runs it from its mhw checkout at mhw-revision,
+    // which must come before the first gate step of the job; the template names it by its pin.
+    const jobs = text(GATE_WORKFLOW).split('\njobs:\n')[1].split(/^ {2}(?=[\w-]+:$)/m).slice(1);
+    const gating = jobs.filter((j) => j.includes('uses: ./mhw/actions/delivery-gates'));
+    assert.equal(gating.length, 4);
+    for (const job of gating) {
+      const checkout = job.indexOf('repository: tedeuxx/mhw\n          ref: ${{ inputs.mhw-revision }}\n          path: mhw');
+      assert.ok(checkout >= 0 && checkout < job.indexOf('uses: ./mhw/actions/delivery-gates'), job.split(':')[0]);
     }
+    const template = text(TEMPLATE);
+    assert.equal([...template.matchAll(/uses: tedeuxx\/mhw\/actions\/delivery-gates@<mhw-commit-sha>$/gm)].length, 2);
+    assert.doesNotMatch(template, /repository: tedeuxx\/mhw$/m, 'no job of the template checks out mhw any more');
   });
   test('the dry run has no deployment job', () => {
     const body = text(DRY_RUN).split('\njobs:\n')[1];
@@ -816,13 +823,13 @@ describe('the caller template', () => {
     return m[1];
   };
   test('recovery is planned before the PROD deployment', () => {
-    assert.ok(job('recovery-plan').includes('delivery-gate recovery-plan '));
+    assert.match(job('recovery-plan'), /uses: tedeuxx\/mhw\/actions\/delivery-gates@<mhw-commit-sha>\n {8}with:\n {10}gate: recovery-plan$/m);
     assert.match(job('deploy-prod'), /needs: \[[^\]]*\brecovery-plan\b/);
   });
   test('PROD is validated after the deployment', () => {
     const validate = job('validate-prod');
     assert.ok(validate.includes('needs: deploy-prod'));
-    assert.ok(validate.includes('delivery-gate prod-validation '));
+    assert.match(validate, /uses: tedeuxx\/mhw\/actions\/delivery-gates@<mhw-commit-sha>\n {8}with:\n {10}gate: prod-validation$/m);
   });
   test('recovery runs on any failure after exposure', () => {
     const recover = job('recover');
