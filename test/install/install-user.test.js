@@ -970,6 +970,12 @@ test('12c. #589: a term list and salt an earlier install left: check names them,
     assert.equal(fs.statSync(bak).mode & 0o777, 0o600, f + ': the backup is 0600');
   }
   assert.ok(exists(lo + '/owner-file.txt'), "another file of the local overlay is the owner's and stays");
+  // QA A2: a second leftover with the same name never overwrites the first backup, and the notice names the new one.
+  fs.writeFileSync(lo + '/clipboard-salt', 'second\n');
+  const again = inst(h);
+  assert.ok(again.out.includes('backup kept as ' + lo + '/clipboard-salt.pmhwc-backup.1, 0600'), again.out);
+  assert.equal(fs.readFileSync(lo + '/clipboard-salt.pmhwc-backup', 'utf8'), 'cd'.repeat(32) + '\n', 'the first backup was overwritten');
+  fs.rmSync(lo + '/clipboard-salt.pmhwc-backup.1');
   assert.equal(inst(h, ['--check']).code, 0, 'check is clean once they are moved aside');
   assert.doesNotMatch(inst(h).out, /a term list or its salt/, 'a second install has nothing to move');
   // Uninstall moves them aside too, and the directory goes when nothing else is left in it.

@@ -1050,6 +1050,60 @@ function restartState(ctx) {
 }
 
 /**
+ * Move f aside to a backup that never replaces an existing one (#589, QA A2): <f>.pmhwc-backup, else the
+ * first free <f>.pmhwc-backup.N. The new name is made by a hard link, which fails on an existing name
+ * instead of overwriting it, then f is unlinked; the backup is then set to 0600. stage names what failed:
+ * 'move' (f is left where it was) or 'chmod' (f is already moved, to bak). ops is a seam for the tests.
+ * @param {string} f
+ * @param {{ linkSync: typeof fs.linkSync, unlinkSync: typeof fs.unlinkSync, chmodSync: typeof fs.chmodSync }} [ops]
+ * @returns {{ stage: 'done' | 'move' | 'chmod', bak: string, error?: unknown }}
+ */
+export function moveAside(f, ops = fs) {
+  let bak = f + '.pmhwc-backup';
+  for (let n = 1; ; n++) {
+    try {
+      ops.linkSync(f, bak);
+      break;
+    } catch (e) {
+      if (!(e instanceof Error && /** @type {NodeJS.ErrnoException} */ (e).code === 'EEXIST') || n > 999) return { stage: 'move', bak, error: e };
+      bak = f + '.pmhwc-backup.' + n;
+    }
+  }
+  try {
+    ops.unlinkSync(f);
+  } catch (e) {
+    try {
+      ops.unlinkSync(bak);
+    } catch {
+      // the link stays; the original is still in place too
+    }
+    return { stage: 'move', bak, error: e };
+  }
+  try {
+    ops.chmodSync(bak, 0o600);
+  } catch (e) {
+    return { stage: 'chmod', bak, error: e };
+  }
+  return { stage: 'done', bak };
+}
+
+/**
+ * The line for one moveAside result: [ok, text]. A move failure says the file is left where it was; a chmod
+ * failure says the file was already moved, names the backup and what to do with it.
+ * @param {string} f @param {{ stage: string, bak: string, error?: unknown }} r @param {string} what
+ * @returns {[boolean, string]}
+ */
+export function asideNotice(f, r, what) {
+  const why = r.error instanceof Error ? r.error.message : String(r.error);
+  if (r.stage === 'move') return [false, 'REFUSE  ' + f + ': could not be moved aside (' + why + '); left as it is, nothing was backed up'];
+  if (r.stage === 'chmod') {
+    return [false, 'REFUSE  ' + f + ': moved aside to ' + r.bak + ', but setting its mode to 0600 failed (' + why
+      + '); the backup may be readable by others: run chmod 600 on it, or delete it'];
+  }
+  return [true, 'REMOVED ' + f + ' (' + what + '; backup kept as ' + r.bak + ', 0600: delete it when you no longer need it)'];
+}
+
+/**
  * The term lists and their salt (#589): `mhw add-term` and every reader of them are removed, and third-party
  * terms are judged by the model (the brief, and on Claude Code a prompt hook). What an earlier install left
  * in <data dir>/local-overlay is moved aside, on install and on uninstall alike: each file becomes a 0600
@@ -1067,16 +1121,12 @@ export function termListsStep(ctx) {
       raise(ctx, 1);
     } else if (ctx.mode === 'dry-run') say(ctx, 'WOULD REMOVE ' + f + ' (' + what + '; a 0600 copy would be kept as ' + f + '.pmhwc-backup)');
     else if (ctx.mode === 'install' || ctx.mode === 'uninstall') {
-      const bak = f + '.pmhwc-backup';
-      try {
-        fs.renameSync(f, bak);
-        fs.chmodSync(bak, 0o600);
-      } catch (e) {
-        warn(ctx, 'REFUSE  ' + f + ': could not be moved aside (' + (e instanceof Error ? e.message : String(e)) + '); left as it is');
+      const [ok, line] = asideNotice(f, moveAside(f), what);
+      if (ok) say(ctx, line);
+      else {
+        warn(ctx, line);
         raise(ctx, 4);
-        continue;
       }
-      say(ctx, 'REMOVED ' + f + ' (' + what + '; backup kept as ' + bak + ', 0600: delete it when you no longer need it)');
     }
   }
   if ((ctx.mode === 'install' || ctx.mode === 'uninstall') && isDir(lo) && !isLink(lo)) rmdir(lo);
