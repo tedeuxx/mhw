@@ -208,5 +208,12 @@
     "pattern": "^\\.claude/settings\\.json$|^\\.claude/CLAUDE\\.md$|^\\.codex/AGENTS\\.md$|^\\.kiro/steering/workstation-global-brief\\.md$|^\\.local/share/personal-multi-harness-workstation-configuration/clipboard\\.conf$|pattern-check/src/lib/clean\\.js$",
     "whenBaseHas": "src/lib/salt.js",
     "why": "#589 (ADR-0047): third-party terms are judged by the model, so the settings carry one more UserPromptSubmit entry (the prompt-type term check), the three rendered global briefs gain rule 4's sentence on judging third-party terms, the fixed-pattern check's installed copy of the cleaning core (src/lib/clean.js) loses its term-list readers, and the installed clipboard.conf loses the term-list and salt comments and the owner overlay's two no-salt notices. Those files are compared by kind and mode only in the live arm while the base still ships src/lib/salt.js; test/hooks/pattern-check-install.test.js and test/render/settings-merge.test.js hold the entry, and the brief is the source file itself."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree",
+    "pattern": "^\\.claude/settings\\.json$|^\\.codex/rules/workstation-deny-floor\\.rules$|^\\.codex/rules/workstation-allow-list\\.rules$|^\\.kiro/agents/workstation\\.json$|^\\.kiro/settings/permissions\\.yaml$|kiro-permissions-owned\\.json$",
+    "whenBaseHas": "src/commands/milestone.js",
+    "why": "#593 (ADR-0048, the owner's decisions «Abrir o deny» and «Mover para o baseline»): the eight gh api write entries left the deny floor, so the floor the settings, the Codex floor rules and the Kiro permissions.yaml carry is eight entries shorter (and so is the record of the Kiro floor rules install appended); and install renders the baseline's gh api rule set (global/gh-api.conf) into the settings, the Codex allow-list rules and the Kiro agent. Those files are compared by kind and mode only in the live arm while the base still ships src/commands/milestone.js; test/render/gh-api.test.js holds the rule set and its retirement, and test/render/allow-list.test.js the rendered counts."
   }
 ]

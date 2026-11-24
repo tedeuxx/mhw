@@ -954,6 +954,8 @@ export function chromeStep(ctx) {
 /**
  * The allow-list step (ADR-0031): Claude Code permissions.allow and defaultMode, the Codex rules and profile,
  * and the Kiro agent (src/render/allow-list.js). An allow list never lands without the deny floor beside it.
+ * With the baseline's gh api rule set in every tier, and the hand-kept "Bash(gh api:*)" deny retired with a
+ * backup (#593, ADR-0048).
  * @param {Ctx} ctx
  */
 export function allowStep(ctx) {
@@ -977,7 +979,10 @@ export function allowStep(ctx) {
     '--mode=' + ctx.mode, '--stamp=' + ctx.stamp, '--source=' + ctx.scriptDir + '/allow-list.conf', '--overlay=' + ctx.overlay,
     '--retired=' + ctx.scriptDir + '/allow-retired.conf', '--floor-codex=' + ctx.floorCodex, '--floor-claude=' + ctx.floorClaude,
     '--managed-root=' + (ctx.managedRoot || '/'), '--settings=' + ctx.paths.settings, '--home=' + ctx.home,
-    '--codex-home=' + (ctx.env.CODEX_HOME || ''), '--repo-root=' + ctx.repoRoot, '--cmd=' + ctx.cmd, '--refused-floor=' + refused.join(',')]));
+    '--codex-home=' + (ctx.env.CODEX_HOME || ''), '--repo-root=' + ctx.repoRoot, '--cmd=' + ctx.cmd, '--refused-floor=' + refused.join(','),
+    // #593 (ADR-0048): the baseline's gh api rule set, and the retirement of the hand-kept "Bash(gh api:*)",
+    // whenever its source is beside the others (a tree assembled from older frozen sources has none).
+    ...(fs.existsSync(ctx.scriptDir + '/gh-api.conf') ? ['--gh-api=' + ctx.scriptDir + '/gh-api.conf'] : [])]));
 }
 
 /**

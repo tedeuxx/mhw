@@ -67,8 +67,10 @@ iteration question being load-bearing:**
 
 **Why not "the sprint ended".** ~~No command available to this loop can read whether a milestone is
 open or closed; the iteration's close is a click in a browser.~~ **Struck 2026-09-29 (#537):
-`mhw milestone read` reads state and `mhw milestone close` closes it** (the Python scripts of
-`method/scripts/` until mhw#475).
+~~`mhw milestone read` reads state and `mhw milestone close` closes it~~ `gh api
+repos/<owner>/<repo>/milestones/<number>` reads its state, and the same endpoint with `-X PATCH -f
+state=closed` closes it, once that read says `open`** (the Python scripts of `method/scripts/` until
+mhw#475, `mhw milestone` until mhw#593; the procedure is `/sprint-planning`'s).
 The close is still not the trigger: snapshot exhaustion fires the rites first, and closing the
 milestone is an output after those rites have run.
 

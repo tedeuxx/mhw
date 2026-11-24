@@ -12,7 +12,7 @@ purpose: "keep documentation diffable and decisions durable, so a fresh context 
 > merging and filing; that is why installing this method is opt-in until the cutover, #63.) Read any rule they
 > held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
 > the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
-> the `gh pr merge --squash`/`-s` prefixes, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> the `gh pr merge --squash`/`-s` prefixes, secret writes, `gh api` write methods spelled before the endpoint (since mhw#593 a user-level rule set, not the floor), `gh repo delete`/`archive`/`rename`, releases and
 > package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
 > native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
 > plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.

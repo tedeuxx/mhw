@@ -12,7 +12,7 @@ purpose: "carry the intentional design of this loop - why it is shaped this way,
 > merging and filing; that is why installing this method is opt-in until the cutover, #63.) Read any rule they
 > held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
 > the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
-> the `gh pr merge --squash`/`-s` prefixes, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> the `gh pr merge --squash`/`-s` prefixes, secret writes, `gh api` write methods spelled before the endpoint (since mhw#593 a user-level rule set, not the floor), `gh repo delete`/`archive`/`rename`, releases and
 > package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
 > native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
 > plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
@@ -595,7 +595,9 @@ a missing `read:project` token scope, and the GraphQL escape hatch is denied by 
 floor~~ the owner's own user-level rule (`Bash(gh api:*)`) **(corrected 2026-11-02, mhw#242: it is a
 rule he wrote in his user settings, not a workstation floor entry; the floor carries only the
 `gh api -X`/`--method` write prefixes. He decided to keep the broad rule, because a prefix cannot tell
-a read from the many write spellings `gh api` accepts)**. A milestone needs none of that: `gh issue edit --milestone`, `gh issue list --milestone` and
+a read from the many write spellings `gh api` accepts)** **(corrected 2026-11-24, mhw#593: he moved that
+rule into the workstation's `gh api` rule set, which no longer denies a `gh api` read or a GraphQL call;
+they are asked. The floor's write prefixes left with it, ADR-0048 of mhw)**. A milestone needs none of that: `gh issue edit --milestone`, `gh issue list --milestone` and
 `gh issue list --json milestone` ~~are all allowlisted already~~ **need no token scope and no API
 route. Whether they prompt is the settings layers' answer, not this file's: the workstation allow list
 (`global/allow-list.conf` and the overlay's, in mhw) pre-authorises `gh issue list` and
@@ -619,13 +621,15 @@ gh issue list --repo <owner>/<repo> --state all --limit 200 --json number,milest
 
 There is no `gh milestone` subcommand, and `state` is not among `gh issue list --json`'s available
 fields, so ~~**no command available to this loop can read whether a milestone is open or closed.**~~
-**Struck 2026-09-29 (#537): ~~`python3 method/scripts/milestone-read.py`~~ `mhw milestone read`
-(since mhw#475) reads the milestone endpoint directly,
+**Struck 2026-09-29 (#537): ~~`python3 method/scripts/milestone-read.py`~~ ~~`mhw milestone read`
+(since mhw#475)~~ `gh api repos/<owner>/<repo>/milestones/<number>` (since mhw#593) reads the milestone endpoint directly,
 including an empty milestone, and returns state plus open and closed counts.**
 ~~Creating one and closing one are both owner acts in the browser.~~ **Struck first for creation at
-#375 and completely at #537:** `mhw milestone create` creates and
-`mhw milestone close` closes (~~`method/scripts/milestone-create.py`, `method/scripts/milestone-close.py`~~
-until mhw#475). Neither act is handed to the owner.
+#375 and completely at #537:** ~~`mhw milestone create` creates and
+`mhw milestone close` closes~~ `gh api` creates and closes them, against the same endpoint
+(~~`method/scripts/milestone-create.py`, `method/scripts/milestone-close.py`~~
+until mhw#475, `mhw milestone` until mhw#593; the procedure is `/sprint-planning`'s step 4a). Neither
+act is handed to the owner.
 
 **Why that does not send the object back to the table, which is the honest form of this answer:** rule 1
 never reads `state`. The predicate above derives the active iteration from *items*, so the one attribute
@@ -645,8 +649,13 @@ scrum»* — and creation had **no route at all**: `gh milestone` does not exist
 (`gh milestone --help` → `unknown command "milestone" for "gh"`), so rule 5f's prescribed remedy
 (*"use the gh subcommand for the act instead"*) is **unexecutable**, not merely inconvenient.
 
-**The route is `mhw milestone create` (~~`method/scripts/milestone-create.py`~~ until mhw#475), and it
-is an EXPLOITATION rather than a design.** It
+~~**The route is `mhw milestone create` (`method/scripts/milestone-create.py` until mhw#475), and it
+is an EXPLOITATION rather than a design.**~~ **Struck 2026-11-24 (mhw#593): the route is now a plain
+`gh api` call the permission layer sees, under the workstation's `gh api` rule set (ADR-0048 of mhw),
+which allows the milestones endpoint, spelled endpoint first, and denies the method-first write
+spellings; the owner opened the floor's write denies for it (*«Abrir o deny»*) and moved his hand-kept
+`Bash(gh api:*)` deny into that baseline (*«Mover para o baseline»*). The paragraph below is the record
+of the program it replaced.** It
 reaches the write API because **neither the settings matcher nor `permission-guard.sh` looks inside a
 program** — the same blindness that makes `python3 -c "…gh api -X POST…"` a back door, measured against
 the live guard. **So nothing here may claim the raw-API route is closed**, and the floor entry the
@@ -658,8 +667,11 @@ and the price of accepting the hole are still in ADR-0004's 2026-08-31 amendment
 open.
 
 **The family is four reviewed routes since #537:** ~~four Python scripts in `method/scripts/`~~
-`mhw milestone read`, `mhw milestone create`, `mhw milestone update` and `mhw milestone close` (Node
-since mhw#475, same behaviour, same output). Read identifies a milestone by number, including one
+~~`mhw milestone read`, `mhw milestone create`, `mhw milestone update` and `mhw milestone close` (Node
+since mhw#475, same behaviour, same output)~~ four `gh api` calls since mhw#593, whose procedure is
+`/sprint-planning`'s step 4a; what follows describes the deleted command, and the skill now carries its
+duplicate-title refusal, its file-only description and its expect-before-update guard as
+**instructions**: no program performs them. Read identifies a milestone by number, including one
 holding zero Issues, and returns title, description, state, and open/closed counts. Update accepts the
 new description and expected prior description by file only and prints the prior value. ~~It refuses a
 lost-update race.~~ **Struck 2026-09-29 (#537, repair round): the comparison is a local preflight before
@@ -667,8 +679,9 @@ an unconditional PATCH, not compare-and-swap. It refuses a value already stale w
 overwrite a write landing after that GET. GitHub documents conditional requests for unsafe methods as
 unsupported unless an endpoint says otherwise, and the milestone update endpoint names no exception.**
 Close reads first and refuses a milestone that is not open. All fail non-zero when
-`gh` fails, and ~~`method/scripts/milestone.test.py`~~ mhw's `test/method/milestone.test.js` exercises
-the behavior against a stub `gh`, on the deleted Python suite's own cases.
+`gh` fails, and ~~`method/scripts/milestone.test.py`~~ ~~mhw's `test/method/milestone.test.js` exercises
+the behavior against a stub `gh`, on the deleted Python suite's own cases~~ (that suite left with the
+command, mhw#593; mhw's `test/render/gh-api.test.js` tests the rule set instead, not the procedure).
 
 ~~**What stands there now is an ABSENCE:** `scripts/` matches no allow entry, so running the script
 prompts the orchestrator and refuses a subagent.~~ **Struck 2026-09-29 (#537): the reviewed milestone
@@ -687,6 +700,10 @@ directory, in every tier, never from a checkout (owner ruling 2026-11-19, mhw PR
 `mhw` earlier on `PATH` and a write through Bash are not covered. Codex and Kiro get no rule for it. Create, update and close are not pre-authorised, so they reach
 the permission prompt unless another settings layer allows them. The owner's non-critical pricing of
 milestone acts is unchanged; the read is the one he chose to pre-authorise (mhw#242, 2026-11-02).
+**Struck in substance 2026-11-24 (mhw#593): the route entry is gone with the command.** The
+workstation's `gh api` rule set renders, in every tier, `Bash(gh api repos/*/milestones*)` (read and
+write) on Claude Code and an anchored milestone pattern on Kiro, and denies the method-first write
+spellings on Claude Code and Codex; Codex has no milestone allow. Its residuals are in ADR-0048 of mhw.
 
 **One measurement that could make the route unnecessary is still NOT taken, and one obstacle to taking
 it is gone:** whether `gh issue edit --milestone "<new title>"` *creates* a missing milestone. `--help`
@@ -916,6 +933,9 @@ lack of an alternative and it is stated as such rather than as a design:
   no Issue-timeline event this harness can read — `gh api` is denied by ~~the global permission floor~~
   the owner's user-level `Bash(gh api:*)` rule (corrected 2026-11-02, mhw#242: not a floor entry, and
   kept by his decision), so the route that would expose the edit history is unavailable by construction.
+  *(Corrected 2026-11-24, mhw#593: the broad rule is gone, so a `gh api` read is asked rather than
+  denied, and "unavailable by construction" no longer holds; whether any endpoint exposes a milestone
+  description's edit history was not checked.)*
 - **It contradicts the paragraph directly above.** *"The planning artifact is an ITERATION ISSUE"* is
   what this skill specifies, and **there is no iteration Issue.** The specified object was not built;
   the milestone description is standing in for it. That gap is named here rather than papered over,

@@ -6,7 +6,7 @@
 //   Windows:         install, install --method, check and status (= check) run `mhw install-windows`
 //                    (src/commands/install-windows.js, #497, S27; it was global\install.ps1); update is
 //                    answered here; install --admin and uninstall do not exist there.
-// Moved commands (the strangler's later steps) are answered here on every OS: `mhw milestone` (#475), `mhw launch-line` (#476), `mhw rite-cadence` (#477),
+// Moved commands (the strangler's later steps) are answered here on every OS: `mhw launch-line` (#476), `mhw rite-cadence` (#477),
 // `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
 // `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux), `mhw check`
 // (#494; macOS and Linux; on Windows both run `mhw install-windows --check`, #497); new in Node:
@@ -25,13 +25,14 @@
 // left at #594 (section 5 too): the worklog method skill records the event from each agent harness's own
 // usage data, and the contract stays method/scripts/worklog-contract/event.schema.json.
 // `mhw add-term` left the CLI at #589 (the same section): third-party terms are judged by the model, with no
-// term list and no salt, so `add-term` is an unknown subcommand too.
+// term list and no salt, so `add-term` is an unknown subcommand too. `mhw milestone` (#475) left at #593 (the
+// same section, ADR-0048): the method skills call `gh api` under the baseline's gh api rule set, so
+// `milestone` is an unknown subcommand as well.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { enginesNode, nodeLine } from './lib/version.js';
 import { runAbsolute } from './lib/run.js';
-import { main as milestoneMain } from './commands/milestone.js';
 import { main as launchLineMain } from './commands/launch-line.js';
 import { main as riteCadenceMain } from './commands/rite-cadence.js';
 import { main as funnelReviewMain } from './commands/funnel-review.js';
@@ -128,7 +129,6 @@ function printNodeLine(nodeVersion) {
  * @type {Record<string, (argv: string[], env: Record<string, string | undefined>) => number>}
  */
 const MOVED = {
-  milestone: milestoneMain, // #475, S04
   'launch-line': launchLineMain, // #476, S05
   'rite-cadence': riteCadenceMain, // #477, S06
   'funnel-review': funnelReviewMain, // #478, S07

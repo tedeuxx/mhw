@@ -13,7 +13,7 @@ argument-hint: "<what you want, in your own words>"
 > merging and filing; that is why installing this method is opt-in until the cutover, #63.) Read any rule they
 > held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
 > the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
-> the `gh pr merge --squash`/`-s` prefixes, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> the `gh pr merge --squash`/`-s` prefixes, secret writes, `gh api` write methods spelled before the endpoint (since mhw#593 a user-level rule set, not the floor), `gh repo delete`/`archive`/`rename`, releases and
 > package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
 > native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
 > plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
@@ -408,11 +408,14 @@ iteration. ~~no milestone exists in either repository~~ — **struck 2026-08-28:
 above returns `sprint-01` in this repository, and the same query against the product repo returns
 `sprint-01` there too — **two distinct milestone objects sharing a title**, which is the concrete form of
 *"the current iteration is two objects"* and the reason the repo is named in the predicate rather than
-assumed. **Do not invent a milestone and do not create one**: `gh api` is denied in the ~~global~~ owner's
+assumed. **Do not invent a milestone and do not create one**: ~~`gh api` is denied in the owner's
 user-level settings (`Bash(gh api:*)`, kept by his decision, mhw#242), deny from any layer wins, and there
-is no `gh milestone` subcommand, so ~~**creating an iteration is an owner-only act performed in the
+is no `gh milestone` subcommand, so~~ *(struck 2026-11-24, mhw#593: the owner moved that deny into the
+workstation's `gh api` rule set, which pre-authorises the milestones endpoint; the reason below is the
+one that stands)* ~~**creating an iteration is an owner-only act performed in the
 browser**~~ **creating an iteration belongs to `/sprint-planning`, which runs
-`mhw milestone create` (a Python script until mhw#475) with the owner present (struck 2026-11-02, mhw#242: the
+~~`mhw milestone create` (a Python script until mhw#475)~~ `gh api repos/<owner>/<repo>/milestones -X POST …`
+(mhw#593) with the owner present (struck 2026-11-02, mhw#242: the
 browser clause went stale at #537, when that route landed); filing never creates one**. An unassigned `loop` Issue is not lost — it is counted by
 `/autonomy on`'s *"`ready` items carrying NO milestone"* line at session open, which exists for exactly
 this.

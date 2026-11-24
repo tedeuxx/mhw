@@ -19,6 +19,9 @@ import {
 } from '../../src/render/allow-list.js';
 import { parse as parseJson, stringify, codepointCompare } from '../../src/lib/jq-json.js';
 import { which } from '../helpers/home.js';
+import * as ghApiModule from '../../src/render/gh-api.js';
+// install-user renders the gh api rule set from global/gh-api.conf (#593, ADR-0048).
+const ghApi = ghApiModule.rules(ghApiModule.parseSpec(fs.readFileSync(path.join(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..'), 'global', 'gh-api.conf'), 'utf8')).spec);
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const POSIX = process.platform !== 'win32';
@@ -78,7 +81,7 @@ test('the repository allow list parses against the repository floor', () => {
   const { parsed, errors } = parseList(SOURCE, FLOOR.cmd);
   assert.deepEqual(errors, []);
   assert.ok(parsed.narrow.cmd.length > 0 && parsed.wide.cmd.length > 0 && parsed.wide.deny.length > 0);
-  assert.deepEqual(parsed.wide.route, ['mhw milestone read']);
+  assert.deepEqual(parsed.wide.route, [], 'no route since #593 (mhw milestone left the CLI)');
   assert.deepEqual(parsed.narrow.runner, []);
   assert.deepEqual(parsed.narrow.route, []);
 });
@@ -627,8 +630,9 @@ function adminFloor(home, root) {
 }
 
 const parsedRepo = parseList(SOURCE, FLOOR.cmd).parsed;
-const N_NARROW = words(parsedRepo, 'narrow', ['cmd', 'runner', 'route']).length;
-const N_WIDE = words(parsedRepo, 'wide', ['cmd', 'runner', 'route']).length;
+// install-user renders the gh api rule set (#593, ADR-0048) in every tier, beside the list.
+const N_NARROW = words(parsedRepo, 'narrow', ['cmd', 'runner', 'route']).length + ghApi.claudeAllow.length;
+const N_WIDE = words(parsedRepo, 'wide', ['cmd', 'runner', 'route']).length + ghApi.claudeAllow.length;
 
 test('install.sh: narrow without an admin floor, wide with it, narrow again without it', { skip: E2E }, () => {
   const d = freshDir('e2e');
@@ -671,14 +675,15 @@ test('install.sh: narrow without an admin floor, wide with it, narrow again with
   assert.match(fs.readFileSync(h + '/.codex/workstation.config.toml', 'utf8'), /workspace-write/);
   assert.doesNotMatch(rules, /"python3"/);
   assert.equal(JSON.parse(fs.readFileSync(h + '/.kiro/agents/workstation.json', 'utf8')).toolsSettings.execute_bash.allowedCommands.length,
-    parsedRepo.narrow.cmd.length, 'Kiro stays narrow');
+    parsedRepo.narrow.cmd.length + ghApi.kiroAllowed.length, 'Kiro stays narrow');
   assert.equal(install(h, ['--check', '--managed-root=' + root]).code, 0, 'check clean on the wide tier');
-  for (const a of ['Bash(git diff:*)', 'Bash(git add --:*)', 'Bash(git commit -m:*)', 'Bash(mhw milestone read:*)']) assert.ok(allowOf(s).includes(a), a);
+  for (const a of ['Bash(git diff:*)', 'Bash(git add --:*)', 'Bash(git commit -m:*)', ...ghApi.claudeAllow]) assert.ok(allowOf(s).includes(a), a);
+  for (const x of ghApi.claudeDeny) assert.ok(denyOf(s).includes(x), x);
   for (const x of ['Bash(git diff --no-index:*)', 'Bash(git fetch --upload-pack:*)']) assert.ok(denyOf(s).includes(x), x);
-  assert.equal(allowOf(s).filter((a) => a.startsWith('Bash(mhw') || a.startsWith('Bash(workstation')).length, 1);
+  assert.equal(allowOf(s).filter((a) => a.startsWith('Bash(mhw') || a.startsWith('Bash(workstation')).length, 0, 'no mhw route since #593');
 
   // Deny beats allow: no rendered allow rule overlaps a floor family, and the floor is still merged.
-  const allowWords = allowOf(s).filter((a) => a.startsWith('Bash(')).map((a) => a.slice(5, -3));
+  const allowWords = allowOf(s).filter((a) => a.startsWith('Bash(') && a.endsWith(':*)')).map((a) => a.slice(5, -3));
   for (const a of allowWords) {
     for (const f of FLOOR.cmd) assert.ok(!((f + ' ').startsWith(a + ' ') || (a + ' ').startsWith(f + ' ')), a + ' / ' + f);
   }

@@ -8,8 +8,6 @@
 src/vendor/** -text
 # Golden transcripts and inputs of the S02 parity test (#473): byte for byte on every OS.
 test/golden/S02/** -text
-# Golden transcripts and cases of the S04 parity test (#475): byte for byte on every OS.
-test/golden/S04/** -text
 # Golden transcripts and recorded CPython answers of the S05 parity tests (#476): byte for byte on every OS.
 test/golden/S05/** -text
 # Golden transcripts of the S06 parity test (#477): byte for byte on every OS.

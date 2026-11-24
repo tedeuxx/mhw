@@ -233,8 +233,9 @@ Everything below is specific to GitHub and its CLI, `gh`. A tool switch replaces
   force-push or deletion, `enforce_admins=false` so the owner and the version-bump actor can push the
   bump commit. **That setting is why branch protection does not stop an agent's push**: agents act
   through an administrator credential. Read it with
-  `gh api repos/<owner>/<repo>/branches/main/protection --jq '.enforce_admins.enabled'`; the deny floor
-  forbids `gh api` write methods, not this read.
+  `gh api repos/<owner>/<repo>/branches/main/protection --jq '.enforce_admins.enabled'`; the workstation's
+  `gh api` rule set denies the write methods spelled before the endpoint and asks for this read (since
+  mhw#593; it was the floor's write prefixes and the owner's broad deny before).
 - A `gitflow-multi-env` production deploy uses a **GitHub Environment** with a required reviewer.
 - Server-side rulesets are an optional template, not applied by default (Issue #97 proposal).
 

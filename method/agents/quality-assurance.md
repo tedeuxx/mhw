@@ -23,7 +23,7 @@ skills:
 > merging and filing; that is why installing this method is opt-in until the cutover, #63.) Read any rule they
 > held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
 > the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
-> the `gh pr merge --squash`/`-s` prefixes, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> the `gh pr merge --squash`/`-s` prefixes, secret writes, `gh api` write methods spelled before the endpoint (since mhw#593 a user-level rule set, not the floor), `gh repo delete`/`archive`/`rename`, releases and
 > package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
 > native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
 > plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
@@ -763,7 +763,9 @@ requirement: a falsifier you cannot run is a rhetorical device.
 > `…/branches/main/protection` is a read — so the justification was false almost immediately~~
 > *(struck 2026-11-02, mhw#242: on this workstation the broad `Bash(gh api:*)` deny is the owner's own
 > user-level rule, not a floor entry, and he decided to keep it, so a `gh api` read is denied here
-> today; the floor carries only the `gh api -X`/`--method` write prefixes)*, while
+> today; the floor carries only the `gh api -X`/`--method` write prefixes)* *(struck in turn 2026-11-24,
+> mhw#593: the owner moved that rule and the floor's write prefixes into the workstation's `gh api` rule
+> set; a `gh api` read is no longer denied, it is asked, ADR-0048 of mhw)*, while
 > the example change it justified was fine on its own merits (`gh pr checks` is simpler and needs no
 > endpoint). What survives is the requirement, not the anecdote: **check that your falsifier runs, in
 > the loop as it is configured today**, rather than reasoning about whether it should.
@@ -1876,7 +1878,8 @@ until #374, indistinguishable from a gate that had simply not got round to mergi
 **How the loop reached the state, and it is measured rather than hypothetical.** The single-executor
 rule makes `quality-assurance` the **only** permitted executor of an authorised merge; in the plugin,
 rule 7b denied every other `agent_type` and rule 5f the `gh api` route. In this method the first is an
-instruction, and the workstation deny floor denies `gh api` write methods. So when a layer
+instruction, and the workstation's user-level `gh api` rule set denies the write methods spelled before
+the endpoint (the floor did until mhw#593). So when a layer
 outside this harness refuses to dispatch you — Claude Code's auto-mode classifier does, and the
 transcript records it as `toolDenialKind: "automode-blocked"`, a value distinct from `permission-rule`
 — **the refusal is terminal rather than inconvenient.** The PR sits open, cleared, with nothing in the

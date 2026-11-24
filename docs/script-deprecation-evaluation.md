@@ -150,6 +150,13 @@ are deleted, `confine.py` with them (its last importers). The rows stay as this 
 skill reads each agent harness's own session log and posts the event; the contract stays
 `method/scripts/worklog-contract/event.schema.json`. The rows stay as this evaluation read them.*
 
+*Amended 2026-11-24 ([#593](https://github.com/tedeuxx/mhw/issues/593)): `mhw milestone` left the CLI
+(CLI native baseline PRD, section 5) and `src/commands/milestone.js` is deleted. The method skills call
+`gh api` against the milestones endpoint; by the owner's decision the floor's `gh api` write prefixes
+left `global/deny-floor.conf` and the workstation renders its own `gh api` rule set
+([ADR-0048](adr/0048-the-baseline-renders-the-gh-api-rules.md)). The rows and the measurement list
+below stay as this evaluation read them.*
+
 *Amended 2026-11-19 ([#477](https://github.com/tedeuxx/mhw/issues/477)): `rite-cadence.py`, kept as the
 exception below, was moved, not removed: it is `mhw rite-cadence` in Node
 (`src/commands/rite-cadence.js`), with the same output, and the Python file and its suite are deleted.

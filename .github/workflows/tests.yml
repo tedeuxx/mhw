@@ -690,7 +690,8 @@ jobs:
       # on PATH; no network) and its goldens, in the node job (npm test) and its S30 live step.
       # #170: the scripts the moved rites run, with their own suites (moved from the plugin with them).
       # #128: the rite-cadence dater of session check 3, in throwaway git repositories.
-      # #475: the milestone routes are Node now; their suite runs in the node job (npm test).
+      # #475: the milestone routes were Node; #593 removed them with `mhw milestone` (the skills call gh api,
+      # and test/render/gh-api.test.js holds the gh api rule set, in the node job).
       # #476: so is mhw launch-line (the S05 goldens); mhw worklog was too until it left the CLI at #594
       # (test/method/worklog-skill.test.js holds the worklog skill that replaced it).
       # #477: so is rite-cadence (mhw rite-cadence, test/method/rite-cadence.test.js).

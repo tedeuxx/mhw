@@ -403,5 +403,52 @@
     "head": "(?!)",
     "replace": "check, update",
     "why": "A break of the public interface (#592, v11, section 5 of the CLI native baseline PRD, ADR-0046): `mhw policy check`, `mhw delivery-gate` and `mhw docs-baseline check` left the CLI for the delivery gates Action (actions/delivery-gates), so the usage text drops the seven lines of `./mhw policy check` (its command line and six description lines) and the unknown-subcommand refusal (step 4) no longer lists `policy check` among the commands; the rest of the line and the exit code are unchanged. Applied after the #600 entry, which already took scan out of the same list."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "\\b185(?= deny-floor)|\\b185(?=/185 )|(?<=/)185\\b",
+    "head": "\\b177(?= deny-floor)|\\b177(?=/177 )|(?<=/)177\\b",
+    "replace": "<N>",
+    "why": "#593 (the CLI native baseline PRD, slice 7a; ADR-0048, the owner's decision «Abrir o deny»): the eight `gh api -X|--method POST|PUT|PATCH|DELETE` entries left global/deny-floor.conf, so every count of the floor's rules this view prints moved by eight, the Claude Code and Kiro counts from 185 to 177 and the Codex prefix rules from 161 to 153. Only those counts, in the positions the floor lines print them, are read as <N> on both sides; every other word of each line is still compared, and test/render/gh-api.test.js holds that the floor lists no gh api write."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "\\b161(?=/161 )|(?<=/)161(?= prefix rules)",
+    "head": "\\b153(?=/153 )|(?<=/)153(?= prefix rules)",
+    "replace": "<N>",
+    "why": "#593 (the CLI native baseline PRD, slice 7a; ADR-0048, the owner's decision «Abrir o deny»): the eight `gh api -X|--method POST|PUT|PATCH|DELETE` entries left global/deny-floor.conf, so every count of the floor's rules this view prints moved by eight, the Claude Code and Kiro counts from 185 to 177 and the Codex prefix rules from 161 to 153. Only those counts, in the positions the floor lines print them, are read as <N> on both sides; every other word of each line is still compared, and test/render/gh-api.test.js holds that the floor lists no gh api write."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "(?<=narrow tier, )10(?= allow rules)|(?<=Claude Code: default \\(none set\\), )10(?= allow rules)|(?<=agent workstation, )10(?= trusted commands)",
+    "head": "(?<=narrow tier, )11(?= allow rules)|(?<=Claude Code: default \\(none set\\), )11(?= allow rules)|(?<=agent workstation, )11(?= trusted commands)",
+    "replace": "<N>",
+    "why": "#593 (ADR-0048, «Mover para o baseline»): install renders the baseline's gh api rule set (global/gh-api.conf) beside the allow list in every tier, so the narrow Claude Code allow list has one more rule, `Bash(gh api repos/*/milestones*)`, and the Kiro agent one more trusted command, the milestone pattern. Only the narrow-tier Claude Code count and the Kiro count are read as <N> on both sides; test/render/gh-api.test.js and test/render/allow-list.test.js hold the rules themselves."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "head": "[^\\n]*no hand-kept Bash\\(gh api:\\*\\) deny[^\\n]*\\n",
+    "replace": "",
+    "why": "#593 (ADR-0048): install now reports the retirement of the owner's hand-kept `Bash(gh api:*)` deny, and on a settings file without one it prints `OK ... no hand-kept Bash(gh api:*) deny`. That one line is taken out of the head side; every other line is still compared, and test/render/gh-api.test.js holds the retirement, its backup and its restore."
   }
 ]
