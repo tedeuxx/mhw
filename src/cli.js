@@ -6,7 +6,7 @@
 //   Windows:         install, install --method, check and status (= check) run `mhw install-windows`
 //                    (src/commands/install-windows.js, #497, S27; it was global\install.ps1); update is
 //                    answered here; install --admin and uninstall do not exist there.
-// Moved commands (the strangler's later steps) are answered here on every OS: `mhw milestone` (#475), `mhw rite-cadence` (#477),
+// Moved commands (the strangler's later steps) are answered here on every OS: `mhw rite-cadence` (#477),
 // `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
 // `mhw status` (#493, after its NODE line; macOS and Linux; the PASTE line left with the paste wrapper, #590), `mhw check`
 // (#494; macOS and Linux; on Windows both run `mhw install-windows --check`, #497); new in Node:
@@ -29,12 +29,13 @@
 // section): /handoff writes the launch command itself or uses the harness's native resume, the
 // funnel-review skill writes the report with each figure citing its source, and onboarding is the
 // method skill `onboard`. All three are unknown subcommands.
+// `mhw milestone` (#475) left at #593 (the same section, ADR-0048): the method skills call `gh api` under
+// the baseline's gh api rule set, so `milestone` is an unknown subcommand as well.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { enginesNode, nodeLine } from './lib/version.js';
 import { runAbsolute } from './lib/run.js';
-import { main as milestoneMain } from './commands/milestone.js';
 import { main as riteCadenceMain } from './commands/rite-cadence.js';
 import { main as profileMain } from './commands/profile.js';
 import { main as chromeDebuggingMain } from './render/chrome-debugging.js';
@@ -127,7 +128,6 @@ function printNodeLine(nodeVersion) {
  * @type {Record<string, (argv: string[], env: Record<string, string | undefined>) => number>}
  */
 const MOVED = {
-  milestone: milestoneMain, // #475, S04
   'rite-cadence': riteCadenceMain, // #477, S06
   profile: profileMain, // #479, S08
   // #480, S09: the install step install.sh spawns, and the status line mhw status reads.

@@ -632,6 +632,19 @@ unchanged (`test/golden/S20`). Four behaviours are narrower than before, and non
 jq is no longer needed for the user layer. `install-managed.sh` still needs it for the admin layer until
 #496. Evidence level: *written and tested*; not installed on the reference machine. Version cut: **patch**.
 
+
+## Amendment 2026-11-24: the `gh api` write entries leave the floor (Issue #593, proposed)
+
+By the owner's decision of 2026-11-23 (*«Abrir o deny»*,
+[comment](https://github.com/tedeuxx/mhw/issues/593#issuecomment-7108759116)), the eight entries of
+row 5f, `gh api -X|--method POST|PUT|PATCH|DELETE`, leave `global/deny-floor.conf`, and with it every
+layer the floor renders to, the admin layer included. A deny beats an allow, and the milestones endpoint
+is now allowed. The baseline's own `gh api` rule set (`global/gh-api.conf`), rendered at user level by the allow-list step,
+denies the method-first write spellings instead (16 of them, the attached forms added). It is not in the
+admin layer. The decision, the rule set and its residuals are
+[ADR-0048](0048-the-baseline-renders-the-gh-api-rules.md). Evidence level: *written and tested*; not
+installed on the reference machine.
+
 ## Links
 
 - Issue #4. ADR-0002 (cut policy), ADR-0003 (Kiro access), ADR-0010 (rendering, managed-file marker),

@@ -116,11 +116,13 @@ already assembled, ranked and composed. ~~item by item~~ **struck #393: that for
 **It is executed in the ORCHESTRATOR's context because the owner confirms the composition there.**
 ~~Only one of its writes is mechanically out of a persona's reach, by accident.~~ **Struck 2026-09-29
 (#537): all reviewed milestone routes run as ~~`python3 method/scripts/milestone-*.py`~~
-`mhw milestone <verb>` (since mhw#475), which ~~the project allow layer permits without a prompt for the
+~~`mhw milestone <verb>` (since mhw#475)~~ `gh api` against the milestones endpoint (since mhw#593), which
+~~the project allow layer permits without a prompt for the
 orchestrator and every persona holding Bash~~ any persona holding Bash can reach; whether one prompts
-is the settings layers' answer (the workstation pre-authorises only `mhw milestone read`).** That reach is
-intentional under the owner's pricing of milestone acts as non-critical; no settings layer changes in
-this slice.
+is the settings layers' answer (~~the workstation pre-authorises only `mhw milestone read`~~ since
+mhw#593 the workstation's `gh api` rule set pre-authorises the milestone calls, read and write, on
+Claude Code and Kiro, and none on Codex).** That reach is intentional under the owner's pricing of
+milestone acts as non-critical.
 
 ## The rite is unattended; only its CONFIRMATION addresses him (#393)
 
@@ -155,9 +157,10 @@ prompt whose justification was in question no longer fires.
 either settings layer, which is **an absence, not a control**: an unrelated `allow` entry added later
 removes it silently and nothing would say so.~~ **Struck 2026-09-29 (#537): creation is now
 ~~`python3 method/scripts/milestone-create.py …`; the existing `python3` permission reaches it without a prompt
-for the orchestrator and for every Bash-holding persona. No settings entry was added.~~** Since mhw#475
-creation is `mhw milestone create …`, which no workstation allow entry pre-authorises. Step 4a carries
-the operative call.
+for the orchestrator and for every Bash-holding persona. No settings entry was added.~~** ~~Since mhw#475
+creation is `mhw milestone create …`, which no workstation allow entry pre-authorises.~~ Since mhw#593
+creation is `gh api repos/<owner>/<repo>/milestones -X POST …`, pre-authorised by the workstation's
+`gh api` rule set on Claude Code and Kiro. Step 4a carries the operative call.
 
 ## The trigger
 
@@ -366,8 +369,8 @@ against the head guard, same payloads, one per line:
 
 ```
 [scrum-master] gh issue edit 5 --repo o/r --milestone "s2"      -> NO decision from any layer
-[scrum-master] mhw milestone create "s2" --repo o/r              -> reachable if the profile held Bash
-[scrum-master] mhw milestone update 2  --repo o/r                -> reachable if the profile held Bash
+[scrum-master] gh api repos/o/r/milestones -X POST -f title=s2   -> reachable if the profile held Bash
+[scrum-master] gh api repos/o/r/milestones/2 -X PATCH -F description=@f -> reachable if the profile held Bash
 ```
 
 **The paragraph below already argued that the surviving layer is the one doing the work, and that
@@ -597,15 +600,25 @@ violated completion condition. Say it in the artifact — *nothing admitted, no 
 here is the pool he ruled out* — and stop; the rulings are the product of that run.
 
 **4a · create the iteration, once per repository that has admitted items. The ordered body goes to a
-FILE first — `Write` it to the session scratchpad — and the file's PATH is what the command carries:**
+FILE first — `Write` it to the session scratchpad — and the file's PATH is what the command carries.**
+~~`mhw milestone create "<iteration>" --repo <owner>/<repo> --description-file <path>`~~ *(struck
+2026-11-24, mhw#593: `mhw milestone` left the CLI; the rite calls `gh api` itself, ADR-0048 of mhw)*.
+**List first, and stop on a duplicate title:**
 
 ```
-mhw milestone create "<iteration>" --repo <owner>/<repo> --description-file <path>
+gh api repos/<owner>/<repo>/milestones -X GET -f state=all -f per_page=100 --paginate --jq '.[].title'
+gh api repos/<owner>/<repo>/milestones -X POST -f title=<iteration> -F description=@<path>
 ```
 
-(`mhw milestone …` is the npm-installed command on `PATH`; in a checkout of mhw with no npm install,
-`./mhw milestone …` there runs the same route. It was ~~`python3 method/scripts/milestone-create.py`~~ until
-mhw#475, with the same arguments and output.)
+**Spell every milestone call this way: the endpoint first, the method after it.** That is the spelling
+the workstation's `gh api` rule set pre-authorises on Claude Code and Kiro; the same call spelled
+method first (`gh api -X POST repos/…`) is denied on Claude Code, because a deny beats an allow,
+forbidden on Codex, and asked on Kiro. On Codex no
+rule pre-authorises a milestone call (a prefix rule's token is exact, and the repository varies), so
+it reaches the approval prompt. `-F description=@<path>` makes `gh` read the file, so the body never
+travels as a shell argument. **Read the title list before the create, and if `<iteration>` is already
+there, do not create a second one: stop and say so.** The create prints the new milestone as JSON;
+its `number` is what a later read, update or close uses (4b admits by title).
 
 **The ordered body NEVER travels as a shell argument, and this is a production rule rather than a style
 one.** `/shell`'s `--body-file` rule has no per-case exception, and this flag is exactly that class.
@@ -630,41 +643,55 @@ Three things make it sharper here than the general shape:
   round): the update can repair it, but may overwrite an edit concurrent with its GET/PATCH interval**;
   file-only input remains the safe default.
 
-**The inline `--description <text>` form is REMOVED from the route, not left beside the file route.**
-Measured at head: ~~`python3 method/scripts/milestone-create.py "probe" --description "x"` → `unrecognized arguments:
---description`, exit 2~~ `mhw milestone create "probe" --description "x"` → `unrecognized argument:
---description`, exit 2 (mhw#475; its suite holds it). Keeping both would have fixed this caller and not the script — a later caller
-picks the convenient spelling, which is the whole reason `/shell`'s rule is written without exceptions.
+~~**The inline `--description <text>` form is REMOVED from the route, not left beside the file route.**
+Measured at head: `mhw milestone create "probe" --description "x"` → `unrecognized argument:
+--description`, exit 2 (mhw#475; its suite holds it).~~ *(Struck 2026-11-24, mhw#593: with the command
+gone, nothing refuses `-f description=<text>`; that the body goes only through `-F description=@<path>`
+is now an instruction.)* Keeping both spellings in use is how a later caller picks the convenient one,
+which is the whole reason `/shell`'s rule is written without exceptions.
 
 ~~**This still PROMPTS because `scripts/` matches no allow entry.**~~ **Struck 2026-09-29 (#537): the
 route uses the ~~already-allowlisted~~ `python3` interpreter ~~and runs without a prompt~~.** **Struck
 2026-11-02 (mhw#242): the workstation allow list does not grant `python3` as an interpreter, so whether
-this prompts is another settings layer's answer.** The script fails
-loudly if listing existing milestones fails, refuses a duplicate title and prints structured JSON.
+this prompts is another settings layer's answer.** ~~The script fails
+loudly if listing existing milestones fails, refuses a duplicate title and prints structured JSON.~~
+*(Struck 2026-11-24, mhw#593: there is no script; the duplicate-title refusal is the list-first step
+above, an instruction.)*
 
-**It works because a hole is open, and this rite repeats that rather than relying on the script's own
+~~**It works because a hole is open, and this rite repeats that rather than relying on the script's own
 header to say it.** Neither the settings matcher nor `permission-guard.sh` looks inside a script, which
-is the same blindness that makes `python3 -c "…gh api -X POST…"` reach the write API. **No document here
-may claim the raw-API route is closed.**
+is the same blindness that makes `python3 -c "…gh api -X POST…"` reach the write API.~~ *(Struck
+2026-11-24, mhw#593: the hole the route used is gone with the route; the call is a plain `gh api` that
+the permission layer sees, under the rule set the owner chose, ADR-0048 of mhw.)* **No document here
+may claim the raw-API route is closed**: a write spelled endpoint first to any other endpoint is asked,
+not denied, and under Claude Code's auto mode an ask is its classifier's decision, not a person's.
 
-**Where the milestone already exists**, read it by number, write the proposed ordered body and current
-description to separate scratchpad files, then run the best-effort stale-read check and update:
+**Where the milestone already exists**, read it by number, write the proposed ordered body to a
+scratchpad file, then update it under the **expect-before-update guard** (it was `--expect-file` of the
+deleted `mhw milestone update`; it is now an instruction, and nothing compares the two texts for you):
 
 ```
-mhw milestone read <number> --repo <owner>/<repo>
-mhw milestone update <number> --repo <owner>/<repo> \
-  --expect-file <prior-path> --description-file <new-path>
+gh api repos/<owner>/<repo>/milestones/<number> --jq .description
+gh api repos/<owner>/<repo>/milestones/<number> -X PATCH -F description=@<new-path>
 ```
+
+1. **Keep the description you composed against.** The first read, when you started composing, is the
+   expected prior text; keep it, word for word, in its own scratchpad file.
+2. **Read it again immediately before the PATCH and compare.** If the description now differs from the
+   expected prior text in any way, **do not update**: someone changed it while you composed. Stop, show
+   both texts, and recompose against the new one.
+3. **Say the prior text in your report** once the PATCH returns, as the old command printed it.
 
 ~~The update prints the prior description and refuses if `--expect-file` no longer matches, so a
 concurrent planning cannot be overwritten silently.~~ **Struck 2026-09-29 (#537, repair round): it
 refuses only when the GET already differs from `--expect-file`. GitHub's milestone PATCH has no
 documented conditional-write support, so a change after the GET can still be overwritten silently.
-Treat `--expect-file` as a best-effort preflight, never as a lock or CAS.**
+Treat `--expect-file` as a best-effort preflight, never as a lock or CAS.** The same holds of the guard
+above: a write landing between the second read and the PATCH is overwritten.
 
-**If 4a fails after the human has approved it, STOP. Do not enter 4b.** The script exits non-zero on a
-duplicate title, an unresolvable repository, invalid JSON and every `gh` failure, and prints structured
-JSON on success. **If the JSON is not printed, there is no milestone**, and
+**If 4a fails after the human has approved it, STOP. Do not enter 4b.** `gh api` exits non-zero on an
+unresolvable repository, a refused request and every other failure; the create prints the new
+milestone as JSON on success. **If that JSON is not printed, there is no milestone**, and
 4b would then issue N `gh issue edit --milestone` calls against a title that does not exist: N more
 prompts, N failures, and a half-executed planning whose artifact says a composition landed. Record the
 failure in step 5 and hand it back.
@@ -797,8 +824,10 @@ a known next act instead of a surprise at the drain's door.
   review.
 - ~~**It does not close an iteration.** No command available to this loop can read whether a milestone
   is open or closed; closing is a click in a browser.~~ **Struck 2026-09-29 (#537).** Read state with
-  `mhw milestone read`; after the closing rites, close with `mhw milestone close`. Neither act is
-  handed to the owner.
+  ~~`mhw milestone read`~~ `gh api repos/<owner>/<repo>/milestones/<number>` (its `state`,
+  `open_issues` and `closed_issues`); after the closing rites, close it ~~with `mhw milestone close`~~
+  only when that read says `open`, with `gh api repos/<owner>/<repo>/milestones/<number> -X PATCH -f
+  state=closed` (mhw#593). Neither act is handed to the owner.
 - **It does not judge the work.** Whether a slice is correct is `quality-assurance`'s, whether an order
   serves the owner's objective is `product-lead`'s.
 

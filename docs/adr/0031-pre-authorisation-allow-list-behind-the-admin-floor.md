@@ -269,6 +269,19 @@ through Bash, which no `Edit` rule sees. Claude Code only; Windows renders no al
 tested: the npm, plain-copy and npm-with-`.git` layouts in `global/allow-list.test.sh`, and a real
 `git+file://` npm install in `test/git-route.test.js`; not installed.
 
+
+## Amendment 2026-11-24: no route, and a `gh api` rule set beside the list (Issue #593, proposed)
+
+`mhw milestone` left the CLI, so `global/allow-list.conf` carries no `route` entry. The installer still
+accepts the kind's one member, `mhw milestone read`, only so the parity inputs recorded from the deleted
+shell step parse; such an entry would now pre-authorise an unknown subcommand. Beside the list, the same
+step renders the baseline's `gh api` rule set (`global/gh-api.conf`) in every tier when `mhw install-user`
+passes it with `--gh-api`: it allows the milestones endpoint, which writes, so the narrow tier is no longer
+read-only for that one family, by the owner's rule set (reads pass, writes denied except the milestones
+endpoint). The installed package's `Edit` deny stays. The decision and its residuals are
+[ADR-0048](0048-the-baseline-renders-the-gh-api-rules.md). Evidence level: *written and tested*; not
+installed on the reference machine.
+
 ## Links
 
 

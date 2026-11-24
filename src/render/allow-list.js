@@ -8,6 +8,12 @@
 //        --home=D [--codex-home=D] --repo-root=D [--cmd=TEXT]
 //   node src/render/allow-list.js --phase=uninstall --settings=F --home=D [--codex-home=D]
 //
+// --gh-api=FILE (step only; mhw install-user passes global/gh-api.conf whenever it is there) also renders
+// the baseline's gh api rule set (read by src/render/gh-api.js, Issue #593, ADR-0048) into every tier, and retires
+// the hand-kept deny it names ("Bash(gh api:*)") from settings.json with a backup. Without it neither
+// happens; a FILE that is missing or holds an invalid entry refuses the step (exit 2) before anything is
+// written. Uninstall restores a retired deny from the backup whenever the backup is there.
+//
 // The tier inputs are --managed-root (the admin layer's root; install.sh passes "/" on a real machine),
 // --floor-claude and --floor-codex (the validated deny floor). With any of them missing, empty, or naming
 // a file that is missing or holds no entry, the harness it decides stays NARROW, and one RISK line says so.
@@ -31,15 +37,17 @@ import { keyOptions } from '../lib/key-options.js';
 import { privateCopy } from '../lib/private-copy.js';
 import { parse as parseJson, classify, stringify, equal, contains, alt, get, codepointCompare } from '../lib/jq-json.js';
 import { unifiedHunks } from '../lib/unified-diff.js';
+import * as ghApi from './gh-api.js';
 
 /** @typedef {import('../lib/jq-json.js').JqValue} JqValue */
 /** @typedef {Map<string, JqValue>} JqObject */
 /** @typedef {'narrow' | 'wide'} Tier */
 /** @typedef {'cmd' | 'runner' | 'route' | 'deny'} Kind */
+/** @typedef {import('./gh-api.js').Rules} GhRules */
 /** @typedef {Record<Tier, Record<Kind, string[]>>} Parsed */
 /**
  * @typedef {{ out: (s: string | Buffer) => void, err: (s: string | Buffer) => void, platform: string,
- *   status: number, opts: Record<string, string> }} Ctx
+ *   status: number, opts: Record<string, string>, gh?: GhRules }} Ctx
  */
 
 export const ALLOW_OWN_KEY = 'personal-multi-harness-workstation-configuration-owned-allow';
@@ -142,6 +150,10 @@ function kindWhy(f, w) {
     // replaced the "script" kind of #242 when the milestone routes moved to Node). Wide tier only,
     // Claude Code only. The set is closed and written here: every other mhw subcommand installs,
     // removes or writes, and stays never pre-authorised.
+    // Since #593 `mhw milestone` is gone (ADR-0048) and global/allow-list.conf carries no route. The one
+    // member is still accepted so the S19 parity inputs, recorded from the deleted shell step, parse as
+    // they did; such an entry now pre-authorises an unknown subcommand (exit 2). test/render/gh-api.test.js
+    // holds that the repository list has no route.
     if (f[0] !== 'wide') return 'a route runs installed code, so it belongs to the wide tier only';
     return w === 'mhw milestone read' ? '' : 'a route names a reviewed read-only mhw subcommand, and the only one is "mhw milestone read"';
   }
@@ -472,9 +484,12 @@ export function protect(ctx) {
   const rules = ['~/.claude/settings.json', codexRule + '/rules/**', codexRule + '/config.toml', codexRule + '/*.config.toml',
     '~/.kiro/agents/**', '/' + repo + '/global/allow-list.conf', '/' + repo + '/overlay/**', '**/.git/config', '**/.git/hooks/**'];
   // The installed npm package, in every tier (Issue #475, owner ruling 2026-11-19 on PR #509): its src/
-  // is the code a route (mhw milestone read) runs without a prompt. Never from a checkout.
+  // is the code a route ran without a prompt. No route is left since #593; the deny stays, since the
+  // package also renders this list. Never from a checkout.
   const pkg = npmPackage(repo);
   if (pkg) rules.push('/' + pkg + '/**');
+  // The gh api rule set's source (#593, ADR-0048): taking a deny-method line out of it weakens the set.
+  if (ctx.opts['--gh-api']) rules.push('/' + path.resolve(ctx.opts['--gh-api']));
   return rules.map((r) => 'Edit(' + r + ')');
 }
 
@@ -620,8 +635,11 @@ function claudeStep(ctx, parsed, tier) {
     cur = readObject(settings);
     if (!cur) return;
   } else cur = new Map();
-  const render = (/** @type {Tier} */ t) => claudeRender(cur, words(parsed, t, ['cmd', 'runner', 'route']).map((x) => 'Bash(' + x + ':*)'),
-    t === 'wide' ? 'acceptEdits' : null, [...protect(ctx), ...words(parsed, t, ['deny']).map((x) => 'Bash(' + x + ':*)')]);
+  const gh = ghRules(ctx);
+  const render = (/** @type {Tier} */ t) => claudeRender(cur,
+    [...words(parsed, t, ['cmd', 'runner', 'route']).map((x) => 'Bash(' + x + ':*)'), ...gh.claudeAllow],
+    t === 'wide' ? 'acceptEdits' : null,
+    [...protect(ctx), ...words(parsed, t, ['deny']).map((x) => 'Bash(' + x + ':*)'), ...gh.claudeDeny]);
   let want;
   try {
     want = render(tier);
@@ -720,6 +738,138 @@ function retireStep(ctx) {
   return true;
 }
 
+/** The gh api rules of this run: what --gh-api named, or none. @param {Ctx} ctx */
+const ghRules = (ctx) => ctx.gh || ghApi.NONE;
+
+/**
+ * Read and check the --gh-api source into ctx.gh. Returns false (exit 2) when it is missing or invalid.
+ * @param {Ctx} ctx
+ */
+function ghSource(ctx) {
+  // An option given is a string (an empty one is a usage error, refused in usable()); an option not given
+  // is no key at all, which the Record<string, string> type cannot say, so ask for the key itself.
+  if (!Object.hasOwn(ctx.opts, '--gh-api')) return true;
+  const file = ctx.opts['--gh-api'];
+  const text = isFile(file) ? readOrNull(file) : null;
+  if (text === null) {
+    ctx.err('gh-api source not found: ' + file + '\n');
+    raise(ctx, 2);
+    return false;
+  }
+  const { spec, errors } = ghApi.parseSpec(text);
+  if (errors.length) {
+    for (const e of errors) ctx.err(e);
+    raise(ctx, 2);
+    return false;
+  }
+  ctx.gh = ghApi.rules(spec);
+  return true;
+}
+
+/** permissions.deny of a settings document, or null when it is not a list. @param {JqObject} doc */
+function denyList(doc) {
+  const perms = get(doc, 'permissions');
+  const deny = perms instanceof Map ? get(perms, 'deny') : null;
+  return Array.isArray(deny) ? deny : null;
+}
+
+/**
+ * The owner's hand-kept "Bash(gh api:*)" deny (mhw#242), retired by #593 (ADR-0048): the baseline renders
+ * the gh api rules itself. Removed from permissions.deny only, the previous file kept as
+ * settings.json.pmhwc-gh-api-backup, owner-only. An existing backup is never overwritten: install then
+ * refuses and leaves the entry. Returns false when the step must stop (the backup could not be written).
+ * @param {Ctx} ctx
+ */
+function retireGhApiStep(ctx) {
+  const settings = ctx.opts['--settings'];
+  if (!isFile(settings)) return true;
+  const doc = readObject(settings);
+  if (!doc) return true;
+  const deny = denyList(doc);
+  const retire = ghRules(ctx).retire;
+  if (!retire.length) return true;
+  const hits = retire.filter((r) => (deny || []).some((x) => x === r));
+  if (!deny || !hits.length) {
+    ctx.out('OK      ' + settings + ': no hand-kept ' + retire.join(', ') + ' deny (the baseline renders the gh api rules, ADR-0048)\n');
+    return true;
+  }
+  const rule = hits.join(', ');
+  const what = hits.map((h) => h + ' present -> absent').join('; ');
+  const backup = settings + ghApi.BACKUP_SUFFIX;
+  const mode = ctx.opts['--mode'];
+  if (mode === 'check') {
+    ctx.out('DRIFT   ' + settings + ': install would change permissions.deny ' + what + ' (moved into the baseline, ADR-0048)\n');
+    raise(ctx, 1);
+    return true;
+  }
+  if (mode === 'dry-run') {
+    ctx.out('WOULD CHANGE ' + settings + ': permissions.deny ' + what + ' (backup ' + backup + ')\n');
+    return true;
+  }
+  if (lexists(backup)) {
+    ctx.err('REFUSE  ' + settings + ': ' + rule + ' left in permissions.deny, because ' + backup
+      + ' already exists and is never overwritten; move it aside and re-run the installer. Until then the milestone allow has no effect\n');
+    raise(ctx, 1);
+    return true;
+  }
+  const p = new Map(/** @type {JqObject} */ (get(doc, 'permissions')));
+  const kept = deny.filter((x) => !(typeof x === 'string' && hits.includes(x)));
+  if (kept.length) p.set('deny', kept);
+  else p.delete('deny');
+  const out = new Map(doc);
+  if (p.size) out.set('permissions', p);
+  else out.delete('permissions');
+  try {
+    privateCopy(settings, backup);
+  } catch {
+    ctx.err('REFUSE  ' + backup + ': the backup could not be created exclusively; no backup written\n');
+    raise(ctx, 1);
+    return false;
+  }
+  replaceFile(settings, indent4(out), true);
+  ctx.out('CHANGED ' + settings + ': permissions.deny ' + what + ' (moved into the baseline, ADR-0048; previous file kept as ' + backup + ')\n');
+  return true;
+}
+
+/**
+ * Uninstall: the hand-kept deny goes back into permissions.deny when the backup holds it, and the backup
+ * is removed once it is back (so a later install can take a fresh one). A backup that holds no such
+ * entry, or a settings file of the wrong shape, is left alone and said.
+ * @param {Ctx} ctx
+ */
+function restoreGhApi(ctx) {
+  const settings = ctx.opts['--settings'];
+  const backup = settings + ghApi.BACKUP_SUFFIX;
+  if (!isFile(backup)) return;
+  const held = ghApi.RETIRABLE.filter((r) => (denyList(readObject(backup) ?? new Map()) || []).some((x) => x === r));
+  if (!held.length) {
+    ctx.out('NOTE    ' + backup + ': holds no ' + ghApi.RETIRABLE.join(', ') + ' deny to restore; left in place\n');
+    return;
+  }
+  const rule = held.join(', ');
+  const doc = isFile(settings) ? readObject(settings) : new Map();
+  const perms = doc ? (get(doc, 'permissions') ?? null) : null;
+  const deny = perms instanceof Map ? (get(perms, 'deny') ?? null) : null;
+  if (!doc || (perms !== null && !(perms instanceof Map)) || (deny !== null && !Array.isArray(deny))) {
+    ctx.err('REFUSE  ' + settings + ': ' + rule + ' not restored (unexpected shape); it is in ' + backup + '\n');
+    raise(ctx, 3);
+    return;
+  }
+  const list = Array.isArray(deny) ? deny : [];
+  const missing = held.filter((r) => !list.some((x) => x === r));
+  if (missing.length) {
+    const p = new Map(perms instanceof Map ? perms : []);
+    p.set('deny', [...list, ...missing]);
+    const out = new Map(doc);
+    out.set('permissions', p);
+    const there = isFile(settings);
+    fs.mkdirSync(path.dirname(settings), { recursive: true });
+    replaceFile(settings, indent4(out), there);
+  }
+  fs.rmSync(backup, { force: true });
+  ctx.out('RESTORED ' + settings + ': permissions.deny ' + rule + ' (from ' + backup + ', now removed; ADR-0048)\n');
+}
+
 // ---- Managed files of ours (Codex rules and profile, Kiro agent) -----------------------------------
 
 /** The release and commit fields of a file's first managed-by line, or 'none' (install.sh's stamp_of). @param {string} file */
@@ -780,14 +930,16 @@ const header = (stamp) => '# ' + MARKER_ID + '; source: global/allow-list.conf; 
 /** @param {string} w a word list @param {string} decision */
 const prefixRule = (w, decision) => 'prefix_rule(pattern=[' + fields(w).map((x) => '"' + x + '"').join(', ') + '], decision="' + decision + '")\n';
 
-/** The Codex rules file. @param {Parsed} p @param {Tier} tier @param {string} stamp */
-export function codexRules(p, tier, stamp) {
+/** The Codex rules file. @param {Parsed} p @param {Tier} tier @param {string} stamp @param {GhRules} [gh] the gh api rule set */
+export function codexRules(p, tier, stamp, gh = ghApi.NONE) {
   return header(stamp)
     + '# The workstation allow list, ' + tier + ' tier (ADR-0031). A forbidden rule (the deny floor) beats an allow\n'
     + '# rule whatever file holds it (measured, codex execpolicy check). Test runners have no rule here:\n'
     + '# they run inside the workspace-write sandbox of the "' + ALLOW_PROFILE + '" profile without one.\n'
     + words(p, tier, ['cmd']).map((w) => prefixRule(w, 'allow')).join('')
-    + words(p, tier, ['deny']).map((w) => prefixRule(w, 'forbidden')).join('');
+    + words(p, tier, ['deny']).map((w) => prefixRule(w, 'forbidden')).join('')
+    + (gh.codexForbidden.length ? '# The gh api rule set (ADR-0048): the method-first write spellings. No milestone allow: a token is exact.\n'
+      + gh.codexForbidden.map((w) => prefixRule(w, 'forbidden')).join('') : '');
 }
 
 /** The Codex profile file. @param {Tier} tier @param {string} stamp */
@@ -803,15 +955,16 @@ export function codexProfile(tier, stamp) {
  * reaches only the IDE and CLI V3, ADR-0036). One file, both engines: the 2.0 fields (allowedTools,
  * toolsSettings) are what CLI 2.x reads; "permissions" is the V3 form, with an exclude list carrying the
  * 2.x pattern's refused characters, newline and CR included (PR #153 QA advisory A1).
- * @param {Parsed} p @param {string} stamp
+ * With gh, the gh api rule set's milestone family is allowed too (ADR-0048).
+ * @param {Parsed} p @param {string} stamp @param {GhRules} [gh]
  */
-export function kiroAgent(p, stamp) {
+export function kiroAgent(p, stamp, gh = ghApi.NONE) {
   const w = words(p, 'narrow', ['cmd']);
   const esc = (/** @type {string} */ s) => [...s].map((c) => (c === '.' || c === '+' ? '\\' + c : c)).join('');
   /** @type {Array<[string, JqValue]>} */
   const shell = [
     ['capability', 'shell'],
-    ['match', w.flatMap((x) => [x + ' *', x])],
+    ['match', [...w.flatMap((x) => [x + ' *', x]), ...gh.kiroMatch]],
     ['exclude', [';', '&', '|', '<', '>', '$', '`', '(', ')', '{', '}', '\n', '\r'].map((c) => '*' + c + '*')],
     ['effect', 'allow'],
   ];
@@ -821,7 +974,7 @@ export function kiroAgent(p, stamp) {
     ['tools', ['*']],
     ['allowedTools', ['fs_read']],
     ['toolsSettings', new Map([['execute_bash', new Map(/** @type {Array<[string, JqValue]>} */ ([
-      ['allowedCommands', w.map((x) => '^' + esc(x) + '( [^;&|<>$`(){}\\n\\r]*)?$')],
+      ['allowedCommands', [...w.map((x) => '^' + esc(x) + '( [^;&|<>$`(){}\\n\\r]*)?$'), ...gh.kiroAllowed]],
       ['autoAllowReadonly', false]]))]])],
     ['permissions', new Map([['rules', [new Map(shell), new Map([['capability', 'fs_read'], ['effect', 'allow']])]]])],
   ]));
@@ -846,6 +999,7 @@ export function step(ctx, parsed) {
   }
   if (!jqOnlySettings(ctx)) {
     if (!retireStep(ctx)) return;
+    if (!retireGhApiStep(ctx)) return;
     claudeStep(ctx, parsed, tier.claude);
   }
   const t = targets(ctx);
@@ -858,11 +1012,12 @@ export function step(ctx, parsed) {
   };
   if (refused.includes('codex')) without('Codex');
   else {
-    place(ctx, codexRules(parsed, tier.codex, stamp), t.rules, wide ? codexRules(parsed, 'narrow', stamp) : null);
+    const gh = ghRules(ctx);
+    place(ctx, codexRules(parsed, tier.codex, stamp, gh), t.rules, wide ? codexRules(parsed, 'narrow', stamp, gh) : null);
     place(ctx, codexProfile(tier.codex, stamp), t.profile, wide ? codexProfile('narrow', stamp) : null);
   }
   if (refused.includes('kiro')) without('Kiro');
-  else place(ctx, kiroAgent(parsed, stamp), t.kiro, null);
+  else place(ctx, kiroAgent(parsed, stamp, ghRules(ctx)), t.kiro, null);
   ctx.out('ALLOW   Claude Code: ' + tier.claude + ' tier · Codex: ' + tier.codex + ' tier, profile ' + ALLOW_PROFILE
     + ' · Kiro: narrow tier, agent workstation (Kiro CLI 2.x reads no deny floor; the floor is in permissions.yaml, IDE and CLI V3, ADR-0036)\n');
 }
@@ -883,19 +1038,23 @@ export function uninstall(ctx) {
   if (isFile(settings + '.pmhwc-allow-backup')) {
     ctx.out('NOTE    ' + settings + ': the allow entries the policy retired are in ' + settings + '.pmhwc-allow-backup; uninstall does not re-add them (ADR-0035 decision 4)\n');
   }
-  if (!isFile(settings)) return;
-  const doc = readObject(settings);
-  if (!doc?.has(ALLOW_OWN_KEY)) return;
-  let out;
-  try {
-    out = unmerged(doc);
-  } catch {
-    ctx.err('REFUSE  ' + settings + ': its permissions section or the allow-list ownership record has an unexpected shape; left untouched\n');
-    raise(ctx, 3);
-    return;
+  if (isFile(settings)) {
+    const doc = readObject(settings);
+    if (doc?.has(ALLOW_OWN_KEY)) {
+      let out;
+      try {
+        out = unmerged(doc);
+      } catch {
+        ctx.err('REFUSE  ' + settings + ': its permissions section or the allow-list ownership record has an unexpected shape; left untouched\n');
+        raise(ctx, 3);
+        return;
+      }
+      replaceFile(settings, indent4(out), false);
+      ctx.out('UNMERGED ' + settings + ' (the allow rules and permission mode this installer added)\n');
+    }
   }
-  replaceFile(settings, indent4(out), false);
-  ctx.out('UNMERGED ' + settings + ' (the allow rules and permission mode this installer added)\n');
+  // After the unmerge: the milestone allow has left, so the owner's broad deny comes back beside nothing of ours.
+  restoreGhApi(ctx);
 }
 
 /** allow_uninstall's jq program. @param {JqObject} doc @returns {JqObject} */
@@ -930,7 +1089,7 @@ function withoutOurs(p, key, ours) {
 // ---- The command line --------------------------------------------------------------------------------
 
 const OPTIONS = new Set(['--phase', '--mode', '--stamp', '--source', '--overlay', '--retired', '--floor-codex',
-  '--floor-claude', '--managed-root', '--settings', '--home', '--codex-home', '--repo-root', '--cmd', '--refused-floor']);
+  '--floor-claude', '--managed-root', '--settings', '--home', '--codex-home', '--repo-root', '--cmd', '--refused-floor', '--gh-api']);
 const REQUIRED = {
   parse: ['--source', '--floor-codex'],
   step: ['--mode', '--stamp', '--source', '--retired', '--floor-codex', '--settings', '--home', '--repo-root'],
@@ -939,7 +1098,7 @@ const REQUIRED = {
 const USAGE = 'usage: ' + PROG + ' --phase=parse --source=FILE [--overlay=DIR] --floor-codex=FILE\n'
   + '       ' + PROG + ' --phase=step --mode=install|check|dry-run --stamp=STAMP --source=FILE [--overlay=DIR]\n'
   + '           --retired=FILE --floor-codex=FILE [--floor-claude=FILE] [--managed-root=DIR] --settings=FILE\n'
-  + '           --home=DIR [--codex-home=DIR] --repo-root=DIR [--cmd=TEXT] [--refused-floor=codex,kiro]\n'
+  + '           --home=DIR [--codex-home=DIR] --repo-root=DIR [--cmd=TEXT] [--refused-floor=codex,kiro] [--gh-api=FILE]\n'
   + '       ' + PROG + ' --phase=uninstall --settings=FILE --home=DIR [--codex-home=DIR]\n';
 
 /** @param {string[]} argv */
@@ -956,6 +1115,7 @@ function usable(argv, opts) {
   if (phase !== 'parse' && phase !== 'step' && phase !== 'uninstall') return '';
   if (REQUIRED[phase].some((k) => !opts[k])) return '';
   if (!(opts['--refused-floor'] || '').split(',').filter(Boolean).every((h) => h === 'codex' || h === 'kiro')) return '';
+  if (opts['--gh-api'] === '') return '';
   return phase === 'step' && !['install', 'check', 'dry-run'].includes(opts['--mode']) ? '' : phase;
 }
 
@@ -985,6 +1145,7 @@ export function main(argv, io = {}) {
   }
   const parsed = parseStep(ctx);
   if (!parsed) return 2;
+  if (phase === 'step' && !ghSource(ctx)) return ctx.status;
   if (phase === 'step') step(ctx, parsed);
   return ctx.status;
 }

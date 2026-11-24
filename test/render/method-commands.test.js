@@ -438,12 +438,15 @@ describe('method scripts', () => {
     // on a source copy below (uninstall) and in test/render/method.test.js and the S18 goldens.
     assert.equal(refs, 0, 'a rendered file points into the scripts directory again: restore the calibration');
     const planning = read(r.home.p('.claude/skills/sprint-planning/SKILL.md'));
-    // #475, #476: the milestone routes are mhw commands; the rite names no installed script. #594: the
-    // worklog is the worklog skill, and `mhw worklog` survives only struck.
+    // #475, #476: the milestone routes were mhw commands; the rite names no installed script. #594: the
+    // worklog is the worklog skill, and `mhw worklog` survives only struck. #593: the milestone calls are
+    // gh api, spelled endpoint first, and `mhw milestone` survives only struck or as history.
     assert.ok(planning.includes('with the `worklog` skill'));
     assert.ok(!planning.replace(/~~[^~]*~~/g, '').includes('and `mhw worklog`'));
     assert.ok(!planning.includes(prefix + 'worklog.py'));
-    assert.ok(planning.includes('mhw milestone create "<iteration>"'));
+    assert.ok(planning.includes('gh api repos/<owner>/<repo>/milestones -X POST -f title=<iteration> -F description=@<path>'));
+    assert.ok(planning.includes('expect-before-update guard'));
+    assert.ok(!planning.replace(/~~[^~]*~~/g, '').includes('mhw milestone create "'), 'an unstruck mhw milestone call');
     assert.ok(!planning.includes(prefix + 'milestone-'));
   });
   test('source references are shipped or listed', () => {

@@ -237,5 +237,12 @@
     "replace": "$1. $3\n$2. ",
     "whenBaseHas": "src/commands/paste-wrapper.js",
     "why": "#590: with no shell chosen (SHELL unset, as on the CI runners), the base's next steps include one asking the owner to add the paste wrapper's start-up line by hand. The wrapper is removed, so the head has no such step, and the steps after it are numbered one lower. On the original's side the step is taken out and the two steps after it are renumbered to what the head prints, so their text is still compared. Only while the base still ships src/commands/paste-wrapper.js."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree",
+    "pattern": "^\\.claude/settings\\.json$|^\\.codex/rules/workstation-deny-floor\\.rules$|^\\.codex/rules/workstation-allow-list\\.rules$|^\\.kiro/agents/workstation\\.json$|^\\.kiro/settings/permissions\\.yaml$|kiro-permissions-owned\\.json$",
+    "whenBaseHas": "src/commands/milestone.js",
+    "why": "#593 (ADR-0048, the owner's decisions «Abrir o deny» and «Mover para o baseline»): the eight gh api write entries left the deny floor, so the floor the settings, the Codex floor rules and the Kiro permissions.yaml carry is eight entries shorter (and so is the record of the Kiro floor rules install appended); and install renders the baseline's gh api rule set (global/gh-api.conf) into the settings, the Codex allow-list rules and the Kiro agent. Those files are compared by kind and mode only in the live arm while the base still ships src/commands/milestone.js; test/render/gh-api.test.js holds the rule set and its retirement, and test/render/allow-list.test.js the rendered counts."
   }
 ]

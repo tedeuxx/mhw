@@ -83,6 +83,20 @@ test('merged: a missing floor rule is appended, every deny entry is kept in its 
   assert.deepEqual([...out.keys()], ['permissions', 'x', STAMP_KEY, OWN_KEY]);
 });
 
+test('merged: a rule recorded as ours that left the floor leaves the file and the record; an owner rule of the same family stays (#593)', () => {
+  // An upgrade after the floor lost a rule: the recorded rule goes, the owner's own deny (unrecorded) stays,
+  // and the uninstall that follows then gives back exactly the owner's file.
+  const owner = '{"permissions": {"deny": ["Bash(mine:*)", "Bash(gone:*)"]}}';
+  const before = obj('{"permissions": {"deny": ["Bash(mine:*)", "Bash(gone:*)", "Bash(a:*)", "Bash(old:*)"]}, "' + OWN_KEY + '": ["Bash(a:*)", "Bash(old:*)"]}');
+  const out = /** @type {any} */ (merged(before, ['Bash(a:*)', 'Bash(b:*)'], null, STAMP));
+  assert.deepEqual(out.get('permissions').get('deny'), ['Bash(mine:*)', 'Bash(gone:*)', 'Bash(a:*)', 'Bash(b:*)']);
+  assert.deepEqual(out.get(OWN_KEY), ['Bash(a:*)', 'Bash(b:*)']);
+  assert.ok(equal(unmerged(out, ['Bash(a:*)', 'Bash(b:*)']), obj(owner)), 'uninstall gives back the owner file');
+  // No record (a stamped file from before the record): nothing is removed.
+  const stamped = obj('{"permissions": {"deny": ["Bash(old:*)"]}, "' + STAMP_KEY + '": false}');
+  assert.deepEqual(/** @type {any} */ (merged(stamped, ['Bash(a:*)'], null, STAMP)).get('permissions').get('deny'), ['Bash(old:*)', 'Bash(a:*)']);
+});
+
 test('merged: an earlier record is kept; a stamped file without one counts every floor rule present as ours', () => {
   const recorded = obj('{"permissions": {"deny": ["Bash(a:*)", "Bash(b:*)"]}, "' + OWN_KEY + '": ["Bash(a:*)"]}');
   assert.deepEqual(merged(recorded, ['Bash(a:*)', 'Bash(b:*)', 'Bash(c:*)'], null, STAMP).get(OWN_KEY), ['Bash(a:*)', 'Bash(c:*)']);

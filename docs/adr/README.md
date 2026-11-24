@@ -45,7 +45,7 @@ Each is raised one at a time, when a slice reaches it.
    vendored as the paste wrapper's pty, with the macOS binaries byte-identical to npm and the Linux ones
    built by this repository's CI from the pinned source (no npm integrity covers those). The Linux build
    is already the owner's decision on PR #521; the record as a whole is proposed.~~
-   *Ratified on 2026-11-20 ([«Ratificar»](https://github.com/tedeuxx/mhw/issues/487#issuecomment-7053800611)). ~~No record in this index is proposed.~~ ~~ADR-0045 is, since #591 (ask 8), and ADR-0046, since #592 (ask 9).~~ None is, since the ratifications of 2026-11-24 (asks 8 to 10).*
+   *Ratified on 2026-11-20 ([«Ratificar»](https://github.com/tedeuxx/mhw/issues/487#issuecomment-7053800611)). ~~No record in this index is proposed.~~ ~~ADR-0045 is, since #591 (ask 8), and ADR-0046, since #592 (ask 9).~~ ~~None is, since the ratifications of 2026-11-24 (asks 8 to 10).~~ ADR-0048 is, since #593 (ask 11).*
 8. ~~**Ratify [ADR-0045](0045-delivery-route-on-github-rulesets-and-a-skill.md)**
    ([#591](https://github.com/tedeuxx/mhw/issues/591)): the review verdicts as commit statuses, their
    trust model, and the rulesets for `rc/next` and `main`. The route itself is already his ruling
@@ -64,6 +64,11 @@ Each is raised one at a time, when a slice reaches it.
    *Its 2026-11-24 amendment ([#590](https://github.com/tedeuxx/mhw/issues/590)), the paste wrapper removed on
    his ruling «Só hook no envio», is proposed: how install takes out the old shell block (backup names,
    `--check` as STALE) is the agents', for his ratification at the release candidate.*
+11. **Ratify [ADR-0048](0048-the-baseline-renders-the-gh-api-rules.md)**
+   ([#593](https://github.com/tedeuxx/mhw/issues/593)): the `gh api` rule set the baseline renders, its
+   residuals, and the retirement of the hand-kept `Bash(gh api:*)` deny. Opening the floor's write denies
+   and moving that deny into the baseline are already his decisions (*«Abrir o deny»*, *«Mover para o
+   baseline»*); the rules' shape is the agents'. Since #593 this is the one record here that is proposed.
 
 ## Index
 
@@ -116,3 +121,4 @@ Each is raised one at a time, when a slice reaches it.
 | [0045](0045-delivery-route-on-github-rulesets-and-a-skill.md) | The delivery route on GitHub rulesets and the `merge-pull-request` skill; the review verdicts as commit statuses posted by a workflow; `mhw delivery` removed; amends 0021 (2026-11-23, #591) | ~~proposed~~ accepted 2026-11-24 ([ratification](https://github.com/tedeuxx/mhw/issues/591#issuecomment-7133422761)) |
 | [0046](0046-delivery-gates-as-a-reusable-github-action.md) | The delivery gates, the contract validator and the documentation baseline check as one reusable composite GitHub Action, `actions/delivery-gates`; `mhw policy`, `mhw delivery-gate` and `mhw docs-baseline` removed (2026-11-23, #592) | ~~proposed~~ accepted 2026-11-24 ([ratification](https://github.com/tedeuxx/mhw/issues/592#issuecomment-7130734920); [date corrected](https://github.com/tedeuxx/mhw/issues/592#issuecomment-7134109017)) |
 | [0047](0047-third-party-terms-judged-by-the-model.md) | Third-party terms are judged by the model (the brief, and a Claude Code `prompt`-type hook); the term lists, their salt and `mhw add-term` removed; supersedes 0033's term part (2026-11-24, #589); amended 2026-11-24 (#590, proposed): the paste wrapper removed, a paste caught only on submit, no paste protection on Kiro CLI; supersedes 0033's wrapper part and 0042 | ~~proposed~~ accepted 2026-11-24 ([ratification](https://github.com/tedeuxx/mhw/issues/589#issuecomment-7132828476)) |
+| [0048](0048-the-baseline-renders-the-gh-api-rules.md) | The baseline renders the `gh api` rules (the milestones endpoint allowed, the method-first write spellings denied) and retires the owner's hand-kept `Bash(gh api:*)` deny; the floor's eight `gh api` write entries and `mhw milestone` removed; amends 0016 and 0031 (2026-11-24, #593) | proposed (the floor change is the owner's decision of 2026-11-23) |

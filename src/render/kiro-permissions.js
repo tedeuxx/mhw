@@ -25,7 +25,9 @@
 //   glob <words>*   shell              "<words>*"   as written
 //   file <path>     fs_read, fs_write  "<path>"     (a leading ~/ is the home directory)
 // A pattern is present when some deny rule of that exact capability, with no exclude list, lists it. The
-// missing patterns are appended as new deny rules, one per capability. Nothing is ever removed on install.
+// missing patterns are appended as new deny rules, one per capability. On install nothing of the owner's is
+// ever removed; a pattern that left the floor is taken out of a rule mhw recorded as its own (#593: the
+// gh api write entries left the floor, and an upgraded file must equal it), and such a rule left empty goes.
 //
 // Merge, never clobber. The file is read with the strict reader of src/lib/yaml-subset.js, never a
 // general YAML library: anything outside Kiro's schema subset, or a file Kiro itself would reject, is
@@ -827,8 +829,32 @@ export function run(mode, stamp, want, floorFrom, ctx) {
       ctx.ops.writeOwned(kept, rec.created, stamp, ctx);
     }
   }
+  // #593: a pattern that left the floor leaves the rule mhw recorded as its own (only that rule, matched
+  // exactly as uninstall matches it); a rule left with no pattern goes whole, never kept empty.
+  let pruned = 0;
+  if (kept.length) {
+    const found = matchEntries(doc.rules, kept);
+    const drop = new Set();
+    const rules = doc.rules.map((r) => ({ ...r }));
+    /** @type {Entry[]} */
+    const next = [];
+    kept.forEach((entry, k) => {
+      const i = /** @type {number} */ (found[k]);
+      const match = entry.match.filter((x) => want[entry.capability].includes(x));
+      pruned += entry.match.length - match.length;
+      if (!match.length) drop.add(i);
+      else {
+        if (match.length !== entry.match.length) rules[i] = { ...rules[i], match: [...match] };
+        next.push({ capability: entry.capability, match });
+      }
+    });
+    if (pruned) {
+      doc = { rules: rules.filter((_, i) => !drop.has(i)), policies: doc.policies };
+      kept = next;
+    }
+  }
   const have = text === null ? 'none' : stampOf(text);
-  if (text !== null && nMiss === 0 && have === stamp) {
+  if (text !== null && nMiss === 0 && !pruned && have === stamp) {
     say('OK      ' + p + ' (all ' + nWant + ' deny-floor patterns present; ' + stamp + ')');
     return 0;
   }
@@ -860,6 +886,7 @@ export function run(mode, stamp, want, floorFrom, ctx) {
   ctx.ops.write(p, newText, ctx);
   ctx.ops.writeOwned(appended, created, stamp, ctx);
   if (text === null) say('MERGED  ' + p + ' (new file; ' + nWant + ' deny-floor patterns)');
+  else if (nMiss === 0 && pruned) say('MERGED  ' + p + ' (' + pruned + ' pattern(s) mhw had added and the floor no longer lists removed, every rule of yours kept; previous version kept as ' + backup + ')');
   else if (nMiss === 0) say('RESTAMPED ' + p + ' (' + stamp + '; previous version kept as ' + backup + ')');
   else say('MERGED  ' + p + ' (' + nMiss + ' deny-floor pattern(s) added, every rule of yours kept; previous version kept as ' + backup + ')');
   return 0;
