@@ -69,11 +69,16 @@ them is user-level only. (What stays on a machine already installed is in the de
 ## Decision outcome
 
 **The floor.** The eight `gh api -X|--method POST|PUT|PATCH|DELETE` entries leave
-`global/deny-floor.conf`. The Claude Code settings merge and the Kiro floor never remove a rule an
-earlier install appended, so on an upgraded machine the eight stay there until uninstall; the Codex
-floor rules file is rendered whole and loses them. Where they stay they do not conflict with the
-milestone allow, for the reason of option 1. What `mhw install-admin` does with a rule that left the
-source was not checked in this slice.
+`global/deny-floor.conf`. ~~The Claude Code settings merge and the Kiro floor never remove a rule an
+earlier install appended, so on an upgraded machine the eight stay there until uninstall~~ *(struck in
+this slice: the PROD canary's upgrade run showed the eight then stayed unrecorded in `settings.json` and
+survived uninstall, and kept the Kiro file from equalling the floor)*. Since #593 an install removes a
+floor rule it had recorded as its own once that rule leaves the floor: from `permissions.deny` in the
+Claude Code settings, and as a pattern of the Kiro rule mhw appended. A rule the owner wrote is never
+touched, and a settings file stamped before the ownership record existed removes nothing. The Codex
+floor rules file is rendered whole and loses them. What `mhw install-admin` does with a rule that left
+the source was not checked in this slice; the canary's admin checks, which compare the throwaway admin
+root with the floor, passed on the upgrade run.
 
 **The rule set's source is `global/gh-api.conf`**, beside the floor and the allow list, a closed grammar
 (`deny-method`, `allow-endpoint`, `retire-deny`, each with a closed set of values in

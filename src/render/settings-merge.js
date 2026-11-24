@@ -18,7 +18,9 @@
 // is src/render/term-judge.js's JUDGE_PROMPT, found again by JUDGE_ID in that text; without it, it is removed.
 //
 // The file is never replaced: every other key, hook and permission rule is kept in its place, no existing
-// deny entry is removed, a missing floor rule is appended, and a 0600 backup is left beside it. It is read
+// deny entry is removed but one this installer recorded as its own floor rule that has since left the
+// floor (#593: such a rule would otherwise stay forever, unrecorded, and survive uninstall), a missing floor
+// rule is appended, and a 0600 backup is left beside it. It is read
 // and written the way jq 1.7.1 did (src/lib/jq-json.js, S19's reader): key order, number literals and string
 // escapes come out as jq wrote them, so the rendered deny set is byte for byte what the jq program wrote
 // (test/golden/S20). A file jq refuses is refused; a file jq reads and strict JSON does not (NaN, a
@@ -286,11 +288,15 @@ export function merged(doc, floor, paste, stamp, pattern = { prompt: null, tool:
   out = place(out, 'SessionStart', RESTART_ID, null);
   out = place(out, 'PreToolUse', RESTART_ID, null);
   const p = out.get('permissions') ?? null;
-  const d = /** @type {JqValue[]} */ (alt(p instanceof Map ? (p.get('deny') ?? null) : null, []));
+  const d0list = /** @type {JqValue[]} */ (alt(p instanceof Map ? (p.get('deny') ?? null) : null, []));
+  // #593: a rule recorded as ours that is no longer in the floor leaves with the record entry.
+  const gone = Array.isArray(record) ? record.filter((x) => !floor.some((f) => equal(f, x))) : [];
+  const d = gone.length ? d0list.filter((e) => !gone.some((g) => equal(g, e))) : d0list;
   const missing = floor.filter((r) => !d.some((e) => equal(e, r)));
-  if (missing.length) {
+  if (missing.length || d.length !== d0list.length) {
     const base = /** @type {JqObject} */ (alt(p, new Map()));
-    out = withKey(out, 'permissions', withKey(base, 'deny', [...d, ...missing]));
+    const next = [...d, ...missing];
+    out = withKey(out, 'permissions', withKey(base, 'deny', next));
   }
   out = withKey(out, STAMP_KEY, stampValue(stamp));
   return withKey(out, OWN_KEY, own);

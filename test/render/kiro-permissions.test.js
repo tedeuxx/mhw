@@ -873,3 +873,23 @@ test('read: universal newlines, a BOM kept as a character', () => {
   fs.writeFileSync(f, '﻿a\r\nb\rc\n');
   assert.equal(kp.readText(f), '﻿a\nb\nc\n');
 });
+
+test('install: a pattern that left the floor leaves the rule mhw recorded, the owner rule stays, and uninstall restores his file (#593)', () => {
+  const h = fresh();
+  ownerFile(h);
+  const before = fs.readFileSync(h.path, 'utf8');
+  const old = path.join(h.home, 'old-floor.conf');
+  fs.writeFileSync(old, FLOOR + 'cmd gh api -X POST\nfile ~/.gone\n');
+  assert.equal(runMode(h, 'install', { floor: old })[0], 0);
+  assert.ok(rules(h).some((r) => r.effect === 'deny' && (r.match || []).includes('gh api -X POST *')));
+  const [code, out] = runMode(h, 'install', { stamp: OTHER });
+  assert.equal(code, 0, out);
+  assert.match(out, /^MERGED .*pattern\(s\) mhw had added and the floor no longer lists removed/m);
+  const all = rules(h).flatMap((r) => r.match || []);
+  assert.ok(!all.includes('gh api -X POST *') && !all.includes('~/.gone'), 'the patterns that left the floor are gone');
+  assert.ok(all.includes('sudo *') && all.includes('git *'), 'the owner rules stay');
+  assert.ok(record(h).every((/** @type {any} */ e) => !e.match.includes('gh api -X POST *')), 'the record follows');
+  assert.equal(runMode(h, 'install', { stamp: OTHER })[1].split('\n')[0].slice(0, 2), 'OK', 'a second install has nothing to do');
+  assert.equal(runMode(h, 'uninstall')[0], 0);
+  assert.deepEqual(parse(fs.readFileSync(h.path, 'utf8')).rules, parse(before).rules, 'uninstall gives back the owner rules');
+});

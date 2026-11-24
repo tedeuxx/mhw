@@ -746,8 +746,10 @@ const ghRules = (ctx) => ctx.gh || ghApi.NONE;
  * @param {Ctx} ctx
  */
 function ghSource(ctx) {
+  // An option given is a string (an empty one is a usage error, refused in usable()); an option not given
+  // is no key at all, which the Record<string, string> type cannot say, so ask for the key itself.
+  if (!Object.hasOwn(ctx.opts, '--gh-api')) return true;
   const file = ctx.opts['--gh-api'];
-  if (file === undefined) return true;
   const text = isFile(file) ? readOrNull(file) : null;
   if (text === null) {
     ctx.err('gh-api source not found: ' + file + '\n');
