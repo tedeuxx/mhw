@@ -17,13 +17,17 @@ function typeOf(v) {
   return typeof v;
 }
 
+/** @param {string} x @param {string} y */
+const byCodePoint = (x, y) => (x < y ? -1 : x > y ? 1 : 0);
+
 /** @param {unknown} a @param {unknown} b @returns {boolean} */
 function equal(a, b) {
   if (typeOf(a) !== typeOf(b) && !(typeof a === 'number' && typeof b === 'number')) return false;
   if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((x, i) => equal(x, b[i]));
   if (a && b && typeof a === 'object' && typeof b === 'object') {
-    const ka = Object.keys(a).sort();
-    const kb = Object.keys(b).sort();
+    // Key order is not part of a JSON value: compare the keys sorted by code point.
+    const ka = Object.keys(a).sort(byCodePoint);
+    const kb = Object.keys(b).sort(byCodePoint);
     return equal(ka, kb) && ka.every((k) => equal(/** @type {any} */ (a)[k], /** @type {any} */ (b)[k]));
   }
   return a === b;

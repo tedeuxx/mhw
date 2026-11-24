@@ -16,6 +16,7 @@
 //   8. SKILL.md claude-code block: effort always null
 //   9. src/commands/launch-line.js: '/tmp/' dropped from the strict filter
 //  10. test/helpers/json-schema.js: additionalProperties no longer asserted (the negative controls go red)
+//  11. test/helpers/json-schema.js: the keys compared unsorted in `const` (the key-order control goes red)
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -28,7 +29,9 @@ import { which } from '../helpers/home.js';
 import { strictPrivate } from '../../src/commands/launch-line.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const SKILL = fs.readFileSync(path.join(ROOT, 'method', 'skills', 'worklog', 'SKILL.md'), 'utf8');
+// Read with LF line ends: the Windows runners check out with core.autocrlf=true, so the file arrives with
+// CRLF there and the block and template boundaries below are LF-delimited.
+const SKILL = fs.readFileSync(path.join(ROOT, 'method', 'skills', 'worklog', 'SKILL.md'), 'utf8').replace(/\r\n/g, '\n');
 const SCHEMA = JSON.parse(fs.readFileSync(path.join(ROOT, 'method', 'scripts', 'worklog-contract', 'event.schema.json'), 'utf8'));
 const FIXTURES = path.join(ROOT, 'method', 'scripts', 'fixtures', 'worklog');
 const MARKER = '<!-- worklog-event:v1 -->';
@@ -241,6 +244,10 @@ test('the validator refuses what the contract refuses (negative controls)', () =
     ['a missing handoff', Object.fromEntries(Object.entries(ok).filter(([k]) => k !== 'handoff'))],
   ];
   for (const [why, event] of bad) assert.notDeepEqual(validate(SCHEMA, event), [], why + ' was accepted');
+  // const compares JSON values: key order does not matter, a different key or value does.
+  assert.deepEqual(validate({ const: { a: 1, b: 2 } }, { b: 2, a: 1 }), []);
+  assert.notDeepEqual(validate({ const: { a: 1, b: 2 } }, { a: 1, c: 2 }), []);
+  assert.notDeepEqual(validate({ const: { a: 1, b: 2 } }, { a: 1, b: 3 }), []);
 });
 
 test('the published events (retained history) are valid against the schema', () => {
@@ -282,14 +289,16 @@ test('the schema refuses machine-local next_act spellings, and launch-line agree
 
 test('mhw worklog is an unknown command', () => {
   const mhw = (/** @type {string[]} */ args) => spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), ...args], { encoding: 'utf8' });
-  const bare = mhw(['worklog']);
-  assert.equal(bare.status, 2);
-  assert.match(bare.stderr, /^mhw: unknown subcommand worklog \(/);
-  assert.ok(!bare.stderr.includes('worklog,') && !bare.stderr.includes(', worklog'), 'the subcommand list names worklog');
-  // With arguments it is refused like any unknown word (the same line `mhw nope x` prints).
-  const withArgs = mhw(['worklog', 'prepare-event', 'e.json']);
-  assert.equal(withArgs.status, 2);
-  assert.equal(withArgs.stdout, '');
-  assert.equal(withArgs.stderr.replace('worklog', 'nope'), mhw(['nope', 'prepare-event', 'e.json']).stderr);
+  // `worklog` is answered exactly as an unknown word, bare and with arguments, on each platform's own
+  // routing: macOS and Linux name the unknown subcommand, Windows says it is not available there.
+  for (const rest of [[], ['prepare-event', 'e.json']]) {
+    const got = mhw(['worklog', ...rest]);
+    const unknown = mhw(['nope', ...rest]);
+    assert.equal(got.status, 2, rest.join(' '));
+    assert.equal(unknown.status, 2);
+    assert.equal(got.stdout, '');
+    assert.equal(got.stderr, unknown.stderr.split('nope').join('worklog'), rest.join(' '));
+    assert.ok(!/\(.*\bworklog\b.*\)/.test(got.stderr), 'the subcommand list names worklog');
+  }
   assert.ok(!fs.existsSync(path.join(ROOT, 'src', 'commands', 'worklog.js')), 'src/commands/worklog.js still exists');
 });
