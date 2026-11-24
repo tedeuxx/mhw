@@ -8,6 +8,7 @@ import { NAME, MARKER, darwin, managedRoot, pathOf, pathlibJoin, inHome, codexHo
   readText, get, truthy, isDict } from './common.js';
 import { adminDropin, codexRequirements } from './admin.js';
 import { pyStr } from '../py.js';
+import { termLeftovers } from '../term-leftovers.js';
 
 /** @typedef {import('./common.js').Env} Env */
 
@@ -280,53 +281,15 @@ export function nodeOwnership(n) {
     : n + ' (not writable by you)';
 }
 
-const TERM_LIST_KEYS = ['terms_file', 'health_terms_file', 'colleague_terms_file'];
-const TERM_LIST_FILES = ['clipboard-terms', 'clipboard-terms-health', 'clipboard-terms-colleague'];
-const HASH_LINE = /^[0-9a-f]{64}$/;
-
-/** Hash lines in a file, 0 when it is absent or unreadable. @param {string} p */
-function hashCount(p) {
-  const text = readText(p);
-  return text === null ? 0 : text.split(/\r?\n/).filter((l) => HASH_LINE.test(l.trim())).length;
-}
-
 /**
- * [ok, text] for the paste filter's hashed term lists and their salt file (#488). Since #488 the salt is a
- * 0600 file; a list with hashes and no readable salt file, or a list add-term moved aside as
- * <list>.old-salt, means term matching does not cover those terms. The paths come from the installed
- * clipboard.conf (last value wins), else the defaults; the salt itself is only matched against its shape.
+ * [ok, text] for what an earlier install left of the term lists (#589): the salt and the hashed lists that
+ * `mhw add-term` wrote. Nothing reads them since #589 (terms are judged by the model), so a leftover is not a
+ * gap in a check: it is a file install removes. ok is false while one is there, so the summary names it.
  * @param {Env} env
  * @returns {[boolean, string]}
  */
 export function termListsState(env) {
-  const data = dataDir(env);
-  const local = pathlibJoin(data, ['local-overlay']);
-  /** @type {Record<string, string>} */
-  const paths = { salt_file: pathlibJoin(local, ['clipboard-salt']) };
-  TERM_LIST_KEYS.forEach((k, i) => { paths[k] = pathlibJoin(local, [TERM_LIST_FILES[i]]); });
-  for (const line of (readText(pathlibJoin(data, ['clipboard.conf'])) || '').split(/\r?\n/)) {
-    const eq = line.indexOf('=');
-    if (eq < 0) continue;
-    const key = line.slice(0, eq).trim();
-    const value = line.slice(eq + 1).trim();
-    if (Object.hasOwn(paths, key) && value) paths[key] = value;
-  }
-  const salt = readText(paths.salt_file);
-  const saltOk = salt !== null && /^[0-9a-f]{64}$/.test(salt.trim());
-  /** @type {string[]} */
-  const problems = [];
-  let total = 0;
-  for (const key of TERM_LIST_KEYS) {
-    const n = hashCount(paths[key]);
-    total += n;
-    if (n && !saltOk) {
-      problems.push(paths[key] + ' holds ' + n + ' hash(es) and the salt file ' + paths.salt_file
-        + ' is missing or unreadable: term matching off: re-add with mhw add-term');
-    }
-    const old = paths[key] + '.old-salt';
-    const nOld = hashCount(old);
-    if (nOld) problems.push(old + ' holds ' + nOld + ' hash(es) made with a salt mhw no longer has: those terms are not matched: re-add with mhw add-term, then delete ' + old);
-  }
-  if (problems.length) return [false, problems.join('; ')];
-  return [true, total ? total + ' hash(es), salt file present' : 'no term list'];
+  const left = termLeftovers(pathlibJoin(dataDir(env), ['local-overlay']));
+  if (!left.length) return [true, 'none (terms are judged by the model since #589)'];
+  return [false, left.join(', ') + ': left by an earlier install, no longer read (#589); mhw install moves them aside'];
 }

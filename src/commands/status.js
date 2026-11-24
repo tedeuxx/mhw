@@ -43,7 +43,7 @@ export { MARKER };
  *   method?: { installed: boolean | null, duplicate: string[], unread?: string }, npm?: string[], chrome_debugging?: string | null,
  *   unread?: import('../lib/readers/settings.js').Unread[],
  *   owner_actions?: string, hook_node?: string, terms?: [boolean, string], base_url?: string[] }} Facts
- *   hook_node, terms: #488 (the prompt hook's node, and the term lists the salt file does not cover)
+ *   hook_node, terms: #488 (the prompt hook's node); terms since #589: what an earlier install left of the term lists
  */
 
 /** An npm install of this repository (Issue #68, ADR-0034): package.json present, no .git. @param {string} root */
@@ -458,7 +458,7 @@ export function renderStatus(f, verbose = false) {
   for (const finding of ws.brief || []) lines.push('  root brief       ' + finding);
   for (const finding of f.base_url || []) lines.push('  base url         ' + finding + ' (redirects the subscription bearer; informs only)');
   lines.push('  protections      brief: ' + f.brief + ' · deny floor: ' + f.floor + ' · hooks registered: ' + f.hooks);
-  // #488: the node the prompt hook runs, and any hashed term list the salt file does not cover.
+  // #488: the node the prompt hook runs; #589: any term list or salt an earlier install left.
   lines.push('  hook node        ' + (f.hook_node ?? 'not read'));
   lines.push('  term lists       ' + (f.terms ? f.terms[1] : 'not read'));
   lines.push('  method           ' + methodText(f.method));
@@ -520,7 +520,7 @@ export function renderSummary(f, env) {
   lines.push('  cannot override  ' + cannotOverride(f));
   // The installers' --check drift rides on the protections item (Issue #38).
   const drift = driftText(f.user_lines || [], f.admin_lines || [], f.admin_code || 0, env);
-  // #488: a term list the salt no longer covers rides on the protections item too, so it is never silent.
+  // #589: a term list or salt an earlier install left rides on the protections item too, so it is never silent.
   const terms = f.terms && !f.terms[0] ? ' · TERMS ' + f.terms[1] : '';
   lines.push('  protections      brief ' + f.brief + ' · hooks ' + f.hooks + (drift ? ' · ' + drift : '') + terms +
     ' · evidence: installed; loaded and enforced need a session canary');

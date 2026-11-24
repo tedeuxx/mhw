@@ -68,7 +68,7 @@ jobs:
                   compile(fh.read(), f, "exec")' \
             global/project-policy/reference/fixture/container_tests.py global/project-policy/reference/fixture/stg_stand_in_tests.py \
             global/project-policy/reference/fixture/fixture_app.py \
-            test/helpers/s15-record.py test/helpers/s17-record.py test/helpers/s23-prose.py \
+            test/helpers/s15-record.py test/helpers/s23-prose.py \
             test/helpers/s24-admin-line.py
       # #495 (S24 of #470): the checkout's ./mhw is a Node file too (an ES module with no extension, under
       # package.json's "type": "module"), so it is checked here rather than by shellcheck.
@@ -229,23 +229,8 @@ jobs:
         run: |
           node --test --test-name-pattern="^live" test/clipboard/paste-wrapper.test.js
           node bin/mhw.js paste-wrapper check
-      # #488 (S17 of #470): add-term on a real pty (echo off, Ctrl+C, Ctrl+D, terminal modes restored).
-      # MHW_S17_LIVE_REQUIRED=1 turns a skip into a failure: a pty that does not load. The prompt hook's
-      # parity golden it also played left with `mhw hook prompt` (#600); add-term's golden is
-      # test/clipboard/add-term-golden.test.js, in the node job (npm test).
-      - name: S17 add-term on a pty
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          TMPDIR: ${{ runner.temp }}
-          MHW_S17_LIVE_REQUIRED: "1"
-        run: |
-          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/clipboard/add-term.test.js) || { echo "$out"; exit 1; }
-          echo "$out"
-          # The two pty arms must have run.
-          for name in "live: add-term reads the term twice with nothing echoed" "live: Ctrl+C and Ctrl+D cancel add-term cleanly"; do
-            echo "$out" | grep -F "ok " | grep -F "$name" | grep -vq SKIP || { echo "SKIPPED or missing: $name"; exit 1; }
-          done
+      # #488 (S17 of #470) ran add-term on a real pty here; #589 removed add-term, the term lists and the salt
+      # (third-party terms are judged by the model), and the step with them.
       # #493 (S22 of #470): the live arm of test/status/status-golden.test.js runs the base revision's
       # status view (global/workstation.py and owner_actions.py) beside src/commands/status.js on every case,
       # in throwaway HOMEs and admin roots with a stand-in gh, on the same CPython. MHW_S22_LIVE_REQUIRED=1
@@ -706,15 +691,15 @@ jobs:
       # #170: the scripts the moved rites run, with their own suites (moved from the plugin with them).
       # #128: the rite-cadence dater of session check 3, in throwaway git repositories.
       # #475: the milestone routes are Node now; their suite runs in the node job (npm test).
-      # #476: so are mhw worklog and mhw launch-line (test/method/worklog.test.js and the S05 goldens).
+      # #476: so is mhw launch-line (the S05 goldens); mhw worklog was too until it left the CLI at #594
+      # (test/method/worklog-skill.test.js holds the worklog skill that replaced it).
       # #477: so is rite-cadence (mhw rite-cadence, test/method/rite-cadence.test.js).
       # #478: and mhw funnel-review (test/method/funnel-review.test.js and the S07 goldens). With both moved,
       # the method scripts step had nothing left to run and was removed.
       # ADR-0011, the paste filter: its prompt hook was Node since #488 (S17 of #470), src/commands/hook-prompt.js,
       # until #600 removed it; the fixed-pattern check (src/hooks/pattern-check.js, #588) is the prompt hook
-      # now, with its suites in test/hooks/. add-term's suites, test/clipboard/add-term.test.js and
-      # add-term-golden.test.js, run in the node job on all three OSes, and the pty arms in that job's S17 step. The salt is a file since #488 (owner ruling,
-      # 2026-11-21), so no suite reads a Keychain for it any more.
+      # now, with its suites in test/hooks/. add-term and its suites, the term lists and the salt left with #589;
+      # the third-party term check is a Claude Code prompt hook (src/render/term-judge.js, test/render/).
       # ADR-0017: the MCP renderer is Node since #484 (S13 of #470), src/render/mcp.js; its suites,
       # test/render/mcp.test.js and test/render/mcp-golden.test.js, run in the node job on all three OSes, on
       # the Node security stub; the one real-binary arm runs in the node job on macOS only, by opt-in.

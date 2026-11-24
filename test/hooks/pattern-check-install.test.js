@@ -13,6 +13,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { J } from '../clean/corpus.js';
 import { which } from '../helpers/home.js';
+import { JUDGE_PROMPT } from '../../src/render/term-judge.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const NAME = 'personal-multi-harness-workstation-configuration';
@@ -34,8 +35,10 @@ function install(home, args, extra = {}) {
   return { code: p.status, out: p.stdout + p.stderr };
 }
 
-/** Every command of one event in a Claude Code or Codex hooks document. @param {any} doc @param {string} ev */
-const commandsOf = (/** @type {any} */ doc, /** @type {string} */ ev) => /** @type {string[]} */ (doc.hooks?.[ev] || []).flatMap((/** @type {any} */ g) => (g.hooks || []).map((/** @type {any} */ h) => h.command));
+/** Every command hook's command of one event in a Claude Code or Codex hooks document. @param {any} doc @param {string} ev */
+const commandsOf = (/** @type {any} */ doc, /** @type {string} */ ev) => /** @type {string[]} */ (doc.hooks?.[ev] || []).flatMap((/** @type {any} */ g) => (g.hooks || []).filter((/** @type {any} */ h) => h.type !== 'prompt').map((/** @type {any} */ h) => h.command));
+/** Every `prompt`-type hook of one event (#589), as written. @param {any} doc @param {string} ev */
+const promptHooksOf = (/** @type {any} */ doc, /** @type {string} */ ev) => /** @type {any[]} */ (doc.hooks?.[ev] || []).flatMap((/** @type {any} */ g) => (g.hooks || []).filter((/** @type {any} */ h) => h.type === 'prompt'));
 
 /** Run an installed hook command as a harness does: through a shell, the payload on stdin. @param {string} cmd @param {unknown} payload @param {string} cwd @param {Record<string, string>} [extra] */
 function runHook(cmd, payload, cwd, extra = {}) {
@@ -103,6 +106,15 @@ test('install writes each harness\'s hook entries at the installed script; the i
     kiro: kiro.hooks.filter((/** @type {any} */ h) => h.trigger === 'UserPromptSubmit').map((/** @type {any} */ h) => h.action.command) };
   const everything = [JSON.stringify(settings), JSON.stringify(codex), JSON.stringify(kiro)].join('\n');
   for (const gone of ['hook prompt', 'hook-entry', 'hook-prompt', 'defer-to-paste-filter', 'bin/mhw.js']) assert.ok(!everything.includes(gone), 'a rendered hook names ' + gone);
+  // #589: the third-party term check is one `prompt`-type UserPromptSubmit entry, on Claude Code only, in a
+  // group of its own; Codex parses a prompt hook and skips it, and Kiro has none, so neither gets one.
+  // QA A1: the judge names a small model; without the field Claude Code asked the session's main model.
+  assert.deepEqual(promptHooksOf(settings, 'UserPromptSubmit'), [{ type: 'prompt', prompt: JUDGE_PROMPT, model: 'claude-haiku-5-5', timeout: 30 }]);
+  assert.ok(settings.hooks.UserPromptSubmit.some((/** @type {any} */ g) => g.hooks.length === 1 && g.hooks[0].type === 'prompt' && !('matcher' in g)));
+  assert.deepEqual(promptHooksOf(settings, 'PreToolUse'), []);
+  assert.deepEqual([...promptHooksOf(codex, 'UserPromptSubmit'), ...promptHooksOf(codex, 'PreToolUse')], [], 'codex: no prompt hook');
+  assert.ok(!kiro.hooks.some((/** @type {any} */ h) => h.action?.type !== 'command'), 'kiro: command hooks only');
+  assert.ok(!everything.replace(JSON.stringify(JUDGE_PROMPT), '').includes('third-party term check'), 'the term check is rendered once, on Claude Code');
   assert.ok(!fs.existsSync(path.join(home, '.kiro', 'hooks', NAME + '-paste-filter.json')), 'the retired Kiro hook file was written');
 
   const dirty = repo('dirty', 'key ' + TOKEN + '\n');
@@ -139,6 +151,7 @@ test('install writes each harness\'s hook entries at the installed script; the i
   assert.ok(!fs.existsSync(path.join(home, '.kiro', 'hooks', NAME + '-pattern-check.json')));
   const after = JSON.parse(fs.readFileSync(path.join(home, '.claude', 'settings.json'), 'utf8'));
   assert.ok(!JSON.stringify(after).includes('pattern-check.js'));
+  assert.ok(!JSON.stringify(after).includes('third-party term check'), 'uninstall removes the term check');
 });
 
 test('install over a home an earlier release set up removes every `mhw hook prompt` entry and its Kiro file (#600)', { skip }, () => {

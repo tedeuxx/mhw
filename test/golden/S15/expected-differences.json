@@ -7,16 +7,6 @@
       "test": "without git on PATH a git mode exits 2 and says so; --file needs no git"
     },
     {
-      "what": "A term list, or the salt file, holds a byte that is not ASCII.",
-      "why": "The original opened both with encoding='ascii' and caught only OSError, so a non-ASCII byte raised UnicodeDecodeError out of mhw scan: a traceback and exit 1, with no NOTE. The port reads such a file as unreadable and prints the NOTE that says the list (or the salt) was not checked. Neither detects anything more; the port says so instead of crashing.",
-      "test": "a term list or salt file that is not ASCII reads as unreadable, with its NOTE"
-    },
-    {
-      "what": "The salt is read from its file only; the Keychain store is gone (#488, superseding this slice's python3 child).",
-      "why": "The original read a macOS Keychain salt in process. S15 first kept that read in a python3 child running clipboard_guard.py. S17 (#488) removed the Keychain store on the owner's ruling of 2026-11-21 (https://github.com/tedeuxx/mhw/issues/488#issuecomment-7062064253): the salt is a 0600 file in a 0700 directory, read in process, and no process is started for it. A missing or unreadable salt file prints a NOTE and no term list is checked (fails visibly, never silently). The settings salt_store=keychain, keychain_service and keychain_path are ignored.",
-      "test": "the salt is read from its file: no process is started for it, and a missing salt gives the NOTE"
-    },
-    {
       "what": "The program's name in its own output: outbound-scan where the original printed mhw scan.",
       "why": "#600 took mhw scan out of the CLI (CLI native baseline PRD, section 5: CI calls the engine directly); the scan is .github/scripts/outbound-scan.js now, run by the outbound-scan workflow. Its summary line and its error prefix name the script (outbound-scan: ...), so a reader of the CI log is not sent to a command that no longer exists. Nothing else in either stream changes: the replacement below is applied to the original's transcripts, and every other byte is still compared.",
       "replace": {
@@ -24,6 +14,12 @@
         "head": "outbound-scan"
       },
       "test": "the program names itself outbound-scan where mhw scan named itself (#600)"
+    },
+    {
+      "what": "No term list and no salt (#589): the original's term-list NOTE lines are gone, and six cases lost their object.",
+      "why": "#589 removed mhw add-term, the hashed term lists and their salt (CLI native baseline PRD, section 5: third-party terms are judged by the model, never matched against a list). The scan matches patterns only and prints none of the three 'no ... term list could be read' NOTE lines nor the salt NOTE, so every line of the original's stdout matching the 'drop' pattern below is removed before the comparison, and nothing else. Six cases whose whole object was a term list or its salt were removed with their transcripts (note-when-no-term-list, note-when-term-list-empty, note-when-salt-unreadable, synthetic-term-found-without-a-note, note-names-each-private-list, private-list-terms-found), and two declared differences about reading the list and the salt went with them (a non-ASCII list or salt read as unreadable; the salt read from its file, not the Keychain). The corpus (test/clean/clean.test.js) keeps its term cases: clean.js finds no span the original did not, and every recorded span it no longer finds is in a term category (employer-client-term, health, colleague-name); their tokens are still compared exactly.",
+      "drop": "^NOTE {4}(no (employer and client|health|colleague-name) term list could be read|the term list's salt)",
+      "test": "no term list and no salt is read, and no term NOTE is printed (#589)"
     }
   ],
   "residuals": [

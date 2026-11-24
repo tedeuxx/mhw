@@ -7,6 +7,10 @@
 //           test/helpers/s15-record.py and the clipboard_guard.py of this tree (it stays in this slice).
 //           MHW_S15_LIVE_REQUIRED=1 (CI) turns a missing or other python3 into a failure.
 //           MHW_UPDATE_GOLDEN=1 rewrites the golden from the Python side, never from the Node side.
+// #589: the term lists and their salt are removed, so findSpans() takes the text alone. A corpus case that
+// carries terms (it was matched against a hashed list) is compared on its tokens and on its spans less the
+// term-list ones: every span clean.js finds is a recorded one, and every recorded span it no longer finds is
+// in a term category (test/golden/S15/expected-differences.json, the #589 entry).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
@@ -21,15 +25,8 @@ const LIVE_REQUIRED = process.env.MHW_S15_LIVE_REQUIRED === '1';
 
 /** @typedef {{ name: string, text_sha256: string, spans: Array<[string, number, number]>, sanitised: string, categories: string[], tokens: Array<[number, number, string]> }} Answer */
 
-/** @param {import('./corpus.js').Case} c */
-function hashes(c) {
-  /** @param {string[] | undefined} words */
-  const set = (words) => new Set((c.salt ? words || [] : []).flatMap((w) => clean.termForms(w).map((f) => clean.termHash(/** @type {string} */ (c.salt), f))));
-  const t = c.terms || {};
-  /** @type {Record<string, Set<string>>} */
-  const lists = c.salt ? { health: set(t.health), 'colleague-name': set(t.colleague) } : {};
-  return { employer: set(t.employer), lists };
-}
+/** The categories a term list could produce (#589: no longer produced from a list). */
+const TERM_CATEGORIES = new Set(['employer-client-term', 'health', 'colleague-name']);
 
 /**
  * Each normalised word as the first 16 hex digits of its sha256: equality is still exact, and a
@@ -42,8 +39,7 @@ const digestTokens = (tokens) => tokens.map(([s, e, n]) => [s, e, crypto.createH
 
 /** clean.js's answer for one case. @param {import('./corpus.js').Case} c @returns {Answer} */
 export function nodeAnswer(c) {
-  const h = hashes(c);
-  const spans = clean.findSpans(c.text, h.employer, c.salt || null, h.lists);
+  const spans = clean.findSpans(c.text);
   return {
     name: c.name,
     text_sha256: crypto.createHash('sha256').update(c.text, 'utf8').digest('hex'),
@@ -72,6 +68,16 @@ function compare(want, got) {
       continue;
     }
     const g = got(c);
+    if (c.terms) {
+      for (const key of /** @type {const} */ (['text_sha256', 'tokens'])) {
+        if (JSON.stringify(g[key]) !== JSON.stringify(w[key])) diffs.push(c.name + ' ' + key + ': python ' + JSON.stringify(w[key]) + ' node ' + JSON.stringify(g[key]));
+      }
+      const recorded = new Set(w.spans.map((x) => JSON.stringify(x)));
+      const found = new Set(g.spans.map((x) => JSON.stringify(x)));
+      for (const x of found) if (!recorded.has(x)) diffs.push(c.name + ' spans: node found ' + x + ', python did not');
+      for (const x of recorded) if (!found.has(x) && !TERM_CATEGORIES.has(JSON.parse(x)[0])) diffs.push(c.name + ' spans: node lost ' + x + ', not a term category');
+      continue;
+    }
     for (const key of /** @type {const} */ (['text_sha256', 'spans', 'sanitised', 'categories', 'tokens'])) {
       if (JSON.stringify(g[key]) !== JSON.stringify(w[key])) diffs.push(c.name + ' ' + key + ': python ' + JSON.stringify(w[key]) + ' node ' + JSON.stringify(g[key]));
     }
@@ -92,11 +98,20 @@ test('golden: clean.js answers the corpus as the Python original did', { skip: U
   assert.deepEqual(compare(golden.cases, nodeAnswer), []);
 });
 
-test('the corpus holds a known-present hit for every category, and Unicode, case and boundary edges', () => {
+test('the corpus holds a known-present hit for every category but the term one, and Unicode, case and boundary edges', () => {
   /** @type {Record<string, number>} */
   const hits = Object.fromEntries(clean.CATEGORY_ORDER.map((c) => [c, 0]));
   for (const a of /** @type {Answer[]} */ (readGolden(SLICE, 'corpus.json').cases)) for (const [cat] of a.spans) hits[cat] += 1;
   for (const cat of clean.CATEGORY_ORDER) assert.ok(hits[cat] >= 1, cat + ' has no known-present hit');
+  // #589: the recorded hits above include the term lists'; clean.js's own answers must still hit every
+  // pattern category, and never employer-client-term, whose only producer was a list.
+  /** @type {Record<string, number>} */
+  const now = Object.fromEntries(clean.CATEGORY_ORDER.map((c) => [c, 0]));
+  for (const c of CASES) for (const [cat] of nodeAnswer(c).spans) now[cat] += 1;
+  for (const cat of clean.CATEGORY_ORDER) {
+    if (cat === 'employer-client-term') assert.equal(now[cat], 0, 'employer-client-term is found without a term list');
+    else assert.ok(now[cat] >= 1, cat + ' has no known-present hit in clean.js');
+  }
   for (const prefix of ['unicode/', 'ignore-case/', 'offsets/', 'term/']) assert.ok(CASES.some((c) => c.name.startsWith(prefix)), prefix);
 });
 
@@ -120,14 +135,15 @@ test('live: the recorded CPython answers the corpus as clean.js does', (t) => {
 });
 
 // Unit tests of what the corpus does not reach through findSpans.
-test('the term hash depends on the salt and is never the plaintext; no salt, no term match', () => {
-  const a = clean.termHash(SALT, 'zyxw quillon synthetic');
-  assert.match(a, /^[0-9a-f]{64}$/);
-  assert.notEqual(a, clean.termHash('6b'.repeat(32), 'zyxw quillon synthetic'));
-  const set = new Set(clean.termForms('Zyxw Quillon Synthetic').map((f) => clean.termHash(SALT, f)));
-  assert.deepEqual(clean.findSpans('Zyxw Quillon Synthetic', set, null), []);
-  assert.deepEqual(clean.termForms('!!!'), []);
-  assert.deepEqual(clean.termForms('Zyxw'), ['zyxw']);
+test('#589: no term list, no salt and no term hashing: findSpans() takes the text alone', () => {
+  for (const name of ['termHash', 'termForms', 'readTerms', 'readTermsStrict', 'readTermLists', 'fileSalt', 'fileSaltStrict',
+    'TERMS_HEADER', 'TERM_LISTS', 'LIST_FILES']) assert.equal(Object.hasOwn(clean, name), false, name + ' is still exported');
+  assert.equal(clean.findSpans.length, 1);
+  for (const key of ['terms_file', 'health_terms_file', 'colleague_terms_file', 'salt_file', 'salt_store']) {
+    assert.equal(Object.hasOwn(clean.DEFAULTS, key), false, key + ' is still a setting');
+  }
+  const conf = clean.loadConfig(null, { env: { HOME: '/nonexistent' }, platform: 'linux' });
+  for (const key of ['terms_file', 'salt_file']) assert.equal(conf[key], undefined, key + ' is still derived');
 });
 
 test('ci() refuses a letter it has no recorded set for, so a pattern never turns case-sensitive silently', () => {

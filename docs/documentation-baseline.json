@@ -100,7 +100,6 @@
       "code": [
         ".github/scripts/outbound-scan.js",
         "src/lib/clean*.js",
-        "src/lib/salt.js",
         "test/scan/**",
         "test/clean/**",
         "test/helpers/s15*",
@@ -112,6 +111,18 @@
       ]
     },
     {
+      "id": "term-check",
+      "code": [
+        "src/render/term-judge.js",
+        "src/lib/term-leftovers.js",
+        "test/clipboard/terms-removed.test.js"
+      ],
+      "docs": [
+        "README.md",
+        "docs/adr/0047-*.md"
+      ]
+    },
+    {
       "id": "paste-cleaning",
       "code": [
         "global/clipboard/**",
@@ -119,7 +130,6 @@
         "global/profile/locales/**",
         "src/commands/paste-wrapper.js",
         "src/lib/pty.js",
-        "src/lib/salt.js",
         "src/vendor/node-pty/**",
         "test/clipboard/**",
         ".github/workflows/node-pty-linux.yml"

@@ -1,10 +1,11 @@
 // S15 (#486): what the scan transcripts cannot show. The declared differences from the Python original
-// (test/golden/S15/expected-differences.json) each with a test; the keychain salt read; that the file
+// (test/golden/S15/expected-differences.json) each with a test; that no term list is read (#589); that the file
 // opened is always git's own entry; that no matched text reaches stdout or stderr; the entries that
 // reach the script (outbound-scan.yml; since #600 no `mhw scan` and no ./mhw route); and unit tests of the
 // helpers.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,7 +15,8 @@ import * as core from '../../src/lib/clean.js';
 import { readGolden } from '../helpers/golden.js';
 import { which } from '../helpers/home.js';
 import { ROOT } from '../helpers/s15.js';
-import { AWS, EMAIL, CPF, SALT, TERM, VENDOR, NEW_FIXTURES, NEW_SPANS } from './cases.js';
+import { AWS, EMAIL, CPF, TERM, VENDOR, NEW_FIXTURES, NEW_SPANS } from './cases.js';
+import { SALT } from '../clean/corpus.js';
 
 const POSIX = process.platform !== 'win32';
 const GIT = which('git');
@@ -46,12 +48,19 @@ function box() {
   git(['checkout', '-q', '-b', 'feature', '--track', 'base']);
   const data = path.join(home, 'data', core.PROJECT);
   const overlay = path.join(data, 'local-overlay');
-  /** @param {string} conf @param {string[]} [terms] */
-  const configure = (conf, terms = [TERM]) => {
+  /**
+   * The installed settings, and what an earlier install's add-term left: a salt and a list holding the hash of
+   * TERM as add-term computed it (HMAC-SHA256 of its one normalised word), so a reader would have matched it.
+   * @param {string} conf
+   */
+  const configure = (conf) => {
     fs.mkdirSync(overlay, { recursive: true });
     fs.writeFileSync(path.join(data, 'clipboard.conf'), conf);
-    const hashes = terms.flatMap((w) => core.termForms(w).map((f) => core.termHash(SALT, f)));
-    fs.writeFileSync(path.join(overlay, 'clipboard-terms'), core.TERMS_HEADER + hashes.map((h) => h + '\n').join(''));
+    fs.writeFileSync(path.join(overlay, 'clipboard-salt'), SALT + '\n', { mode: 0o600 });
+    const hash = crypto.createHmac('sha256', Buffer.from(SALT, 'hex')).update(TERM.toLowerCase(), 'utf8').digest('hex');
+    for (const list of ['clipboard-terms', 'clipboard-terms-health', 'clipboard-terms-colleague']) {
+      fs.writeFileSync(path.join(overlay, list), '# terms\n' + hash + '\n', { mode: 0o600 });
+    }
   };
   return { dir, home, repo, env, git, data, overlay, configure };
 }
@@ -78,50 +87,34 @@ test('without git on PATH a git mode exits 2 and says so; --file needs no git', 
   assert.match(r.stdout, /post\.txt:1: email, 33 chars\n/);
 });
 
-test('a term list or salt file that is not ASCII reads as unreadable, with its NOTE', { skip: !GIT && 'needs git' }, () => {
+// #589: the term lists and their salt are gone; an earlier install's are never opened, and no NOTE names them.
+test('no term list and no salt is read, and no term NOTE is printed (#589)', { skip: !GIT && 'needs git' }, () => {
   const b = box();
-  b.configure('salt_store=file\n');
-  fs.writeFileSync(path.join(b.overlay, 'clipboard-terms'), Buffer.from([0x23, 0xe9, 0x0a]));
-  fs.writeFileSync(path.join(b.repo, 'm.txt'), TERM + '\n');
-  let r = run(['m.txt'], { cwd: b.repo, env: b.env });
-  assert.equal(r.code, 0);
-  assert.match(r.stdout, /NOTE {4}no employer and client term list could be read/);
-  b.configure('salt_store=file\n');
-  fs.writeFileSync(path.join(b.overlay, 'clipboard-salt'), Buffer.from([0xe9, 0x0a]));
-  r = run(['m.txt'], { cwd: b.repo, env: b.env });
-  assert.match(r.stdout, /NOTE {4}the term list's salt file could not be read/);
-  assert.doesNotMatch(r.stdout, /employer-client-term, \d+ chars/);
-});
-
-// #488: the salt is a file, never the Keychain (owner ruling, 2026-11-21).
-test('the salt is read from its file: no process is started for it, and a missing salt gives the NOTE', { skip: (!POSIX || !GIT) && 'POSIX, git' }, () => {
-  const b = box();
-  b.configure('salt_store=keychain\nkeychain_service=svc.test\n'); // the retired settings are ignored
-  fs.writeFileSync(path.join(b.repo, 'm.txt'), 'one\nmet ' + TERM + '\n');
-  // No salt file: the NOTE, and no term match.
-  let r = run(['m.txt'], { cwd: b.repo, env: b.env, platform: 'darwin' });
-  assert.equal(r.code, 0);
-  assert.match(r.stdout, /NOTE {4}the term list's salt file could not be read \(missing, unreadable or not a salt; re-add your terms with mhw add-term\); no term list was checked/);
-  assert.doesNotMatch(r.stdout, /employer-client-term, \d+ chars/);
-  // A salt file that is not a salt: the same NOTE.
-  fs.writeFileSync(path.join(b.overlay, 'clipboard-salt'), 'not-a-salt\n');
-  r = run(['m.txt'], { cwd: b.repo, env: b.env, platform: 'darwin' });
-  assert.match(r.stdout, /salt file could not be read/);
-  // The salt file: the term is found, on macOS and elsewhere alike.
-  fs.writeFileSync(path.join(b.overlay, 'clipboard-salt'), SALT + '\n', { mode: 0o600 });
-  for (const platform of ['darwin', 'linux']) {
-    r = run(['m.txt'], { cwd: b.repo, env: b.env, platform });
-    assert.match(r.stdout, /m\.txt:2: employer-client-term, 12 chars\n/, platform);
-    assert.doesNotMatch(r.stdout, /salt file could not be read/, platform);
-    assert.ok(!r.stdout.includes(SALT) && !r.stderr.includes(SALT), 'the salt reached the output');
+  b.configure('terms_file=' + path.join(b.overlay, 'clipboard-terms') + '\nsalt_store=file\n');
+  fs.writeFileSync(path.join(b.repo, 'm.txt'), 'one\nmet ' + TERM + ' and ' + EMAIL + '\n');
+  const opened = /** @type {string[]} */ ([]);
+  const real = fs.readFileSync;
+  fs.readFileSync = /** @type {any} */ ((/** @type {any} */ p, /** @type {any} */ o) => {
+    opened.push(String(p));
+    return real(p, o);
+  });
+  let r;
+  try {
+    r = run(['m.txt'], { cwd: b.repo, env: b.env });
+  } finally {
+    fs.readFileSync = real;
   }
+  assert.equal(r.code, 0);
+  assert.match(r.stdout, /m\.txt:2: email, \d+ chars\n/);
+  assert.doesNotMatch(r.stdout, /employer-client-term/);
+  assert.doesNotMatch(r.stdout, /term list|salt/);
+  assert.deepEqual(opened.filter((f) => f.startsWith(b.overlay)), [], 'a term list or the salt was opened');
 });
 
-test('the salt never reaches the argv or the environment of any process mhw scan starts', { skip: (!POSIX || !GIT) && 'POSIX, git' }, () => {
+test('every process the scan starts is git, and an earlier salt reaches none of them', { skip: (!POSIX || !GIT) && 'POSIX, git' }, () => {
   const b = box();
   b.configure('');
-  fs.writeFileSync(path.join(b.overlay, 'clipboard-salt'), SALT + '\n', { mode: 0o600 });
-  fs.writeFileSync(path.join(b.repo, 'm.txt'), 'one\nmet ' + TERM + '\n');
+  fs.writeFileSync(path.join(b.repo, 'm.txt'), 'one\nmet ' + EMAIL + '\n');
   b.git(['add', '-A']);
   b.git(['commit', '-q', '-m', 'add m']);
   // Every program scan.js starts is git: replaced by a logger on PATH that runs the real git. A python3
@@ -138,7 +131,7 @@ test('the salt never reaches the argv or the environment of any process mhw scan
   for (const args of [[], ['m.txt'], ['--base=base']]) {
     const r = run(args, { cwd: b.repo, env, platform: 'darwin' });
     assert.equal(r.code, 0, r.stderr);
-    assert.match(r.stdout, /m\.txt:2: employer-client-term, 12 chars\n/, JSON.stringify(args));
+    assert.match(r.stdout, /m\.txt:2: email, \d+ chars\n/, JSON.stringify(args));
   }
   const spawns = fs.readFileSync(log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
   assert.ok(spawns.length > 5 && spawns.every((s) => s.argv[0].endsWith('git')), 'scan started something other than git');

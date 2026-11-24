@@ -68,20 +68,28 @@ flowchart LR
    parts (global brief, managed layer, user layer with deny floor, allow list and model defaults, the
    method, the prompt hook) and skips what does not exist there: the paste wrapper, Codex, Kiro,
    shell profile edits.
-4. **The prompt hook checks the employer, client and colleague terms in the cloud too.** The salted term
+4. ~~**The prompt hook checks the employer, client and colleague terms in the cloud too.** The salted term
    hashes and the salt reach the VM as environment variables of the environment, which the hook reads at
    session time. Owner chose this option (*"Terms via variable"*) over pattern-only checking, accepting
-   the risk below.
+   the risk below.~~ *(Without object since 2026-11-24, [#589](https://github.com/tedeuxx/mhw/issues/589),
+   [ADR-0047](adr/0047-third-party-terms-judged-by-the-model.md): no term list and no salt exist, so there
+   is nothing to carry into the VM. Third-party terms are judged by the model there as everywhere: the
+   global brief, and the Claude Code `prompt`-type hook that `mhw install --cloud` renders with the rest of
+   the user layer. The cloud carries the fixed-pattern check (#588) and that hook, with no term variable.
+   The owner's choice is recorded here as made; the CLI native baseline PRD's section 7 is what removed its
+   object.)*
 5. **`mhw status`** run inside the session reports what is installed there, at its real evidence level.
-6. **The owner pastes the script once per environment**, and the term variables when the list changes.
+6. **The owner pastes the script once per environment** ~~, and the term variables when the list
+   changes~~ *(no term variables since #589)*.
    `mhw cloud setup-script` prints the exact steps. That act is recorded as an `owner-action` Issue.
 
 ## 4. Accepted risks
 
-- **The salt and the term hashes are readable by anyone who uses the environment** and are stored on
+- ~~**The salt and the term hashes are readable by anyone who uses the environment** and are stored on
   the vendor's servers (*documented*: "Anyone who uses the environment can read the values"). The
   environment is personal; it must never be shared with a team. The plaintext terms never leave the
-  workstation.
+  workstation.~~ *(Without object since #589: no salt and no term hash reach the environment. The
+  environment stays personal, never shared with a team.)*
 - **The cloud runs the latest release, which can be ahead of the workstation** until the owner installs
   it locally.
 - **No paste wrapper on the web.** The prompt hook is the only mechanical check on a prompt.
@@ -95,15 +103,19 @@ flowchart LR
 ## 6. Acceptance
 
 - `mhw cloud setup-script` output, pasted into a fresh environment, yields a session where a canary
-  shows the brief loaded, a deny-floor rule denied, and a synthetic term prompt blocked.
+  shows the brief loaded, a deny-floor rule denied, and ~~a synthetic term prompt blocked~~ a synthetic
+  credential prompt blocked by the fixed-pattern check (since #589 a term is judged by a model, so it is no
+  deterministic canary).
 - `mhw install --cloud` is tested in a throwaway root on Linux, and exits cleanly where the paste
   wrapper, Codex or Kiro are absent.
-- The script and `mhw status` never print a term, the salt or a secret value.
+- The script and `mhw status` never print a ~~term, the salt or a~~ secret value *(no term or salt
+  exists since #589)*.
 
 ## 7. Open questions
 
 1. Whether the default "Limited" network level reaches the GitHub release download, or the environment
    needs an allowed domain. To be measured in the first build.
 2. Whether a user-layer rule can override a managed deny in the VM (the separation of the two layers).
-3. The environment-variable size limit, against the size of the hashed term list.
+3. ~~The environment-variable size limit, against the size of the hashed term list.~~ *(Without object
+   since #589.)*
 4. Whether the setup script finishes inside the roughly five-minute cache threshold.

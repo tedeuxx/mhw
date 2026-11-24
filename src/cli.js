@@ -6,11 +6,10 @@
 //   Windows:         install, install --method, check and status (= check) run `mhw install-windows`
 //                    (src/commands/install-windows.js, #497, S27; it was global\install.ps1); update is
 //                    answered here; install --admin and uninstall do not exist there.
-// Moved commands (the strangler's later steps) are answered here on every OS: `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477),
+// Moved commands (the strangler's later steps) are answered here on every OS: `mhw milestone` (#475), `mhw launch-line` (#476), `mhw rite-cadence` (#477),
 // `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
 // `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux), `mhw check`
-// (#494; macOS and Linux; on Windows both run `mhw install-windows --check`, #497), and `mhw add-term`
-// (#488); new in Node:
+// (#494; macOS and Linux; on Windows both run `mhw install-windows --check`, #497); new in Node:
 // `mhw onboard` (#523), and
 // `mhw install-user` (#503, S25; macOS and Linux), the user-layer installer install, update, uninstall,
 // check and status run (it was global/install.sh), `mhw install-admin` (#496, S26; macOS and Linux), the
@@ -22,14 +21,17 @@
 // only (convention 5 of #470; test/deps-graph.test.js holds that).
 // `mhw scan` and `mhw hook` left the CLI at #600 (CLI native baseline PRD, section 5): the outbound check is
 // the fixed-pattern check's hook (src/hooks/pattern-check.js, #588), and CI runs the scan's engine from
-// .github/scripts/outbound-scan.js. Both words are unknown subcommands like any other.
+// .github/scripts/outbound-scan.js. Both words are unknown subcommands like any other. `mhw worklog` (#476)
+// left at #594 (section 5 too): the worklog method skill records the event from each agent harness's own
+// usage data, and the contract stays method/scripts/worklog-contract/event.schema.json.
+// `mhw add-term` left the CLI at #589 (the same section): third-party terms are judged by the model, with no
+// term list and no salt, so `add-term` is an unknown subcommand too.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { enginesNode, nodeLine } from './lib/version.js';
 import { runAbsolute } from './lib/run.js';
 import { main as milestoneMain } from './commands/milestone.js';
-import { main as worklogMain } from './commands/worklog.js';
 import { main as launchLineMain } from './commands/launch-line.js';
 import { main as riteCadenceMain } from './commands/rite-cadence.js';
 import { main as funnelReviewMain } from './commands/funnel-review.js';
@@ -41,7 +43,6 @@ import { main as mcpLaunchMain } from './commands/mcp-launch.js';
 import { main as mcpCheckMain } from './commands/mcp-check.js';
 import { main as pasteWrapperMain, statusLine as pasteStatusLine } from './commands/paste-wrapper.js';
 import { onboardMain } from './commands/docs-baseline.js';
-import { main as addTermMain } from './commands/add-term.js';
 import { main as statusMain } from './commands/status.js';
 import { main as checkMain } from './commands/check.js';
 import { main as lifecycleMain } from './commands/lifecycle.js';
@@ -128,7 +129,6 @@ function printNodeLine(nodeVersion) {
  */
 const MOVED = {
   milestone: milestoneMain, // #475, S04
-  worklog: worklogMain, // #476, S05
   'launch-line': launchLineMain, // #476, S05
   'rite-cadence': riteCadenceMain, // #477, S06
   'funnel-review': funnelReviewMain, // #478, S07
@@ -153,14 +153,6 @@ const MOVED = {
   'paste-wrapper': (argv, env) => {
     const r = pasteWrapperMain(argv, env);
     return typeof r === 'number' ? r : 0;
-  },
-  // #488, S17: add-term. It exits by itself once answered (process.exit); the 0 returned here is replaced then.
-  'add-term': (argv, env) => {
-    addTermMain(argv, env).then((code) => process.exit(code), (e) => {
-      fs.writeSync(2, 'mhw add-term: ' + (e instanceof Error ? e.name : 'Error') + '\n');
-      process.exit(1);
-    });
-    return 0;
   },
   // #523: the onboarding entry point. `mhw docs-baseline check`, `mhw policy check` and `mhw delivery-gate`
   // left the CLI at #592 (ADR-0046): they are the delivery gates Action (actions/delivery-gates/), so each
@@ -204,7 +196,7 @@ function mcpMain(argv, env) {
 export function main(argv, platform, env, opts = {}) {
   // `mhw delivery` (#474) left the CLI at #591 (ADR-0045): GitHub rulesets and the merge-pull-request skill
   // carry the delivery route, so the word is an unknown subcommand like any other; so did `mhw scan` and
-  // `mhw hook` at #600.
+  // `mhw hook` at #600, and `mhw worklog` at #594.
   // own keys only, so `mhw constructor` is forwarded like any unknown word
   if (argv.length && Object.hasOwn(MOVED, argv[0])) return MOVED[argv[0]](argv.slice(1), env);
   if (argv[0] === 'status') {

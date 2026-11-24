@@ -10,8 +10,9 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { parse, stringify, equal, compact, JqNumber } from '../../src/lib/jq-json.js';
-import { merged, unmerged, jqIndexed, pasteGroup, dedupe, stampOf, stampValue, main, OWN_KEY, STAMP_KEY, HOOK_ID, PASTE_ID, OLD_PASTE_ID }
+import { merged, unmerged, jqIndexed, pasteGroup, judgeGroup, dedupe, stampOf, stampValue, main, OWN_KEY, STAMP_KEY, HOOK_ID, PASTE_ID, OLD_PASTE_ID }
   from '../../src/render/settings-merge.js';
+import { JUDGE_ID, JUDGE_PROMPT } from '../../src/render/term-judge.js';
 import { denied, report } from '../../src/render/floor-report.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -487,4 +488,45 @@ test('the prompt hook: from the Python core\'s id or a stale Node one, install l
   // Uninstall straight from the start removes the old and the stale Node entries too.
   const fromStart = /** @type {any} */ (unmerged(start, ['Bash(a:*)']));
   assert.equal(oursIn(fromStart.get('hooks').get('UserPromptSubmit')), 0);
+});
+
+// #589: the third-party term check is a `prompt`-type entry, found by JUDGE_ID in its prompt text.
+test('the term check: one prompt-type group of ours, placed once, kept, re-placed when stale, removed without the flag and by uninstall; a foreign prompt hook stays', () => {
+  const foreign = { type: 'prompt', prompt: 'the owner own check: $ARGUMENTS' };
+  const stale = { type: 'prompt', prompt: JUDGE_ID + '. an older wording $ARGUMENTS', timeout: 30 };
+  const start = obj(JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [foreign] }, { hooks: [stale] }] } }));
+  const judges = (/** @type {any} */ doc) => (doc.get('hooks')?.get('UserPromptSubmit') || []).flatMap((/** @type {any} */ g) => g.get('hooks'))
+    .filter((/** @type {any} */ h) => String(h.get('prompt') ?? '').includes(JUDGE_ID));
+  const once = /** @type {any} */ (merged(start, ['Bash(a:*)'], null, STAMP, { prompt: null, tool: null }, judgeGroup()));
+  assert.equal(judges(once).length, 1, stringify(once));
+  assert.equal(judges(once)[0].get('prompt'), JUDGE_PROMPT);
+  assert.equal(judges(once)[0].get('type'), 'prompt');
+  assert.ok(equal(once.get('hooks').get('UserPromptSubmit').at(-1), judgeGroup()));
+  assert.equal(once.get('hooks').get('UserPromptSubmit')[0].get('hooks')[0].get('prompt'), foreign.prompt, 'a foreign prompt hook stays first');
+  assert.ok(JUDGE_PROMPT.includes('$ARGUMENTS') && JUDGE_PROMPT.startsWith(JUDGE_ID));
+  const twice = merged(once, ['Bash(a:*)'], null, STAMP, { prompt: null, tool: null }, judgeGroup());
+  assert.equal(stringify(twice), stringify(once), 'install again changes nothing');
+  const off = /** @type {any} */ (merged(once, ['Bash(a:*)'], null, STAMP));
+  assert.equal(judges(off).length, 0, 'without the flag the entry of ours is removed');
+  assert.equal(off.get('hooks').get('UserPromptSubmit').length, 1);
+  const back = /** @type {any} */ (unmerged(once, ['Bash(a:*)']));
+  assert.equal(judges(back).length, 0, 'uninstall removes it');
+  assert.equal(back.get('hooks').get('UserPromptSubmit')[0].get('hooks')[0].get('prompt'), foreign.prompt);
+});
+
+test('the command line: --term-judge=on places the term check, and its absence removes it', { skip: !POSIX && 'POSIX only' }, () => {
+  const d = freshDir('judge');
+  const floor = path.join(d, 'floor');
+  fs.writeFileSync(floor, 'Bash(a:*)\n');
+  const settings = path.join(d, 'settings.json');
+  /** @type {string[]} */
+  const out = [];
+  const io = { out: (/** @type {string} */ x) => out.push(x), err: (/** @type {string} */ x) => out.push(x) };
+  const base = ['--phase=merge', '--settings=' + settings, '--floor-claude=' + floor, '--stamp=' + STAMP];
+  assert.equal(main([...base, '--mode=install', '--term-judge=on'], io), 0, out.join(''));
+  assert.deepEqual(JSON.parse(fs.readFileSync(settings, 'utf8')).hooks.UserPromptSubmit, [{ hooks: [{ type: 'prompt', prompt: JUDGE_PROMPT, model: 'claude-haiku-5-5', timeout: 30 }] }]);
+  assert.equal(main([...base, '--mode=check', '--term-judge=on'], io), 0, out.join(''));
+  assert.equal(main([...base, '--mode=check'], io), 1, 'check without the flag sees the entry as drift');
+  assert.equal(main([...base, '--mode=install'], io), 0);
+  assert.equal(JSON.parse(fs.readFileSync(settings, 'utf8')).hooks?.UserPromptSubmit?.length ?? 0, 0);
 });

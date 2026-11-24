@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import * as core from '../../src/lib/clean.js';
 import * as w from '../../src/commands/paste-wrapper.js';
 import { loadPty, PTY_ROOT } from '../../src/lib/pty.js';
-import { SALT, TERM, EMAIL, AWS, ADDRESS } from '../helpers/s16.js';
+import { TERM, EMAIL, AWS, ADDRESS } from '../helpers/s16.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const MHW = path.join(ROOT, 'bin', 'mhw.js');
@@ -57,19 +57,12 @@ function fresh() {
 /** A clipboard.conf and its file store in d. @param {string} d @param {Record<string, string>} [over] */
 function confIn(d, over = {}) {
   fs.mkdirSync(path.join(d, 'lo'), { recursive: true });
-  const lines = ['salt_store=file', 'terms_file=' + path.join(d, 'lo', 'terms'), 'salt_file=' + path.join(d, 'lo', 'salt'),
-    'health_terms_file=' + path.join(d, 'lo', 'terms-health'), 'colleague_terms_file=' + path.join(d, 'lo', 'terms-colleague')];
+  /** @type {string[]} */
+  const lines = []; // #589: no term list and no salt setting any more
   for (const [k, v] of Object.entries(over)) lines.push(k + '=' + v);
   const p = path.join(d, 'clipboard.conf');
   fs.writeFileSync(p, lines.join('\n') + '\n');
   return p;
-}
-
-/** The synthetic term list, salted. @param {string} d */
-function withTerm(d) {
-  fs.mkdirSync(path.join(d, 'lo'), { recursive: true });
-  fs.writeFileSync(path.join(d, 'lo', 'salt'), SALT + '\n');
-  fs.writeFileSync(path.join(d, 'lo', 'terms'), core.TERMS_HEADER + core.termForms(TERM).map((f) => core.termHash(SALT, f)).join('\n') + '\n');
 }
 
 /** An environment with no marker and a throwaway HOME. @param {string} home */
@@ -239,11 +232,11 @@ test('an unreadable settings file stops the wrapper before anything runs', { ski
 
 test('the argument rule and the environment a CLI gets', () => {
   const conf = core.loadConfig(confIn(fresh()));
-  const clean = w.makeCleaner(conf, new Set(), null);
-  assert.deepEqual(w.argsAllowMarker(clean, [], false), [true, []]);
-  assert.deepEqual(w.argsAllowMarker(clean, ['mail ' + EMAIL, AWS], false), [false, ['credential', 'email']]);
-  assert.deepEqual(w.argsAllowMarker(() => { throw new Error('x'); }, ['reply OK'], false), [false, []]);
-  assert.deepEqual(w.argsAllowMarker(clean, ['reply OK'], true), [false, []]);
+  const clean = w.makeCleaner(conf);
+  assert.deepEqual(w.argsAllowMarker(clean, []), [true, []]);
+  assert.deepEqual(w.argsAllowMarker(clean, ['mail ' + EMAIL, AWS]), [false, ['credential', 'email']]);
+  assert.deepEqual(w.argsAllowMarker(() => { throw new Error('x'); }, ['reply OK']), [false, []]);
+  assert.deepEqual(w.argsAllowMarker(clean, ['reply OK']), [true, []]);
   assert.deepEqual(w.childEnv({ A: '1', [w.WRAPPER_MARKER]: 'x', U: undefined }, true), { A: '1', [w.WRAPPER_MARKER]: '1' });
   assert.deepEqual(w.childEnv({ A: '1', [w.WRAPPER_MARKER]: '1' }, false), { A: '1' });
 });
@@ -251,7 +244,7 @@ test('the argument rule and the environment a CLI gets', () => {
 test('a report-only category is forwarded and counted; a paste is cleaned around invalid UTF-8', () => {
   const blocking = core.CATEGORY_ORDER.filter((c) => c !== 'postal-address').join(',');
   const conf = core.loadConfig(confIn(fresh(), { block_categories: blocking, report_categories: 'postal-address' }));
-  const clean = w.makeCleaner(conf, new Set(), null);
+  const clean = w.makeCleaner(conf);
   const f = new w.PasteFilter(clean, 1000, { too_large: '[T]', error: '[E {error}]' });
   const paste = Buffer.concat([S, Buffer.from(ADDRESS), E]);
   assert.deepEqual(f.feed(paste), paste);
@@ -439,7 +432,6 @@ test('live: a paste arrives redacted, typing is byte exact, and the terminal mod
   live(t);
   const d = path.join(fresh(), 'redact');
   const conf = confIn(d);
-  withTerm(d);
   const s = new Session('redact', { conf, dir: d, shell: true });
   await s.ready();
   assert.ok(await s.waitOut('\x1b[?2004h'), 'the mode set by the CLI must reach the terminal');
@@ -454,15 +446,16 @@ test('live: a paste arrives redacted, typing is byte exact, and the terminal mod
   assert.equal(await s.finish(), 0);
   const got = s.received();
   assert.ok(got.subarray(0, typed.length).equals(typed), 'typed bytes changed');
-  const cleaned = Buffer.from('deploy for [REDACTED:employer-client-term] key [REDACTED:credential] mail [REDACTED:email]\rline two');
+  // #589: the term is not matched against a list any more; it reaches the CLI as typed (the model judges it).
+  const cleaned = Buffer.from('deploy for ' + TERM.toUpperCase() + ' key [REDACTED:credential] mail [REDACTED:email]\rline two');
   assert.ok(got.includes(Buffer.concat([S, cleaned, E])), got.toString('latin1'));
   assert.ok(got.includes(Buffer.concat([S, Buffer.from('plain text, no finding'), E])));
-  for (const secret of [TERM.toUpperCase(), AWS, EMAIL]) {
+  for (const secret of [AWS, EMAIL]) {
     assert.ok(!got.includes(secret), 'the CLI received pasted content');
     assert.ok(!s.out.includes(secret), 'the terminal output carries pasted content');
   }
   const text = s.out.toString('latin1');
-  assert.match(text, /1 paste\(s\) cleaned in this session \(employer-client-term, credential, email\)/);
+  assert.match(text, /1 paste\(s\) cleaned in this session \(credential, email\)/);
   assert.match(text, /RC=0/);
   const stty = text.split(/\r?\n/).filter((l) => l.startsWith('gfmt') || /^[0-9a-f]+(:[0-9a-f]+)+$/.test(l.trim()));
   assert.equal(stty.length, 2, text.slice(-400));
@@ -612,18 +605,6 @@ test('live: a report-only paste reaches the CLI unchanged and is summarised', { 
   assert.match(s.out.toString('latin1'), /1 paste\(s\) in this session carried report-only categories \(postal-address\)/);
 });
 
-test('live: a missing salt is said at the start and at the exit', { skip: LIVE }, async (t) => {
-  live(t);
-  const d = path.join(fresh(), 'nosalt');
-  const conf = confIn(d);
-  withTerm(d);
-  fs.rmSync(path.join(d, 'lo', 'salt'));
-  const s = new Session('nosalt', { dir: d, conf });
-  await s.ready();
-  await s.finish();
-  assert.equal(s.out.toString('latin1').split('its salt could not be read').length - 1, 2);
-});
-
 test('live: the wrapper writes no file', { skip: LIVE }, async (t) => {
   live(t);
   const s = new Session('nofile');
@@ -665,7 +646,6 @@ test('live: wrapper-added latency, typed key and pastes (printed; loose bounds)'
   live(t);
   const d = path.join(fresh(), 'lat');
   const conf = confIn(d);
-  withTerm(d);
   const line = 'mail ' + EMAIL + ' and text about ' + TERM + ' ';
   /** @type {Record<string, number>} */
   const results = {};

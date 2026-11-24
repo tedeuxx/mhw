@@ -1,12 +1,14 @@
-// S05 parity (#476, convention 3 of #470): `mhw worklog` and `mhw launch-line` against the deleted
-// method/scripts/worklog.py and launch-line.py, on test/helpers/s05-cases.js.
+// S05 parity (#476, convention 3 of #470): `mhw launch-line` against the deleted
+// method/scripts/launch-line.py, on test/helpers/s05-cases.js. `mhw worklog` was the other half until it
+// left the CLI at #594 (CLI native baseline PRD, section 5); its cases, transcripts and expected
+// differences left with it, and test/method/worklog-skill.test.js holds the worklog skill that replaced it.
 //   golden: bin/mhw.js against the transcripts recorded from the Python (stdout, stderr, exit code), byte
 //           for byte after the case directory is replaced by <D>. Runs on every OS (a case marked posix
 //           needs /etc or prints a native path inside a repr).
 //   live:   where the base revision still holds the Python (until this slice merges) and python3 is on
 //           PATH, the Python and the Node side by side. POSIX only. MHW_UPDATE_GOLDEN=1 rewrites the golden
 //           transcripts from the Python side, never from the Node side.
-//   entry:  ./mhw worklog and ./mhw launch-line forward to bin/mhw.js (POSIX).
+//   entry:  ./mhw launch-line forwards to bin/mhw.js (POSIX).
 // Intended differences are in test/golden/S05/expected-differences.json, each with its reason.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -120,7 +122,7 @@ test('every case has a golden transcript and every expected difference names a c
   }
 });
 
-test('golden: mhw worklog and mhw launch-line match the Python transcripts', { skip: UPDATE && 'MHW_UPDATE_GOLDEN=1' }, (t) => {
+test('golden: mhw launch-line matches the Python transcripts', { skip: UPDATE && 'MHW_UPDATE_GOLDEN=1' }, (t) => {
   const golden = readGolden(SLICE, 'transcripts.json');
   const diffs = [];
   for (const c of CASES) {
@@ -144,7 +146,7 @@ function pythonBase() {
   const dest = fresh();
   if (!extractRevision(ROOT, base, path.join(dest, 'tree'))) return 'base revision ' + base + ' is not readable here';
   const scripts = path.join(dest, 'tree', 'method', 'scripts');
-  if (!fs.existsSync(path.join(scripts, 'worklog.py'))) return 'the base revision no longer holds the Python (this slice has merged)';
+  if (!fs.existsSync(path.join(scripts, 'launch-line.py'))) return 'the base revision no longer holds the Python (this slice has merged)';
   // The golden is the binding oracle, recorded from one CPython (QA on PR #510: another patch release
   // answered "+00:99" differently); any other python3 is not compared, and says so.
   const recorded = readGolden(SLICE, 'recorded-from.json').cpython;
@@ -178,7 +180,7 @@ test('live: the Python and the Node side by side', (t) => {
   assert.deepEqual(diffs, []);
 });
 
-test('./mhw worklog and ./mhw launch-line forward to bin/mhw.js', { skip: !POSIX && './mhw is the POSIX entry' }, () => {
+test('./mhw launch-line forwards to bin/mhw.js', { skip: !POSIX && './mhw is the POSIX entry' }, () => {
   const golden = readGolden(SLICE, 'transcripts.json');
   /** @type {Runner} */
   const entry = (c, args, cwd, env) => {
@@ -186,14 +188,14 @@ test('./mhw worklog and ./mhw launch-line forward to bin/mhw.js', { skip: !POSIX
     return { code: p.status, stdout: p.stdout, stderr: p.stderr };
   };
   const diffs = [];
-  for (const name of ['report-usage-json', 'prepare-handoff-without-next-act', 'block-codex', 'refuse-controls', 'resolve-consumed-alias']) {
+  for (const name of ['block-codex', 'refuse-controls', 'resolve-consumed-alias']) {
     const c = /** @type {Case} */ (CASES.find((k) => k.name === name));
     diffs.push(...differences(name, golden[name], transcript(c, entry)));
   }
   assert.deepEqual(diffs, []);
   // Without node on PATH, ./mhw (a Node file since #495) fails at its #! line and runs nothing.
   if (!fs.existsSync('/usr/bin/node') && !fs.existsSync('/bin/node')) {
-    for (const cmd of ['worklog', 'launch-line']) {
+    for (const cmd of ['launch-line']) {
       const p = spawnSync(path.join(ROOT, 'mhw'), [cmd, '--help'], { env: { PATH: '/usr/bin:/bin' }, encoding: 'utf8' });
       assert.notEqual(p.status, 0);
       assert.equal(p.stdout, '');

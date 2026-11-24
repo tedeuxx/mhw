@@ -433,8 +433,10 @@ describe('method scripts', () => {
     assert.deepEqual(missing, []);
     assert.ok(refs > 0, 'no rendered file points into the scripts directory');
     const planning = read(r.home.p('.claude/skills/sprint-planning/SKILL.md'));
-    // #475, #476: the milestone routes and the worklog are mhw commands; the rite names no installed script.
-    assert.ok(planning.includes('`mhw worklog`'));
+    // #475, #476: the milestone routes are mhw commands; the rite names no installed script. #594: the
+    // worklog is the worklog skill, and `mhw worklog` survives only struck.
+    assert.ok(planning.includes('with the `worklog` skill'));
+    assert.ok(!planning.replace(/~~[^~]*~~/g, '').includes('and `mhw worklog`'));
     assert.ok(!planning.includes(prefix + 'worklog.py'));
     assert.ok(planning.includes('mhw milestone create "<iteration>"'));
     assert.ok(!planning.includes(prefix + 'milestone-'));
