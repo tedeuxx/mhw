@@ -226,8 +226,8 @@
   {
     "case": "install-user-layer",
     "stream": "tree",
-    "pattern": "^\\.local/share/personal-multi-harness-workstation-configuration/pattern-check/src/lib/clean\\.js$",
+    "pattern": "^\\.local/share/personal-multi-harness-workstation-configuration/pattern-check/src/lib/clean\\.js$|^\\.local/share/personal-multi-harness-workstation-configuration/clipboard\\.conf$",
     "whenBaseHas": "src/commands/paste-wrapper.js",
-    "why": "#590: the installed copy of the cleaning core differs only in two comments, which no longer name the removed paste wrapper as a reader of the core and say its notice settings are unread since; no code changed (test/clean/ holds its behaviour). Compared by kind and mode only while the base still ships src/commands/paste-wrapper.js."
+    "why": "#590: the installed copy of the cleaning core differs only in two comments, which no longer name the removed paste wrapper as a reader of the core and say its notice settings are unread since; and the installed clipboard.conf only in the comments of block_categories and report_categories, which no longer say the paste wrapper replaces or forwards a paste. No code and no value changed (test/clean/ holds the core's behaviour). Compared by kind and mode only while the base still ships src/commands/paste-wrapper.js."
   }
 ]
