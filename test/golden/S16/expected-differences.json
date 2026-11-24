@@ -97,5 +97,19 @@
     "base": "float(value): an unparsable value raised ValueError, a traceback and exit 1; digit groups with underscores (1_0) were accepted",
     "head": "the same forms as float() (.5, 1e1, 2., a sign, blanks, inf, nan); an unparsable value is refused in one line, exit 2; 1_0 is refused",
     "why": "PR #521 QA B3: the Node side now takes what Python took, except digit groups, and refuses the rest as it refuses any other bad argument instead of crashing. The snippet passes no --grace; usage goes to stdout again as in Python."
+  },
+  {
+    "case": [
+      "term-and-credential"
+    ],
+    "stream": [
+      "removed"
+    ],
+    "notice_keys": [
+      "notice_wrapper_no_salt"
+    ],
+    "base": "the term cleaner's case, the no-salt notice and the no-salt argument cases",
+    "head": "taken out of both sides of the comparison",
+    "why": "#589 removed mhw add-term, the hashed term lists and their salt: third-party terms are judged by the model, never matched against a list (CLI native baseline PRD, section 5). The paste wrapper matches patterns only, so makeCleaner takes the settings alone, argsAllowMarker no longer has a no-salt input, and the notice_wrapper_no_salt notice is gone. The filter case with the term cleaner, the notice case of that key and every argument case with no_salt true have no object, and test/clipboard/paste-wrapper-golden.test.js takes them out of the golden and of the Node answers alike; every other case is still compared byte for byte."
   }
 ]

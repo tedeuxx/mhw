@@ -21,7 +21,7 @@
         "path": ".claude/settings.json",
         "kind": "file",
         "mode": "644",
-        "data": "sha256:8b5a3e1cc3e72c64b65419d7d936d0e0297e14905143a7ccb51813402a885a84"
+        "data": "sha256:414792cb43c1e185bf7c89d92cf5ea220440be097b6b540afc85f072f72445ca"
       },
       {
         "path": ".claude.json",
@@ -131,7 +131,7 @@
         "path": ".claude/settings.json",
         "kind": "file",
         "mode": "644",
-        "data": "sha256:8b5a3e1cc3e72c64b65419d7d936d0e0297e14905143a7ccb51813402a885a84"
+        "data": "sha256:414792cb43c1e185bf7c89d92cf5ea220440be097b6b540afc85f072f72445ca"
       },
       {
         "path": ".claude.json",
@@ -241,7 +241,7 @@
         "path": ".claude/settings.json.pmhwc-backup",
         "kind": "file",
         "mode": "600",
-        "data": "sha256:8419b12abf84fb59a6b1bba73b0efad5f2d015f4097c5dbf4a4f2efe40c67bdf"
+        "data": "sha256:7e715994c9a058b0c66938e15b45b0817eab0acf3bc8f0eff9b8ae8a20a31a56"
       },
       {
         "path": ".claude.json",

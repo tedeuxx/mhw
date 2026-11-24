@@ -609,41 +609,25 @@ describe('the hooks reader', () => {
     assert.equal(KIRO_HOOK, NAME + '-pattern-check.json');
     assert.equal(OLD_KIRO_HOOK, NAME + '-paste-filter.json');
   });
-  // #488 (PR #536 lens O2): a hashed term list the salt file does not cover is named, never silent.
-  const HASH = 'ab'.repeat(32);
+  // #589: no term list and no salt is read any more; what an earlier install left is named until install
+  // moves it aside, in both views, and never read (only its presence counts).
   const lists = () => path.join(data, 'local-overlay');
-  test('term lists: none, and a covered list, read ok', () => {
-    assert.deepEqual(termListsState(env), [true, 'no term list']);
-    write(path.join(lists(), 'clipboard-terms'), '# header\n' + HASH + '\n');
-    write(path.join(lists(), 'clipboard-salt'), 'cd'.repeat(32) + '\n');
-    assert.deepEqual(termListsState(env), [true, '1 hash(es), salt file present']);
+  test('term lists: none left is ok', () => {
+    assert.deepEqual(termListsState(env), [true, 'none (terms are judged by the model since #589)']);
+    write(path.join(lists(), 'mcp-servers.json'), '{}');
+    assert.equal(termListsState(env)[0], true, 'another file of the local overlay is not a leftover');
   });
-  test('term lists: a list without its salt file is named in both views', () => {
-    write(path.join(lists(), 'clipboard-terms-health'), '# header\n' + HASH + '\n' + 'ef'.repeat(32) + '\n');
-    let [ok, text] = termListsState(env);
-    assert.equal(ok, false);
-    assert.match(text, /clipboard-terms-health holds 2 hash\(es\) and the salt file .* term matching off: re-add with mhw add-term/);
+  test('term lists: a leftover list or salt is named in both views', () => {
+    write(path.join(lists(), 'clipboard-terms-health'), '# header\n' + 'ab'.repeat(32) + '\n');
     write(path.join(lists(), 'clipboard-salt'), 'not a salt\n');
-    [ok] = termListsState(env);
-    assert.equal(ok, false, 'an unreadable salt is the same as none');
-    const fx = facts({ terms: termListsState(env) });
-    assert.ok(st.renderStatus(fx).some((l) => l.startsWith('  term lists       ') && l.includes('term matching off')));
-    assert.match(st.renderSummary(fx, ENV).join('\n'), /protections .* · TERMS .*term matching off: re-add with mhw add-term/);
-  });
-  test('term lists: an .old-salt list is named with its count', () => {
-    write(path.join(lists(), 'clipboard-salt'), 'cd'.repeat(32) + '\n');
-    write(path.join(lists(), 'clipboard-terms.old-salt'), '# header\n' + HASH + '\n');
+    write(path.join(lists(), 'clipboard-terms.old-salt'), '');
     const [ok, text] = termListsState(env);
     assert.equal(ok, false);
-    assert.match(text, /clipboard-terms\.old-salt holds 1 hash\(es\) made with a salt mhw no longer has: .*re-add with mhw add-term, then delete .*clipboard-terms\.old-salt/);
-  });
-  test('term lists: the installed clipboard.conf names the paths', () => {
-    const other = path.join(dir, 'elsewhere');
-    write(path.join(data, 'clipboard.conf'), 'terms_file=' + path.join(other, 't') + '\nsalt_file=' + path.join(other, 's') + '\n');
-    write(path.join(other, 't'), HASH + '\n');
-    assert.equal(termListsState(env)[0], false);
-    write(path.join(other, 's'), 'cd'.repeat(32) + '\n');
-    assert.deepEqual(termListsState(env), [true, '1 hash(es), salt file present']);
+    assert.match(text, /clipboard-salt, .*clipboard-terms-health, .*clipboard-terms\.old-salt: left by an earlier install, no longer read \(#589\); mhw install moves them aside$/);
+    assert.doesNotMatch(text, /hash|re-add|add-term/);
+    const fx = facts({ terms: termListsState(env) });
+    assert.ok(st.renderStatus(fx).some((l) => l.startsWith('  term lists       ') && l.includes('left by an earlier install')));
+    assert.match(st.renderSummary(fx, ENV).join('\n'), /protections .* · TERMS .*left by an earlier install/);
   });
   test('a removed picker guard entry is named; an unreadable file is not read', () => {
     write(path.join(env.HOME, '.claude', 'settings.json'), JSON.stringify(entry('PreToolUse', '"' + path.join(data, GUARD) + '"')));

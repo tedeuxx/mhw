@@ -5,6 +5,9 @@
 // the base revision's paste_wrapper.py with the recorded CPython while the base still holds it;
 // MHW_S16_LIVE_REQUIRED=1 (CI) turns a missing base or interpreter into a failure. MHW_UPDATE_GOLDEN=1
 // rewrites the golden from that live run.
+// #589: the term lists and their salt are removed, so the cases whose object was a term list (the filter case
+// with the term cleaner, the no-salt notice and the no-salt argument cases) are taken out of both sides, by the
+// declared difference "removed" in test/golden/S16/expected-differences.json. Everything else is compared.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -54,14 +57,9 @@ function boom() {
 function nodeAnswers() {
   const work = fresh();
   const filter = CASES.filter.map((c, i) => {
+    if (GONE.filter.has(i)) return null;
     const conf = confIn(path.join(work, 'f' + i), c.conf || {});
-    let terms = new Set();
-    let salt = null;
-    if (c.cleaner === 'term') {
-      terms = new Set(core.termForms(TERM).map((f) => core.termHash(SALT, f)));
-      salt = SALT;
-    }
-    const clean = w.makeCleaner(conf, terms, salt);
+    const clean = w.makeCleaner(conf);
     let now = 0;
     const f = new w.PasteFilter(c.cleaner === 'boom' ? boom : clean, c.max_bytes, { too_large: '[TOO LARGE]', error: '[ERR {error}]' }, () => now);
     /** @type {string[]} */
@@ -74,11 +72,12 @@ function nodeAnswers() {
     return { name: c.name, out, cleaned: f.cleaned, replaced: f.replaced, categories: core.CATEGORY_ORDER.filter((x) => f.categories.has(x)),
       in_paste: f.inPaste, reported_pastes: clean.reportedPastes, reported: [...clean.reported].sort() };
   });
-  const notice = CASES.notice.map((c, i) => w.notice(confIn(path.join(work, 'n' + i), c.conf || {}), c.key, c.values));
+  const notice = CASES.notice.map((c, i) => (GONE.notice.has(i) ? null : w.notice(confIn(path.join(work, 'n' + i), c.conf || {}), c.key, c.values)));
   const args = CASES.args.map((c, i) => {
+    if (GONE.args.has(i)) return null;
     const conf = confIn(path.join(work, 'a' + i), {});
-    const clean = c.boom ? boom : w.makeCleaner(conf, new Set(), null);
-    return w.argsAllowMarker(clean, c.args.map((a) => Buffer.from(a, 'hex').toString('utf8')), c.no_salt);
+    const clean = c.boom ? boom : w.makeCleaner(conf);
+    return w.argsAllowMarker(clean, c.args.map((a) => Buffer.from(a, 'hex').toString('utf8')));
   });
   const constants = {
     HOLD_SECONDS: w.HOLD_SECONDS, HOLD_SEQUENCE_SECONDS: w.HOLD_SEQUENCE_SECONDS, PASTE_IDLE_SECONDS: w.PASTE_IDLE_SECONDS,
@@ -97,6 +96,24 @@ function canon(v) {
 }
 
 const EXPECTED = readGolden('S16', 'expected-differences.json').filter((/** @type {any} */ d) => d.stream.includes('filter'));
+const REMOVED = readGolden('S16', 'expected-differences.json').find((/** @type {any} */ d) => d.stream.includes('removed'));
+/** Positions of the cases #589 removed, in CASES' own lists. */
+const GONE = {
+  filter: new Set(CASES.filter.flatMap((c, i) => (REMOVED.case.includes(c.name) ? [i] : []))),
+  notice: new Set(CASES.notice.flatMap((c, i) => (REMOVED.notice_keys.includes(c.key) ? [i] : []))),
+  args: new Set(CASES.args.flatMap((c, i) => (c.no_salt ? [i] : []))),
+};
+/** An answer set without the removed cases. @param {any} a */
+function kept(a) {
+  const notices = { ...a.constants.notices };
+  for (const k of REMOVED.notice_keys) delete notices[k];
+  return {
+    filter: a.filter.filter((/** @type {any} */ _, /** @type {number} */ i) => !GONE.filter.has(i)),
+    notice: a.notice.filter((/** @type {any} */ _, /** @type {number} */ i) => !GONE.notice.has(i)),
+    args: a.args.filter((/** @type {any} */ _, /** @type {number} */ i) => !GONE.args.has(i)),
+    constants: { ...a.constants, notices },
+  };
+}
 
 /**
  * A head output with each declared difference of its case put back to the base's form (hex in, hex out).
@@ -126,7 +143,17 @@ function diff(golden, node) {
 test('the Node paste filter, notices and argument rule give the answers the Python original recorded', () => {
   const golden = readGolden('S16', 'answers.json');
   assert.equal(golden.filter.length, CASES.filter.length, 'the cases changed: re-record the golden from the base revision');
-  assert.deepEqual(diff(golden, nodeAnswers()), []);
+  assert.deepEqual(diff(kept(golden), kept(nodeAnswers())), []);
+});
+
+test('#589: the removed cases are exactly the term-list ones, and the term cleaner is gone', () => {
+  assert.deepEqual(CASES.filter.filter((_, i) => GONE.filter.has(i)).map((c) => c.cleaner), ['term']);
+  assert.ok(CASES.filter.every((c, i) => GONE.filter.has(i) || c.cleaner !== 'term'));
+  assert.deepEqual([...GONE.notice].map((i) => CASES.notice[i].key), REMOVED.notice_keys);
+  assert.equal(GONE.args.size, CASES.args.filter((c) => c.no_salt).length);
+  for (const k of REMOVED.notice_keys) assert.equal(Object.hasOwn(core.DEFAULTS, k), false, k + ' is still a notice');
+  assert.equal(w.makeCleaner.length, 1);
+  assert.equal(w.argsAllowMarker.length, 2);
 });
 
 /** The base revision's paste_wrapper.py and clipboard_guard.py, or why not. @returns {{ py?: string, dir?: string, why?: string, fail?: boolean }} */
@@ -166,5 +193,5 @@ test('live: the base revision\'s paste_wrapper.py still gives the recorded answe
   const original = JSON.parse(p.stdout);
   if (UPDATE) writeGolden('S16', 'answers.json', original);
   assert.deepEqual(diff(readGolden('S16', 'answers.json'), original), [], 'the golden no longer matches the original');
-  assert.deepEqual(diff(original, nodeAnswers()), []);
+  assert.deepEqual(diff(kept(original), kept(nodeAnswers())), []);
 });

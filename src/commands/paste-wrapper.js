@@ -44,7 +44,6 @@ import os from 'node:os';
 import { spawnSync, execFile } from 'node:child_process';
 import * as core from '../lib/clean.js';
 import { onPath } from '../lib/onpath.js';
-import { readSalt } from '../lib/salt.js';
 import { loadPty, PTY_NAME } from '../lib/pty.js';
 
 export const PASTE_START = Buffer.from('\x1b[200~', 'latin1');
@@ -314,13 +313,12 @@ export class ModeTracker {
 /**
  * The paste cleaner. Only block_categories are replaced. A report-only category (Issue #36) is forwarded
  * unchanged and only counted (reportedPastes, reported), for the session summary; never the text.
+ * Patterns only since #589: the term lists it also matched are gone (third-party terms are judged by the
+ * model, never matched against a list).
  * @param {Record<string, string>} conf
- * @param {Set<string>} terms
- * @param {string | null} salt
- * @param {Record<string, Set<string>>} [termLists]
  * @returns {Cleaner}
  */
-export function makeCleaner(conf, terms, salt, termLists = {}) {
+export function makeCleaner(conf) {
   const wanted = core.blockingSet(conf);
   const report = core.reportOnlySet(conf);
   /** @type {Cleaner} */
@@ -328,7 +326,7 @@ export function makeCleaner(conf, terms, salt, termLists = {}) {
     /** @param {Buffer} payload @returns {[Buffer, string[]]} */
     (payload) => {
       const text = decodeEscaped(payload);
-      const found = core.findSpans(text, terms, salt, termLists);
+      const found = core.findSpans(text);
       const reported = core.categories(found.filter((s) => report.has(s[2])));
       if (reported.length) {
         clean.reportedPastes += 1;
@@ -468,14 +466,13 @@ export function noPasteNotice(conf, key, argv0, home) {
 /**
  * Whether the session may be marked, given the CLI's command-line arguments (PR #90 lens finding). A
  * prompt passed as an argument never crosses the terminal as a paste, so the wrapper cannot clean it. An
- * argument with a finding, or one that cannot be checked (a cleaner error, or a term list whose salt is
- * unreadable), leaves the marker unset, and the prompt hook judges the session. Returns [marked, categories].
+ * argument with a finding, or one that cannot be checked (a cleaner error), leaves the marker unset, and
+ * the prompt hook judges the session. Returns [marked, categories].
  * @param {(payload: Buffer) => [Buffer, string[]]} cleaner
  * @param {string[]} args
- * @param {boolean} noSalt
  * @returns {[boolean, string[]]}
  */
-export function argsAllowMarker(cleaner, args, noSalt) {
+export function argsAllowMarker(cleaner, args) {
   /** @type {Set<string>} */
   const found = new Set();
   for (const a of args) {
@@ -486,7 +483,6 @@ export function argsAllowMarker(cleaner, args, noSalt) {
     }
   }
   if (found.size) return [false, core.CATEGORY_ORDER.filter((c) => found.has(c))];
-  if (args.length && noSalt) return [false, []];
   return [true, []];
 }
 
@@ -531,18 +527,8 @@ export function relay(ptyModule, real, argv0, args, conf, opts) {
   /** @param {string} line */
   const say = (line) => stderr.write(line + '\n');
 
-  const [terms, lists] = core.readTermLists(conf);
-  let salt = null;
-  let noSalt = false;
-  if (terms.size || Object.values(lists).some((h) => h.size)) {
-    salt = readSalt(conf).salt;
-    if (!salt) {
-      noSalt = true;
-      say(notice(conf, 'notice_wrapper_no_salt'));
-    }
-  }
-  const cleaner = makeCleaner(conf, terms, salt, lists);
-  const [marked, argCategories] = argsAllowMarker(cleaner, args, noSalt);
+  const cleaner = makeCleaner(conf);
+  const [marked, argCategories] = argsAllowMarker(cleaner, args);
   cleaner.reportedPastes = 0; // the arguments are not pastes
   cleaner.reported = new Set();
   if (!marked) say(notice(conf, 'notice_wrapper_args_unmarked', { categories: argCategories.join(', ') || '-' }));
@@ -692,7 +678,6 @@ export function relay(ptyModule, real, argv0, args, conf, opts) {
         }));
       }
       if (!mode.ever) say(noPasteNotice(conf, 'notice_no_bracketed_paste', argv0, home));
-      if (noSalt) say(notice(conf, 'notice_wrapper_no_salt'));
       resolve(/** @type {number} */ (status));
     };
 

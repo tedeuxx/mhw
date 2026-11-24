@@ -771,9 +771,11 @@ last bullet.
   here so the scan is not read as covering the publication:** an e-mail or any other cloud connector,
   and any text typed straight into a desktop or web application rather than written to a file first.
   The scan reads only the file; if the typed post differs from it, the difference was never scanned.
-  Employer and client terms are matched only where the owner's term list is readable; otherwise the
+  ~~Employer and client terms are matched only where the owner's term list is readable; otherwise the
   scan prints a NOTE that the category was not checked, and that NOTE is part of what the owner is
-  told. *Held by: an instruction. Nothing observes the post, and nothing compares it with the scanned
+  told.~~ *(Struck 2026-11-24, mhw#589: no term list exists any more.)* The scan matches fixed formats
+  only. **Employer and client terms, colleague names and health data are yours to judge** before the
+  post goes out; no list catches them. *Held by: an instruction. Nothing observes the post, and nothing compares it with the scanned
   file.*
 
 **The drafts are written to a private, ignored location**, because pre-publication copy in a public

@@ -22,7 +22,7 @@ import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
 import { which } from '../helpers/home.js';
 import { extractRevision } from '../helpers/parity.js';
 import { ROOT, recordedPython } from '../helpers/s15.js';
-import { CASES, SECRETS, SALT, NEW_SPANS, TERM, HEALTH_TERM, COLLEAGUE_TERM, VENDOR, CODEX } from './cases.js';
+import { CASES, SECRETS, NEW_SPANS, TERM, HEALTH_TERM, COLLEAGUE_TERM, VENDOR, CODEX } from './cases.js';
 
 const SLICE = 'S15';
 const POSIX = process.platform !== 'win32';
@@ -109,21 +109,6 @@ function play(c, runners) {
       fs.rmSync(at(step.rm));
     } else if (step.chmod) {
       fs.chmodSync(at(step.chmod[0]), step.chmod[1]);
-    } else if (step.terms) {
-      const t = step.terms;
-      const overlay = path.join(data, 'local-overlay');
-      fs.mkdirSync(overlay, { recursive: true });
-      fs.writeFileSync(path.join(data, 'clipboard.conf'), 'salt_store=file\n');
-      if (t.salt) fs.writeFileSync(path.join(overlay, 'clipboard-salt'), SALT + '\n');
-      /** @param {string} name @param {string[] | undefined} words */
-      const list = (name, words) => {
-        if (words === undefined) return;
-        const hashes = words.flatMap((w) => core.termForms(w).map((f) => core.termHash(SALT, f)));
-        fs.writeFileSync(path.join(overlay, name), core.TERMS_HEADER + hashes.map((h) => h + '\n').join(''));
-      };
-      list('clipboard-terms', t.employer);
-      list('clipboard-terms-health', t.health);
-      list('clipboard-terms-colleague', t.colleague);
     } else if (step.conf !== undefined || step.confBytes !== undefined) {
       fs.mkdirSync(data, { recursive: true });
       fs.writeFileSync(path.join(data, 'clipboard.conf'), step.confBytes !== undefined ? Buffer.from(step.confBytes, 'base64') : /** @type {string} */ (step.conf));
@@ -164,6 +149,11 @@ const S17_SCAN = readGolden('S17', 'expected-differences.json').differences.filt
 // `outbound-scan`). The declared replacement is test/golden/S15/expected-differences.json's entry with a
 // "replace" field, applied to both streams of the original's transcripts here.
 const S15_RENAMES = readGolden(SLICE, 'expected-differences.json').differences.filter((/** @type {any} */ d) => d.replace);
+// #589: no term list and no salt exist, so the original's term-list NOTE lines are gone from stdout. The
+// declared pattern is test/golden/S15/expected-differences.json's entry with a "drop" field; every line of
+// the original's stdout that matches it is removed here, and nothing else.
+const S15_DROPS = readGolden(SLICE, 'expected-differences.json').differences.filter((/** @type {any} */ d) => d.drop)
+  .map((/** @type {any} */ d) => new RegExp(d.drop));
 /** @param {Run[]} runs @returns {Run[]} */
 function s17Expected(runs) {
   return runs.map((r) => {
@@ -173,6 +163,7 @@ function s17Expected(runs) {
       stdout = stdout.replaceAll(d.replace.base, d.replace.head);
       stderr = stderr.replaceAll(d.replace.base, d.replace.head);
     }
+    stdout = stdout.split(/(?<=\n)/).filter((l) => !S15_DROPS.some((/** @type {RegExp} */ re) => re.test(l))).join('');
     return { ...r, stdout, stderr };
   });
 }

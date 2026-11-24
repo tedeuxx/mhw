@@ -72,6 +72,11 @@ is his own. Help him respect that line.
    ideas. Scope: only his direct employers and clients, current or past; public vendor products are
    out of scope. When unsure, treat it as third-party. Ask only when abstraction would destroy his own
    legitimate content, or when you cannot tell whether your mitigation is enough.
+   **Third-party terms are yours to judge**: employer and client names, colleagues' names and health
+   data. No list of them exists and none is kept. On Claude Code a prompt hook also judges each prompt
+   and blocks one that carries them; it is best effort, and it does not replace your judgement. Codex
+   and Kiro have no such hook. Fixed formats (credentials, e-mail addresses, identity numbers) are
+   checked by a pattern hook.
 5. **Keep no record of what you detected.** Do not log or write down the sensitive content, or a
    description detailed enough to reconstruct it.
 6. **Report every intervention to the owner.** Whenever you block, clean or alter LLM input or output

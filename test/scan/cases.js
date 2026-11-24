@@ -17,13 +17,12 @@ export const CODEX = J('noreply', '@', 'openai.com');
 export const NEW_FIXTURES = [J('+55 (11) 9', '0000-0001'), J('CEP 01', '000-000'), J('salary ', 'US$', ' 90,000'), J('CID F', '32.1'),
   J('my colleague ', 'Quillo Zyxwer')];
 export const NEW_SPANS = [J('+55 (11) 9', '0000-0001'), J('01', '000-000'), J('US$', ' 90,000'), J('CID F', '32.1'), J('Quillo ', 'Zyxwer')];
-export { SALT } from '../clean/corpus.js';
 
 /**
  * A step: write a file (text or base64 bytes), run git, make a directory or a symlink, remove a file,
- * chmod, set up the term lists, or run mhw scan (args, from a directory relative to the case's base).
+ * chmod, or run the scan (args, from a directory relative to the case's base).
  * @typedef {{ write?: string, text?: string, b64?: string, git?: string[], mkdir?: string, symlink?: [string, string],
- *   rm?: string, chmod?: [string, number], terms?: { employer?: string[], health?: string[], colleague?: string[], salt?: boolean, conf?: string },
+ *   rm?: string, chmod?: [string, number],
  *   conf?: string, confBytes?: string, scan?: string[], cwd?: string, env?: Record<string, string>, outsideGit?: boolean }} Step
  * @typedef {{ name: string, posix?: boolean, bare?: boolean, steps: Step[] }} Case
  */
@@ -106,16 +105,8 @@ export const CASES = [
     { git: ['add', 'sub/inner.txt'] }, { git: ['commit', '-q', '-m', 'inner'] }, { scan: ['SUB/Inner.TXT'] }] },
   { name: 'tracked-symlink-outside-repository', posix: true, steps: [...SETUP, { write: 'outside.txt', text: 'key ' + AWS + '\n' },
     { symlink: ['{BASE}/outside.txt', 'repo/link.txt'] }, { git: ['add', 'link.txt'] }, { git: ['commit', '-q', '-m', 'link'] }, { scan: [] }] },
-  { name: 'note-when-no-term-list', steps: [...SETUP, { scan: ['clean.txt'] }] },
-  { name: 'note-when-term-list-empty', steps: [...SETUP, { terms: { employer: [], salt: true } }, { scan: ['clean.txt'] }] },
-  { name: 'note-when-salt-unreadable', steps: [...SETUP, { terms: { employer: [TERM], salt: false } }, { scan: ['clean.txt'] }] },
-  { name: 'synthetic-term-found-without-a-note', steps: [...SETUP, { terms: { employer: [TERM], health: [HEALTH_TERM], colleague: [COLLEAGUE_TERM], salt: true } },
-    { write: 'repo/memo.txt', text: 'one\nmet the ' + TERM + ' people\n' }, { scan: ['memo.txt'] }] },
   { name: 'new-categories-by-line-category-length', steps: [...SETUP, { write: 'repo/contacts.txt', text: NEW_FIXTURES.map((v) => v + '\n').join('') },
     { scan: ['contacts.txt'] }] },
-  { name: 'note-names-each-private-list', steps: [...SETUP, { terms: { employer: [TERM], salt: true } }, { scan: ['clean.txt'] }] },
-  { name: 'private-list-terms-found', steps: [...SETUP, { terms: { employer: [], health: [HEALTH_TERM], colleague: [COLLEAGUE_TERM], salt: true } },
-    { write: 'repo/notes.txt', text: 'a\n' + HEALTH_TERM.toLowerCase() + ' and ' + COLLEAGUE_TERM.toUpperCase() + '\n' }, { scan: ['notes.txt'] }] },
   { name: 'file-untracked-and-outside-git', steps: [...SETUP, { mkdir: 'scratch' },
     { write: 'scratch/post.txt', text: 'a draft post\n\nwrite to ' + EMAIL + '\nkey ' + AWS + '\n' }, { scan: ['--file={BASE}/scratch/post.txt'] },
     { scan: ['--file=post.txt'], cwd: 'scratch', outsideGit: true }] },

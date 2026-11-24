@@ -1,7 +1,7 @@
-// The S17 parity cases (#488): the prompt hook's decision on every agent harness, its command line, the
-// settings check and add-term's pure half, as data. test/helpers/s17-record.py plays them on
-// clipboard_guard.py (the Python original) and test/golden/S17/answers.json holds what it answered;
-// test/clipboard/hook-golden.test.js plays them on src/commands/hook-prompt.js and add-term.js and compares.
+// The S17 parity cases (#488): the prompt hook's decision on every agent harness, its command line and the
+// settings check, as data. Their golden (test/golden/S17/answers.json), its recorder (s17-record.py) and
+// add-term's half are gone: the prompt hook left with #600, and add-term, the term lists and the salt with
+// #589 (test/golden/S17/expected-differences.json says so). The synthetic fixtures stay for other suites.
 // Every payload is SYNTHETIC and assembled here at run time from pieces, and the payloads travel as hex,
 // so no credential-shaped or personal-data-shaped text sits in a tracked file. The golden stores only what
 // the hook printed: categories, notices and redacted copies.
@@ -183,24 +183,4 @@ export function cliCases() {
     cases.push({ name: 'config-not-utf8/' + harness, args: ['--harness', harness], stdin: dirty, conf: ['salt_store=file', 'x=BADBYTE'] });
   }
   return cases;
-}
-
-/** add-term's pure half: the entered pair, and the list. @returns {Array<{ name: string, first: string, second: string, list: string }>} */
-export function addTermCases() {
-  return [
-    { name: 'term', first: TERM, second: TERM, list: 'employer-client-term' },
-    { name: 'again-no-new', first: TERM, second: TERM, list: 'employer-client-term' },
-    { name: 'one-word', first: 'Quillonx', second: 'Quillonx', list: 'employer-client-term' },
-    { name: 'differ', first: TERM, second: TERM + ' ', list: 'employer-client-term' },
-    { name: 'too-short', first: 'ab', second: 'ab', list: 'employer-client-term' },
-    { name: 'short-words', first: 'a b', second: 'a b', list: 'employer-client-term' },
-    { name: 'three-chars', first: 'a b c', second: 'a b c', list: 'employer-client-term' },
-    { name: 'too-many-words', first: 'a b c d e f g', second: 'a b c d e f g', list: 'employer-client-term' },
-    { name: 'six-words', first: 'aa b c d e f', second: 'aa b c d e f', list: 'employer-client-term' },
-    { name: 'empty', first: '', second: '', list: 'employer-client-term' },
-    { name: 'punctuation-only', first: '--- !!', second: '--- !!', list: 'employer-client-term' },
-    { name: 'accents', first: 'Ünïcødé Tërm', second: 'Ünïcødé Tërm', list: 'employer-client-term' },
-    { name: 'health', first: HEALTH, second: HEALTH, list: 'health' },
-    { name: 'colleague', first: COLLEAGUE, second: COLLEAGUE, list: 'colleague-name' },
-  ];
 }
