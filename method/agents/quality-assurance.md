@@ -1430,6 +1430,21 @@ not.
      diff. **Use a tree diff, never `gh pr view --json files`**, which pages at 100 and would
      classify a large harness diff as non-harness.
 
+     **Run the diff ALONE first, before either selector above, and it must exit 0 (mhw#574):**
+
+     ```
+     git -C <repo> diff --no-renames --name-only origin/<base>...<headRefOid>     # must exit 0, run ALONE
+     ```
+
+     A pipe reports the exit status of `grep`, not of `git`. A diff that fails (an unreadable ref, a
+     `<repo>` the shell mangled, such as an unquoted Windows path whose backslashes a POSIX shell reads
+     as escapes) feeds `grep` nothing, prints nothing, and would read as "no output, hold 2 does not
+     apply". **A non-zero exit of the diff run alone, or the filter exiting 2, means hold 2 APPLIES**,
+     as an unreadable base does above. Quote `<repo>` when you fill it in a shell, and run the
+     selectors in a POSIX shell that has `grep`; a shell without `grep` is the filter failing, not
+     "nothing matched". Measured on `windows-latest` (run 45291560946): with `<repo>` unquoted, `git -C`
+     failed and both selectors printed nothing.
+
      **What this class does NOT decide.** It decides only whether the marker is REQUIRED; it narrows
      neither of your lenses. And because `docs/**` is excluded in the plugin repository, two records
      that machinery reads need no lens marker there: `docs/loop-mode.md` — the mode record

@@ -72,6 +72,26 @@ function repo(label, files) {
 /** Fill the brief's placeholders. @param {string} cmd @param {string} dir @param {string} head */
 const fill = (cmd, dir, head) => cmd.replaceAll('<repo>', dir).replaceAll('<headRefOid>', head).replaceAll('<base>', BASE);
 
+const POSIX = process.platform !== 'win32';
+/** The diff line the brief tells the gate to run alone before either selector (mhw#574, Windows run 45291560946). */
+const ALONE = 'git -C <repo> diff --no-renames --name-only origin/<base>...<headRefOid>     # must exit 0, run ALONE';
+
+/**
+ * Run a class selector of the brief through sh, as the brief prescribes: first its diff ALONE, which must
+ * exit 0, then the whole pipe, whose filter must exit 0 or 1. <repo> is single-quoted for sh: unquoted, a
+ * Windows path's backslashes are shell escapes, `git -C` reads another directory and fails, and the pipe
+ * still exits 1 with no output, so "owes nothing" passed for a diff that never ran (the Windows red).
+ * @param {string} sel @param {string} dir @param {string} head
+ */
+function selects(sel, dir, head) {
+  const quoted = "'" + dir.replaceAll("'", "'\\''") + "'";
+  const alone = spawnSync('sh', ['-c', fill(ALONE.replace(/\s+#.*$/, ''), quoted, head)], { encoding: 'utf8', env: ENV });
+  assert.equal(alone.status, 0, 'the diff run alone must exit 0:\n' + alone.stderr);
+  const p = spawnSync('sh', ['-c', fill(sel, quoted, head)], { encoding: 'utf8', env: ENV });
+  assert.ok(p.status === 0 || p.status === 1, 'the filter must exit 0 or 1:\n' + p.stderr);
+  return p.stdout;
+}
+
 /** Run one `ls-tree` call of the brief against `r`. @param {string} call @param {{dir: string}} r @param {string} head */
 function run(call, r, head) {
   const words = fill(call, r.dir, head).split(/\s+/);
@@ -139,39 +159,39 @@ describe("hold 2 compares against the PR's own base (mhw#574)", () => {
     for (const l of mb) assert.ok(l.startsWith('git -C <repo> merge-base --all origin/<base> '), l);
   });
 
+  test('the brief runs each selector\'s diff alone first, and a failed diff applies the hold', () => {
+    assert.ok(briefLines().includes(ALONE), 'the owed-decision selectors state their diff run ALONE:\n' + ALONE);
+    const brief = fs.readFileSync(BRIEF, 'utf8');
+    assert.ok(brief.includes('**A non-zero exit of the diff run alone, or the filter exiting 2, means hold 2 APPLIES**'));
+  });
+
   test("a consumer slice into an integration branch owes nothing for the branch's own harness paths", () => {
     // main is behind the integration branch by a workflow change; the slice changes application code only.
-    const dir = tempDir('hold2-cbase');
+    const dir = tempDir(POSIX ? 'hold2-c\\base' : 'hold2-cbase');
     assert.equal(git(['init', '-q', '-b', 'main', dir]).status, 0);
     const m = commit(dir, ['apps/fed/src/main.ts', 'AGENTS.md'], 'seed');
     assert.equal(git(['-C', dir, 'update-ref', 'refs/remotes/origin/main', m]).status, 0);
     const rc = commit(dir, ['.github/workflows/app.yml'], 'rc');
     assert.equal(git(['-C', dir, 'update-ref', 'refs/remotes/origin/' + BASE, rc]).status, 0);
     const head = commit(dir, ['apps/fed/src/page.ts'], 'slice');
-    const p = spawnSync('sh', ['-c', fill(consumerSelector(), dir, head)], { encoding: 'utf8', env: ENV });
-    assert.ok(p.status === 0 || p.status === 1, p.stderr);
-    assert.equal(p.stdout, '', 'an application-only slice owes no marker; got:\n' + p.stdout);
+    assert.equal(selects(consumerSelector(), dir, head), '', 'an application-only slice owes no marker');
     // Calibration: the same selector over the slice's own workflow change does print it.
     const head2 = commit(dir, ['.github/workflows/slice.yml'], 'slice2');
-    const q = spawnSync('sh', ['-c', fill(consumerSelector(), dir, head2)], { encoding: 'utf8', env: ENV });
-    assert.equal(q.stdout.trim(), '.github/workflows/slice.yml');
+    assert.equal(selects(consumerSelector(), dir, head2).trim(), '.github/workflows/slice.yml');
   });
 
   test("a slice into an integration branch owes nothing for the branch's own unreleased paths", () => {
     // main is behind rc/next by a src/ change; the slice, cut from rc/next, changes docs only.
-    const dir = tempDir('hold2-base');
+    const dir = tempDir(POSIX ? 'hold2-b\\ase' : 'hold2-base');
     assert.equal(git(['init', '-q', '-b', 'main', dir]).status, 0);
     const m = commit(dir, ['method/agents/quality-assurance.md', 'README.md'], 'seed');
     assert.equal(git(['-C', dir, 'update-ref', 'refs/remotes/origin/main', m]).status, 0);
     const rc = commit(dir, ['src/unreleased.js'], 'rc');
     assert.equal(git(['-C', dir, 'update-ref', 'refs/remotes/origin/' + BASE, rc]).status, 0);
     const head = commit(dir, ['docs/note.md'], 'slice');
-    const p = spawnSync('sh', ['-c', fill(methodSelector(), dir, head)], { encoding: 'utf8', env: ENV });
-    assert.ok(p.status === 0 || p.status === 1, p.stderr);
-    assert.equal(p.stdout, '', 'a docs-only slice owes no marker; got:\n' + p.stdout);
+    assert.equal(selects(methodSelector(), dir, head), '', 'a docs-only slice owes no marker');
     // Calibration: the same selector over the slice's own src/ change does print it.
     const head2 = commit(dir, ['src/slice.js'], 'slice2');
-    const q = spawnSync('sh', ['-c', fill(methodSelector(), dir, head2)], { encoding: 'utf8', env: ENV });
-    assert.equal(q.stdout.trim(), 'src/slice.js');
+    assert.equal(selects(methodSelector(), dir, head2).trim(), 'src/slice.js');
   });
 });
