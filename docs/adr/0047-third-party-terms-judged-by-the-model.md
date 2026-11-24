@@ -1,8 +1,9 @@
 # ADR-0047: Third-party terms are judged by the model; no term list, no salt, no `mhw add-term`
 
-- **Status:** proposed (the direction is the owner's ruling in the
+- **Status:** ~~proposed~~ accepted 2026-11-24, ratified by the owner
+  ([«Ratifico»](https://github.com/tedeuxx/mhw/issues/589#issuecomment-7132828476)) (the direction is the owner's ruling in the
   [CLI native baseline PRD](../mhw-product-requirements-document-cli-native-baseline.md), sections 5 and 6;
-  the mechanism below is the agents', for his ratification at the release candidate)
+  the mechanism below is the agents'~~, for his ratification at the release candidate~~)
 - **Date:** 2026-11-24
 - **Deciders:** the owner (written by agents-lead)
 - **Supersedes:** the term part of [ADR-0033](0033-paste-cleaning-wrapper-primary-hook-safety-net.md):

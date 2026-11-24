@@ -454,7 +454,7 @@ his ratification at the release candidate. The paste wrapper stays until slice 4
   reference machine, and not measured in a live session of any harness. Codex asks to trust the changed
   hooks again; that is the owner's act (`/hooks`).
 
-## Amendment 2026-11-24: the term part is superseded by ADR-0047 ([#589](https://github.com/tedeuxx/mhw/issues/589), proposed)
+## Amendment 2026-11-24: the term part is superseded by ADR-0047 ([#589](https://github.com/tedeuxx/mhw/issues/589), ~~proposed~~ accepted 2026-11-24)
 
 Status of the record unchanged (accepted) for the paste wrapper, which slice 4
 ([#590](https://github.com/tedeuxx/mhw/issues/590)) removes. **The term part of this record is superseded

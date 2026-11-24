@@ -1,6 +1,7 @@
 # ADR-0045: The delivery route on GitHub rulesets and a skill; the review verdicts as commit statuses
 
-- **Status:** proposed (agent-written, awaiting the owner's ratification). The route itself is the
+- **Status:** ~~proposed (agent-written, awaiting the owner's ratification)~~ accepted 2026-11-24, ratified by
+  the owner ([«Ratifico»](https://github.com/tedeuxx/mhw/issues/591#issuecomment-7133422761)). The route itself is the
   owner's choice in the CLI native baseline review of 2026-11-23 (*"GitHub + skill"*); the verdict
   mechanism and its trust model are the implementing agent's design, settling open question 3 of that
   requirements document.
